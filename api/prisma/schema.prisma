@@ -1,0 +1,66 @@
+// The API uses the SAME database as the indexer; this schema is a read-only
+// view over those tables. We point Prisma at the same DATABASE_URL and
+// generate the client. We do not own these tables — they are managed by
+// the indexer's migrations.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model WrapEvent {
+  id          String   @id
+  txHash      String   @unique
+  ledger      BigInt
+  chainId     Int
+  sourceAddr  String
+  to          String
+  amount      BigInt
+  salt        String
+  createdAt   DateTime
+}
+
+model UnwrapEvent {
+  id          String   @id
+  txHash      String   @unique
+  ledger      BigInt
+  user        String
+  amount      BigInt
+  chainId     Int
+  sourceAddr  String
+  nonce       String
+  released    Boolean
+  createdAt   DateTime
+}
+
+model LendingEvent {
+  id        String   @id
+  txHash    String
+  logIndex  Int
+  type      String
+  user      String
+  asset     String
+  amount    BigInt
+  createdAt DateTime
+
+  @@unique([txHash, logIndex])
+}
+
+model BridgeEvent {
+  id        String   @id
+  chain     String
+  txHash    String
+  logIndex  Int
+  type      String
+  sender    String
+  token     String
+  amount    BigInt
+  stellarDest String?
+  salt      String?
+  createdAt DateTime
+
+  @@unique([chain, txHash, logIndex])
+}

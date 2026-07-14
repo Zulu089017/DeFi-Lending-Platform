@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["network", "stellar", "evm", "api"],
+  "properties": {
+    "network": { "type": "string" },
+    "stellar": {
+      "type": "object",
+      "required": ["rpc", "networkPassphrase", "contracts"],
+      "properties": {
+        "rpc": { "type": "string" },
+        "networkPassphrase": { "type": "string" },
+        "contracts": {
+          "type": "object",
+          "required": ["wrapped_asset", "oracle", "collateral_vault", "lending_pool", "liquidation", "lending_controller"]
+        }
+      }
+    },
+    "evm": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["bridge"],
+        "properties": { "bridge": { "type": "string" } }
+      }
+    },
+    "api": { "type": "string" }
+  }
+}

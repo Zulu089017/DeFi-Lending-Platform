@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cursor {
+  chain       String   @id
+  block       BigInt   @default(0)
+  pagingToken String?
+  updatedAt   DateTime @updatedAt
+}
+
+model SourceEvent {
+  id           String   @id @default(cuid())
+  chain        String
+  txHash       String
+  logIndex     Int
+  blockNumber  BigInt
+  sender       String
+  token        String
+  amount       BigInt
+  stellarDest  String
+  salt         String
+  nonce        BigInt
+  createdAt    DateTime @default(now())
+
+  @@unique([chain, txHash, logIndex])
+  @@index([chain, blockNumber])
+}
+
+model MintRequest {
+  id              String   @id @default(cuid())
+  chain           String
+  sourceTx        String
+  sourceLogIndex  Int
+  sourceAddress   String
+  amount          BigInt
+  to              String
+  salt            String
+  status          String   @default("pending") // pending | minted | failed
+  stellarTxHash   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([sourceTx, sourceLogIndex])
+  @@index([status])
+}
+
+model UnwrapEvent {
+  id            String   @id @default(cuid())
+  chain         String
+  txHash        String   @unique
+  user          String
+  amount        BigInt
+  sourceChain   String
+  sourceAddr    String
+  nonce         String
+  released      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+}
+
+model Attestation {
+  id          String   @id @default(cuid())
+  sourceTx    String
+  salt        String
+  payload     String
+  signature   String
+  signer      String
+  createdAt   DateTime @default(now())
+}

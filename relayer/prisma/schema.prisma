@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model RelayerJob {
+  id            String   @id @default(cuid())
+  chain         String
+  signedTxXdr   String?
+  rawTx         String?
+  status        String   @default("pending")
+  attempts      Int      @default(0)
+  lastError     String?
+  submittedHash String?
+  createdAt     DateTime @default(now())
+  submittedAt   DateTime?
+
+  @@index([status, createdAt])
+}

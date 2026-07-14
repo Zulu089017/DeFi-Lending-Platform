@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: relayer, namespace: openlend }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: relayer } }
+  template:
+    metadata: { labels: { app: relayer } }
+    spec:
+      containers:
+        - name: relayer
+          image: openlend/relayer:latest
+          envFrom: [{ secretRef: { name: bridge-env } }]
+          resources:
+            requests: { cpu: "200m", memory: "256Mi" }
+            limits:   { cpu: "1",    memory: "1Gi"  }

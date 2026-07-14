@@ -1,0 +1,21 @@
+{
+  "$schema": "./manifest.schema.json",
+  "network": "testnet",
+  "stellar": {
+    "rpc": "https://horizon-testnet.stellar.org",
+    "networkPassphrase": "Test SDF Network ; September 2015",
+    "contracts": {
+      "wrapped_asset":      "C...",
+      "oracle":             "C...",
+      "collateral_vault":   "C...",
+      "lending_pool":       "C...",
+      "liquidation":        "C...",
+      "lending_controller": "C..."
+    }
+  },
+  "evm": {
+    "ethereum": { "bridge": "0x0000000000000000000000000000000000000000" },
+    "polygon":  { "bridge": "0x0000000000000000000000000000000000000000" }
+  },
+  "api": "https://api.openlend.xyz"
+}

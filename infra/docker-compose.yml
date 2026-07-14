@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: openlend
+      POSTGRES_PASSWORD: openlend
+      POSTGRES_DB: openlend
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openlend"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  bridge:
+    build: ../bridge
+    env_file: ../bridge/.env
+    environment:
+      DATABASE_URL: postgresql://openlend:openlend@postgres:5432/bridge
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  relayer:
+    build: ../relayer
+    env_file: ../relayer/.env
+    environment:
+      DATABASE_URL: postgresql://openlend:openlend@postgres:5432/relayer
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  indexer:
+    build: ../indexer
+    env_file: ../indexer/.env
+    environment:
+      DATABASE_URL: postgresql://openlend:openlend@postgres:5432/openlend
+    ports: ["4200:4200"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  api:
+    build: ../api
+    env_file: ../api/.env
+    environment:
+      DATABASE_URL: postgresql://openlend:openlend@postgres:5432/openlend
+    ports: ["4000:4000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  frontend:
+    build: ../frontend
+    env_file: ../frontend/.env.local
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    ports: ["3000:3000"]
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:

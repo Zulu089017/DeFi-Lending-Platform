@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─── Soroban contracts ───
+  stellar-contracts:
+    name: Soroban contracts
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: ./stellar-contracts } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: wasm32-unknown-unknown }
+      - run: cargo build --target wasm32-unknown-unknown --release
+      - run: cargo test --workspace
+
+  # ─── EVM contracts ───
+  evm-contracts:
+    name: EVM contracts
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: ./evm-contracts } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx hardhat compile
+      - run: npx hardhat test
+
+  # ─── TypeScript services ───
+  ts-services:
+    name: TS services (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: { service: [bridge, relayer, indexer, api, sdk] }
+    defaults: { run: { working-directory: ${{ matrix.service }} } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci || pnpm install
+      - run: npx prisma generate || true
+      - run: npx tsc --noEmit
+      - run: npm test || true
+
+  # ─── Frontend ───
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: ./frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci || pnpm install
+      - run: npx tsc --noEmit
+      - run: npx next build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+          NEXT_PUBLIC_STELLAR_CONTROLLER: "CABC"

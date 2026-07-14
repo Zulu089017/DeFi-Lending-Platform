@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: frontend, namespace: openlend }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: frontend } }
+  template:
+    metadata: { labels: { app: frontend } }
+    spec:
+      containers:
+        - name: frontend
+          image: openlend/dashboard:latest
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: https://api.openlend.xyz
+            - name: NEXT_PUBLIC_STELLAR_RPC
+              value: https://horizon.stellar.org
+            - name: NEXT_PUBLIC_STELLAR_CONTROLLER
+              value: "C..."
+          ports: [{ containerPort: 3000 }]
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: frontend, namespace: openlend }
+spec:
+  selector: { app: frontend }
+  ports: [{ port: 80, targetPort: 3000 }]

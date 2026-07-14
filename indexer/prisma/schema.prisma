@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cursor {
+  chain       String   @id
+  block       BigInt   @default(0)
+  pagingToken String?
+  updatedAt   DateTime @updatedAt
+}
+
+model WrapEvent {
+  id          String   @id @default(cuid())
+  txHash      String   @unique
+  ledger      BigInt
+  chainId     Int
+  sourceAddr  String
+  to          String
+  amount      BigInt
+  salt        String
+  createdAt   DateTime @default(now())
+}
+
+model UnwrapEvent {
+  id          String   @id @default(cuid())
+  txHash      String   @unique
+  ledger      BigInt
+  user        String
+  amount      BigInt
+  chainId     Int
+  sourceAddr  String
+  nonce       String
+  released    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model WTokenEvent {
+  id        String   @id @default(cuid())
+  txHash    String
+  logIndex  Int
+  type      String // mint | burn
+  owner     String
+  amount    BigInt
+  createdAt DateTime @default(now())
+
+  @@unique([txHash, logIndex])
+}
+
+model LendingEvent {
+  id        String   @id @default(cuid())
+  txHash    String
+  logIndex  Int
+  type      String // supply | borrow | repay | withdraw | liquidate
+  user      String
+  asset     String
+  amount    BigInt
+  createdAt DateTime @default(now())
+
+  @@unique([txHash, logIndex])
+}
+
+model BridgeEvent {
+  id        String   @id @default(cuid())
+  chain     String
+  txHash    String
+  logIndex  Int
+  type      String // locked | burned | released
+  sender    String
+  token     String
+  amount    BigInt
+  stellarDest String?
+  salt      String?
+  createdAt DateTime @default(now())
+
+  @@unique([chain, txHash, logIndex])
+}

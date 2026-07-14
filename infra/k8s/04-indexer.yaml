@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: indexer, namespace: openlend }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: indexer } }
+  template:
+    metadata: { labels: { app: indexer } }
+    spec:
+      containers:
+        - name: indexer
+          image: openlend/indexer:latest
+          env:
+            - name: DATABASE_URL
+              value: postgresql://openlend:changeme@postgres:5432/openlend
+            - name: STELLAR_RPC
+              value: https://horizon.stellar.org
+            - name: STELLAR_CONTROLLER
+              value: "C..."
+            - name: ETHEREUM_RPC
+              value: https://eth.llamarpc.com
+            - name: ETHEREUM_BRIDGE
+              value: "0x0000000000000000000000000000000000000000"
+          ports: [{ containerPort: 4200 }]
+          resources:
+            requests: { cpu: "300m", memory: "512Mi" }
+            limits:   { cpu: "2",    memory: "2Gi"   }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: indexer, namespace: openlend }
+spec:
+  selector: { app: indexer }
+  ports: [{ port: 4200, targetPort: 4200 }]

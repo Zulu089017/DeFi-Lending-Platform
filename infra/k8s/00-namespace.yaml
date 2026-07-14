@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openlend
+  labels:
+    name: openlend
+    app.kubernetes.io/part-of: openlend

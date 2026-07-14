@@ -1,0 +1,57 @@
+# ────── Node / JS / TS ──────
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+out/
+coverage/
+*.tsbuildinfo
+.pnpm-store/
+
+# ────── Rust / Soroban ──────
+target/
+Cargo.lock
+**/*.rs.bk
+*.wasm
+.soroban/
+
+# ────── Solidity / Hardhat ──────
+artifacts/
+cache/
+typechain-types/
+.openzeppelin/
+
+# ────── Environment / Secrets ──────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# ────── Logs / OS ──────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ────── Test / Coverage ──────
+coverage/
+.nyc_output/
+lcov.info
+
+# ────── Docker / K8s ──────
+infra/.volumes/
+infra/data/
+*.pid
+
+# ────── DB dumps ──────
+*.sql.gz
+*.dump
