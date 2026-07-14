@@ -40,6 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dep-tree issue is resolved; see `BUILD_ENV_NOTES.md`.
 - Expanded EVM `Bridge.test.ts` with release, threshold, and pause tests.
 - Expanded `sdk` tests with config, supply, and chain-id coverage.
+- **API integration test suite** (`api/`): vitest + testcontainers
+  Postgres 16-alpine. 23 tests across 3 files cover `/v1/markets` and
+  `/v1/markets/:asset` (6 tests — empty, kinked-rate pre/post 0.8,
+  repay subtraction, single-asset, no-events, URL-decoded asset),
+  `/v1/positions/:user` and `/v1/health-factor/:user` (8 tests — empty,
+  multi-asset, repay/withdraw subtraction, cross-user isolation, all
+  3 hf bands + underflow guard), and `/v1/quote/wrap` and
+  `/v1/quote/unwrap` (6 tests — valid, all enum chains, missing fields,
+  invalid chain). One testcontainer per suite (~10s startup) with
+  `prisma db push` to materialise the schema. `Docker` is required.
+  See `api/README.md` → “Testing”.
 
 ### Changed
 - `.github/workflows/ci.yml` pins `dtolnay/rust-toolchain@1.81.0` in
@@ -57,8 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `@openzeppelin/hardhat-upgrades@^3.9.0` dev dep + `evmVersion: "cancun"`
   in `hardhat.config.ts` (OZ 5.x's `Bytes.sol` uses the `mcopy` opcode,
   EIP-5656 in the Cancun upgrade).
-
-### Changed
 - `evm-contracts/contracts/Bridge.sol` now inherits OZ 5.x's
   `ReentrancyGuard` (ERC-7201 namespaced storage) in place of the
   removed `ReentrancyGuardUpgradeable`. The new guard is
@@ -76,6 +85,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   replay test that forges sigs against a fake bridge address and
   confirms the on-chain EIP-712 wrapping reverts with
   `Bridge__NotAttester`.
+- `api/src/index.ts` now exports a `buildApp({ corsOrigin?, logger? })`
+  factory that returns the configured Fastify instance without calling
+  `.listen()`, so the integration test suite can import it in-process
+  and use `app.inject()` instead of a real port. The production
+  `main()` is now guarded with `if (import.meta.main)` so it only runs
+  when the file is the process entrypoint (an earlier
+  `fileURLToPath(...).href` pattern was a bug — it was always
+  `undefined` and `main()` was dead code).
+- `api/package.json` swaps the phantom `fastify-cors@^9.0.1` (which
+  does not exist on the registry) for the official scoped
+  `@fastify/cors@^9.0.1`. Also pins `testcontainers` and
+  `@testcontainers/postgresql` to `^10.13.0` to avoid a 10/12
+  major-version mismatch, adds the `prisma@^5.16.1` CLI to match
+  `@prisma/client`, and removes the now-dead `@types/cors`.
 
 ## [0.1.0] — 2026-01-15
 
