@@ -30,7 +30,11 @@ pnpm dev
 Integration tests use [Vitest](https://vitest.dev/) + [testcontainers](https://node.testcontainers.org/) to spin up a real Postgres 16 in Docker and exercise every JSON route end-to-end via Fastify's in-process `app.inject()`. **Docker is required** — the suite will fail fast with a clear error if `docker info` doesn't succeed.
 
 ```bash
-# one-time
+# one-time (--legacy-peer-deps is required: `prisma@^5.16.1` and
+# `testcontainers@^10.13.0` declare peer ranges that conflict with
+# the workspace's resolved versions of `@types/node` and
+# `@nomicfoundation/hardhat-toolbox`; the runtime is fine, only the
+# strict resolver refuses)
 npm install --legacy-peer-deps
 
 # run the suite (23 tests, ~10s on a warm cache)
