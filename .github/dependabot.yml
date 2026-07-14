@@ -1,0 +1,70 @@
+# Dependabot configuration for OpenLend
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+
+updates:
+  # Soroban (Rust) workspace
+  - package-ecosystem: "cargo"
+    directory: "/stellar-contracts"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      soroban:
+        patterns: ["soroban-sdk*", "stellar-asset-sdk*", "soroban-token-sdk*"]
+    commit-message:
+      prefix: "deps(stellar)"
+    open-pull-requests-limit: 5
+
+  # Off-chain services + frontend (npm workspaces live at the root)
+  - package-ecosystem: "npm"
+    directory: "/api"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "deps(api)" }
+    open-pull-requests-limit: 5
+  - package-ecosystem: "npm"
+    directory: "/bridge"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "deps(bridge)" }
+    open-pull-requests-limit: 5
+  - package-ecosystem: "npm"
+    directory: "/indexer"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "deps(indexer)" }
+    open-pull-requests-limit: 5
+  - package-ecosystem: "npm"
+    directory: "/relayer"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "deps(relayer)" }
+    open-pull-requests-limit: 5
+  - package-ecosystem: "npm"
+    directory: "/sdk"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "deps(sdk)" }
+    open-pull-requests-limit: 5
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule: { interval: "weekly", day: "monday" }
+    groups:
+      next:
+        patterns: ["next", "eslint-config-next"]
+    commit-message: { prefix: "deps(frontend)" }
+    open-pull-requests-limit: 5
+
+  # EVM contracts
+  - package-ecosystem: "npm"
+    directory: "/evm-contracts"
+    schedule: { interval: "weekly", day: "monday" }
+    groups:
+      openzeppelin:
+        patterns: ["@openzeppelin/*"]
+    commit-message: { prefix: "deps(evm)" }
+    open-pull-requests-limit: 5
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "ci" }
+    open-pull-requests-limit: 3

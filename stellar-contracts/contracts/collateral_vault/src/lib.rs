@@ -207,4 +207,82 @@ mod tests {
         assert_eq!(vault.position(&a, &asset), 700);
         assert_eq!(vault.position(&b, &asset), 300);
     }
+
+    // ──────────────────────── INVARIANT TESTS (V-*) ────────────────────────
+    //
+    // UNVERIFIED: `cargo test` is blocked by a `soroban-sdk 21.x` dep-tree
+    // split. See `../../BUILD_ENV_NOTES.md`. Tests are static-reviewed as
+    // well-formed against the existing test patterns in this module.
+
+    /// **V-1:** `total_by_asset(a) == sum over users of position(u, a)`.
+    #[test]
+    fn invariant_V1_total_equals_sum_of_positions() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let op = Address::random(&env);
+        let a = Address::random(&env);
+        let b = Address::random(&env);
+        let c = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        vault.initialize(&admin);
+        vault.add_operator(&op);
+        vault.deposit(&op, &a, &asset, &400);
+        vault.deposit(&op, &b, &asset, &600);
+        vault.deposit(&op, &c, &asset, &1_000);
+        let total = vault.total_by_asset(&asset);
+        let sum = vault.position(&a, &asset)
+            + vault.position(&b, &asset)
+            + vault.position(&c, &asset);
+        assert_eq!(total, sum, "V-1 violated: total != sum(positions)");
+    }
+
+    /// **V-2:** `withdraw` cannot reduce a position below zero.
+    #[test]
+    #[should_panic]
+    fn invariant_V2_withdraw_rejects_overdraw() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let op = Address::random(&env);
+        let user = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        vault.initialize(&admin);
+        vault.add_operator(&op);
+        vault.deposit(&op, &user, &asset, &100);
+        vault.withdraw(&op, &user, &asset, &101);
+    }
+
+    /// **V-3:** Only an operator may call `deposit`/`withdraw`/`seize`.
+    #[test]
+    #[should_panic]
+    fn invariant_V3_non_operator_cannot_deposit() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let op = Address::random(&env);
+        let user = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        vault.initialize(&admin);
+        vault.add_operator(&op);
+        // `op` is NOT the registered operator; the call should panic.
+        let stranger_op = Address::random(&env);
+        vault.deposit(&stranger_op, &user, &asset, &100);
+    }
+
+    /// **V-5:** `set_liq_threshold` rejects bps > 10_000.
+    #[test]
+    #[should_panic]
+    fn invariant_V5_liq_threshold_bps_bounded() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        vault.initialize(&admin);
+        vault.set_liq_threshold(&asset, &10_001u32);
+    }
 }

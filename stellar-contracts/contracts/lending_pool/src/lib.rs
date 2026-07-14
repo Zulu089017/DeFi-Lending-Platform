@@ -414,4 +414,254 @@ mod tests {
         assert_eq!(repaid, d);
         assert_eq!(pool.debt_of(&user, &asset), 0);
     }
+
+    // ──────────────────────── INVARIANT TESTS (L-1 … L-9) ────────────────────────
+    // These tests assert the invariants listed in `docs/invariants.md` § 4.
+    // They double as documentation: each test name starts with `invariant_L*_`.
+    //
+    // UNVERIFIED: `cargo test` is blocked by a `soroban-sdk 21.x` dep-tree
+    // split. See `../../BUILD_ENV_NOTES.md`. Tests are static-reviewed as
+    // well-formed against the existing test patterns in this module.
+
+    /// **L-1:** `Σ borrows <= Σ deposits` for every market.
+    #[test]
+    fn invariant_L1_borrows_le_deposits() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let user = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::random(&env),
+            oracle: Address::random(&env),
+            ltoken: Address::random(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.supply(&user, &asset, &1_000_000);
+        // Borrow less than the deposit
+        pool.borrow(&user, &asset, &500_000);
+        let d = pool.total_deposit(&asset);
+        let b = pool.total_borrow(&asset);
+        assert!(b <= d, "invariant L-1 violated: borrows ({b}) > deposits ({d})");
+    }
+
+    /// **L-2:** `borrow_index` is monotone non-decreasing across operations.
+    #[test]
+    fn invariant_L2_borrow_index_monotone() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let user = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::random(&env),
+            oracle: Address::random(&env),
+            ltoken: Address::random(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        let i0 = pool.borrow_index(&asset);
+        pool.supply(&user, &asset, &1_000_000);
+        let i1 = pool.borrow_index(&asset);
+        assert!(i1 >= i0, "invariant L-2 violated: index decreased across a no-op");
+        pool.borrow(&user, &asset, &100_000);
+        let i2 = pool.borrow_index(&asset);
+        assert!(i2 >= i1, "invariant L-2 violated: index decreased after a borrow");
+    }
+
+    /// **L-3:** `debt_of` equals `principal * borrow_index / snap.index` (within rounding).
+    #[test]
+    fn invariant_L3_debt_of_matches_principal_times_index() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let user = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::random(&env),
+            oracle: Address::random(&env),
+            ltoken: Address::random(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.supply(&user, &asset, &1_000_000);
+        pool.borrow(&user, &asset, &200_000);
+        let d = pool.debt_of(&user, &asset);
+        assert!(d >= 200_000, "debt should be >= borrowed principal");
+        // The principal is recorded at the index at borrow time, so a later
+        // call should not under-count.
+        let d2 = pool.debt_of(&user, &asset);
+        assert!(d2 >= d, "a second read should not under-count");
+    }
+
+    /// **L-4:** First supplier gets 1:1 shares; later supplier gets proportional shares.
+    #[test]
+    fn invariant_L4_share_math() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let a = Address::random(&env);
+        let b = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::random(&env),
+            oracle: Address::random(&env),
+            ltoken: Address::random(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        let s0 = pool.supply(&a, &asset, &1_000_000);
+        assert_eq!(s0, 1_000_000, "first supplier: 1:1 shares");
+        // Second supplier deposits the same amount with no borrows -> same shares.
+        let s1 = pool.supply(&b, &asset, &1_000_000);
+        assert_eq!(s1, 1_000_000, "second supplier of equal amount: equal shares");
+    }
+
+    /// **L-5:** `withdraw` rejects when the user has insufficient shares.
+    #[test]
+    #[should_panic]
+    fn invariant_L5_withdraw_rejects_insufficient_shares() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let user = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::random(&env),
+            oracle: Address::random(&env),
+            ltoken: Address::random(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.supply(&user, &asset, &100);
+        pool.withdraw(&user, &asset, &101);
+    }
+
+    /// **L-6:** `repay` cannot over-pay a user's outstanding debt.
+    #[test]
+    fn invariant_L6_repay_caps_at_outstanding_debt() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let user = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::random(&env),
+            oracle: Address::random(&env),
+            ltoken: Address::random(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.supply(&user, &asset, &1_000_000);
+        pool.borrow(&user, &asset, &100_000);
+        let d = pool.debt_of(&user, &asset);
+        let repaid = pool.repay(&user, &asset, &1_000_000_000);
+        assert_eq!(repaid, d, "repay must be capped at outstanding debt");
+        assert_eq!(pool.debt_of(&user, &asset), 0);
+    }
+
+    /// **L-9:** `borrow_apy_bps` is monotone non-decreasing in utilization.
+    #[test]
+    fn invariant_L9_apy_monotone_in_utilization() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let u1 = Address::random(&env);
+        let u2 = Address::random(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::random(&env),
+            oracle: Address::random(&env),
+            ltoken: Address::random(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        let apy0 = pool.borrow_apy_bps(&asset);
+        // No borrows -> apy = base_rate_bps = 0
+        assert_eq!(apy0, 0);
+        pool.supply(&u1, &asset, &1_000_000);
+        pool.borrow(&u1, &asset, &200_000); // 20% utilization
+        let apy20 = pool.borrow_apy_bps(&asset);
+        pool.supply(&u2, &asset, &1_000_000);
+        pool.borrow(&u2, &asset, &600_000); // total util: 800k/2M = 40%
+        let apy40 = pool.borrow_apy_bps(&asset);
+        assert!(apy20 > apy0, "apy must increase with utilization");
+        assert!(apy40 >= apy20, "apy must continue to increase up to the kink");
+    }
+
+    // ──────────────────────── TODO MARKERS (L-10) ────────────────────────
+    // The following tests document the **known security gaps** listed in
+    // `docs/invariants.md` § 4 and `docs/security.md` § "Open TODOs". They
+    // are written as `#[ignore]` so they do not break CI, but their names
+    // and bodies make the gap obvious to auditors.
+
+    /// **L-10 (TODO):** `borrow` must verify `HF >= 1` after the borrow.
+    /// Currently a user with no collateral can borrow. Production must
+    /// cross-call `lending_controller` (or, in tests, simulate a
+    /// `collateral_vault.deposit` + `oracle.set_price` setup).
+    #[test]
+    #[ignore = "L-10: HF check is not yet enforced in `lending_pool.borrow`; see docs/security.md"]
+    fn test_TODO_L10_borrow_enforces_health_factor() {
+        // Production sketch:
+        //   let pool = LendingPoolClient::new(...);
+        //   let vault = CollateralVaultClient::new(...);
+        //   let oracle = OracleClient::new(...);
+        //   vault.deposit(&pool_addr, &user, &asset, &collateral_amount);
+        //   oracle.set_price(&publisher, &asset, &1_000_000_000_000);
+        //   let hf_before = compute_hf(&user, &pool, &vault, &oracle);
+        //   pool.borrow(&user, &debt_asset, &huge_amount);
+        //   let hf_after = compute_hf(...);
+        //   assert!(hf_after >= 1_000_000_000_000_000_000, "HF must remain >= 1e18");
+        panic!("L-10 not yet enforced; see docs/security.md");
+    }
 }

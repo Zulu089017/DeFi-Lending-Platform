@@ -1,0 +1,49 @@
+# CODEOWNERS — default reviewers for OpenLend
+#
+# NOTE: This is a *template* file. The team handles below (`@openlend/*`)
+# are placeholders that **do not exist** in the current GitHub org, so
+# no review requests will fire until the teams are created and the
+# handles are updated. When the team is established, run a one-time
+# search-and-replace to put the real GitHub team names here.
+#
+# GitHub CODEOWNERS syntax: the last matching pattern wins. Owners are
+# requested for review automatically on PRs that touch a matching path.
+
+# Default owner for everything in the repo
+*       @openlend/maintainers
+
+# Soroban smart contracts (Rust)
+stellar-contracts/contracts/wrapped_asset/        @openlend/soroban-reviewers
+stellar-contracts/contracts/oracle/               @openlend/soroban-reviewers
+stellar-contracts/contracts/collateral_vault/     @openlend/soroban-reviewers
+stellar-contracts/contracts/lending_pool/         @openlend/soroban-reviewers
+stellar-contracts/contracts/liquidation/          @openlend/soroban-reviewers
+stellar-contracts/contracts/lending_controller/   @openlend/soroban-reviewers
+stellar-contracts/Cargo.toml                     @openlend/soroban-reviewers
+stellar-contracts/scripts/                       @openlend/soroban-reviewers
+
+# EVM contracts (Solidity)
+evm-contracts/contracts/                         @openlend/evm-reviewers
+evm-contracts/test/                              @openlend/evm-reviewers
+evm-contracts/scripts/                           @openlend/evm-reviewers
+evm-contracts/hardhat.config.ts                  @openlend/evm-reviewers
+
+# Off-chain services (TypeScript)
+bridge/        @openlend/offchain-reviewers
+relayer/       @openlend/offchain-reviewers
+indexer/       @openlend/offchain-reviewers
+api/           @openlend/offchain-reviewers
+sdk/           @openlend/offchain-reviewers
+
+# Frontend
+frontend/      @openlend/frontend-reviewers
+
+# Infrastructure & docs
+infra/         @openlend/devops-reviewers
+docs/          @openlend/docs-reviewers
+.github/       @openlend/devops-reviewers
+
+# Anything security-sensitive
+SECURITY.md    @openlend/security-reviewers
+docs/security.md  @openlend/security-reviewers
+docs/invariants.md @openlend/security-reviewers

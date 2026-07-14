@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "@fastify/cors": "^9.0.1",
+    "testcontainers": "^10.28.0",
+    "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  }
+}

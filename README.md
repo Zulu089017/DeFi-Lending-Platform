@@ -2,6 +2,13 @@
 
 > A decentralized cross-chain lending protocol with automated liquidation, built on Stellar's ultra-fast, low-fee network.
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-scaffold-yellow.svg)](docs/security.md)
+[![Soroban](https://img.shields.io/badge/Soroban-21-blueviolet.svg)](stellar-contracts/Cargo.toml)
+[![Solidity](https://img.shields.io/badge/Solidity-%5E0.8.24-363636.svg)](evm-contracts/hardhat.config.ts)
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF.svg)](.github/workflows/ci.yml)
+[![Code style: rustfmt](https://img.shields.io/badge/code%20style-rustfmt-orange.svg)](stellar-contracts/rustfmt.toml)
+
 **OpenLend** is a middleware that allows developers on other chains (Ethereum, Solana, Polygon) to instantly spin up wrapped versions of their tokens on Stellar. These wrapped assets can then be used in a fully on-chain lending protocol featuring automated liquidation, powered by Stellar's near-instant settlement.
 
 ---
@@ -115,18 +122,30 @@ Visit:
 ## 📚 Documentation
 
 - [Architecture Deep Dive](docs/architecture.md)
+- [Protocol Invariants](docs/invariants.md) — what an audit will check
+- [Security Model & Threat Model](docs/security.md) — known TODOs and disclosure policy
 - [Polyrepo Guide](docs/polyrepo.md)
 - [API Reference](docs/api.md)
 - [SDK Reference](docs/sdk.md)
 - [Deployment Guide](docs/deployment.md)
-- [Security Model](docs/security.md)
+- [Changelog](CHANGELOG.md) · [Security Policy](SECURITY.md)
 
 ---
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome.
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome. Code owners
+per subproject are listed in [CODEOWNERS](.github/CODEOWNERS). Dependency
+updates are automated via [Dependabot](.github/dependabot.yml).
 
 ## 📄 License
 
 Apache 2.0 — see [LICENSE](LICENSE).
+
+## ⚠️ Status
+
+This repository is a **scaffold / reference implementation**. The smart
+contracts have not been audited and the documented security TODOs in
+[`docs/security.md`](docs/security.md) are still open. **Do not deposit
+real assets.** A formal audit, bug-bounty program, and coordinated
+disclosure policy are tracked in [`SECURITY.md`](SECURITY.md).

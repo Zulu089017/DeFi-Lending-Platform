@@ -9,6 +9,15 @@ coverage/
 *.tsbuildinfo
 .pnpm-store/
 
+# Lockfile policy: commit for published packages (sdk), ignore for
+# internal-only subprojects (evm-contracts). The `!sdk/package-lock.json`
+# negation must come AFTER the `sdk/package-lock.json` ignore rule for
+# the re-include to take effect (later .gitignore rules override earlier
+# ones).
+sdk/package-lock.json
+!sdk/package-lock.json
+evm-contracts/package-lock.json
+
 # ────── Rust / Soroban ──────
 target/
 Cargo.lock

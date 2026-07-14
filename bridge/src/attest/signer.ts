@@ -100,3 +100,98 @@ export async function collectSignatures(payload: Uint8Array): Promise<string[]> 
   }
   return sigs;
 }
+
+// ─────────────────────────── EIP-712 (EVM release) ───────────────────────
+//
+// EIP-712 typed data for the `Bridge.release` function on the EVM side.
+// The on-chain digest is:
+//
+//   digest = keccak256("\x19\x01" || domainSeparator || structHash)
+//
+// where:
+//
+//   domainSeparator = keccak256(abi.encode(
+//       keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+//       keccak256("OpenLend Bridge"),
+//       keccak256("1"),
+//       block.chainid,
+//       address(this)
+//   ))
+//
+//   structHash = keccak256(abi.encode(
+//       RELEASE_TYPEHASH,
+//       token, recipient, amount, stellarTxHash, nonce
+//   ))
+//
+//   RELEASE_TYPEHASH = keccak256("Release(address token,address recipient,uint256 amount,bytes32 stellarTxHash,uint256 nonce)")
+//
+// The on-chain side uses OpenZeppelin's `EIP712Upgradeable` to compute
+// the domain separator and `_hashTypedDataV4` for the final digest
+// (see evm-contracts/contracts/Bridge.sol). This function produces the
+// matching 65-byte secp256k1 signatures.
+
+/** EIP-712 domain for the OpenLend Bridge. Must match the values passed
+ *  to `__EIP712_init(name, version)` in `Bridge.initialize`. */
+export const OPENLEND_EIP712_DOMAIN = Object.freeze({
+  name: "OpenLend Bridge",
+  version: "1",
+});
+
+/** EIP-712 type definitions for the `Release` struct. The field order
+ *  MUST match the Solidity `RELEASE_TYPEHASH` exactly. */
+export const RELEASE_EIP712_TYPES = Object.freeze({
+  Release: [
+    { name: "token", type: "address" },
+    { name: "recipient", type: "address" },
+    { name: "amount", type: "uint256" },
+    { name: "stellarTxHash", type: "bytes32" },
+    { name: "nonce", type: "uint256" },
+  ],
+});
+
+/** Shape of the `Release` typed-data value. */
+export interface ReleaseTypedValue {
+  token: string;        // ERC-20 contract address
+  recipient: string;    // EOA or contract receiving the released tokens
+  amount: bigint;       // amount of `token` to release
+  stellarTxHash: string; // 32-byte hash of the Stellar Unwrap event
+  nonce: number | bigint; // replay-protection nonce (u256)
+}
+
+/** Sign a `Release` typed-data payload with each attester's secp256k1
+ *  private key, returning 65-byte hex-encoded signatures.
+ *
+ *  @param attesterKeys   secp256k1 private keys (hex, with or without `0x`).
+ *  @param chainId        EVM chain id of the target Bridge deployment.
+ *  @param bridgeAddress  Address of the deployed `Bridge` contract.
+ *  @param value          The `Release` struct fields.
+ *  @returns              Array of `0x`-prefixed 65-byte signatures.
+ *
+ *  The caller is responsible for ordering the signatures to match the
+ *  Bridge contract's attester threshold; the on-chain side does NOT
+ *  require ascending order, so any subset of length >= threshold is
+ *  accepted. */
+export async function signEvmRelease(
+  attesterKeys: string[],
+  chainId: number,
+  bridgeAddress: string,
+  value: ReleaseTypedValue,
+): Promise<string[]> {
+  const domain = {
+    ...OPENLEND_EIP712_DOMAIN,
+    chainId,
+    verifyingContract: bridgeAddress,
+  };
+  const sigs: string[] = [];
+  for (const pk of attesterKeys) {
+    try {
+      const wallet = new ethers.Wallet(pk);
+      // ethers v6: `signTypedData` returns a 0x-prefixed 65-byte hex string.
+      const sig = await wallet.signTypedData(domain, RELEASE_EIP712_TYPES, value);
+      sigs.push(sig);
+    } catch (err) {
+      logger.error({ err }, "EVM attester failed to sign Release");
+    }
+  }
+  return sigs;
+}

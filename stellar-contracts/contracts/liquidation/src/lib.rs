@@ -164,4 +164,61 @@ mod tests {
         // bonus = 50, fee = 50 * 0.20 = 10, liquidator = 1000 + 50 - 10 = 1040
         assert_eq!(seized, 1_040i128);
     }
+
+    // ──────────────────────── INVARIANT TESTS (Q-*) ────────────────────────
+    //
+    // UNVERIFIED: `cargo test` is blocked by a `soroban-sdk 21.x` dep-tree
+    // split. See `../../BUILD_ENV_NOTES.md`. Tests are static-reviewed as
+    // well-formed against the existing test patterns in this module.
+
+    /// **Q-3 / Q-4:** Liquidator share = repay + bonus - fee, where
+    /// fee = fee_bps * bonus / 10_000. The protocol never receives more
+    /// than the fee, and the liquidator never receives less than repay.
+    #[test]
+    fn invariant_Q3_Q4_liquidator_share_formula() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let liq = Address::random(&env);
+        let borrower = Address::random(&env);
+        let pool = Address::random(&env);
+        let vault = Address::random(&env);
+        let oracle = Address::random(&env);
+        let treasury = Address::random(&env);
+        let debt = Symbol::new(&env, "USDC");
+        let coll = Symbol::new(&env, "USDC");
+
+        let liq_contract =
+            LiquidationClient::new(&env, &env.register_contract(None, Liquidation {}));
+        liq_contract.initialize(
+            &admin,
+            &LiquidationConfig {
+                pool,
+                vault,
+                oracle,
+                bonus_bps: 1_000,           // 10%
+                fee_bps: 2_000,             // 20% of bonus
+                close_factor_bps: 5_000,
+            },
+            &treasury,
+        );
+        let seized = liq_contract.liquidate(&liq, &borrower, &debt, &coll, &10_000i128);
+        // gross = 10_000 * 11_000 / 10_000 = 11_000
+        // bonus = 1_000
+        // fee   = 1_000 * 2_000 / 10_000 = 200
+        // liq   = 10_000 + 1_000 - 200 = 10_800
+        assert_eq!(seized, 10_800i128);
+        assert!(seized >= 10_000, "Q-3: liquidator share must be >= repay");
+    }
+
+    /// **Q-1 / Q-2 (TODO):** The scaffold does not yet check HF or close
+    /// factor. A production test must:
+    ///   1. Set up an underwater borrower.
+    ///   2. Call `liquidate` with `repay_amount > close_factor * debt`.
+    ///   3. Assert the call reverts.
+    #[test]
+    #[ignore = "TODO Q-1 / Q-2: HF check and close factor not yet enforced"]
+    fn test_TODO_Q1_Q2_liquidation_safety_invariants() {
+        panic!("TODO Q-1 / Q-2: see docs/invariants.md");
+    }
 }

@@ -13,22 +13,23 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fastify/cors": "^9.0.1",
     "@prisma/client": "^5.16.1",
     "@stellar/stellar-sdk": "^12.0.0",
-    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.1",
     "fastify": "^4.28.1",
-    "fastify-cors": "^9.0.1",
     "pino": "^9.3.2",
     "pino-pretty": "^11.2.2",
     "ws": "^8.18.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
+    "@testcontainers/postgresql": "^10.13.0",
     "@types/node": "^20.14.10",
     "@types/ws": "^8.5.10",
+    "prisma": "^5.16.1",
+    "testcontainers": "^10.13.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3",
     "vitest": "^2.0.4"

@@ -102,7 +102,15 @@ export class OpenLend {
             ScAddress.fromString(this.stellar.publicKey).toScVal(),
             nativeToScVal(BigInt(req.amount), { type: "i128" }),
             nativeToScVal(this.chainIdToU32(req.sourceChain), { type: "u32" }),
-            xdr.ScVal.scvBytesN(sourceAddrBytes),
+            // NB: we use `scvBytes` (variable-length) here even though the
+        // contract declares `source_addr: BytesN<32>` (fixed-size 32).
+        // The @stellar/stellar-sdk v12 JS bindings do not expose a
+        // `scvBytesN` helper, but a 32-byte buffer serialised through
+        // `scvBytes` produces the same on-wire bytes for a `BytesN<32>`
+        // parameter. If the SDK ever adds `scvBytesN`, switch to it for
+        // a stronger compile-time guarantee. See `docs/invariants.md`
+        // § 6 (C-6) for the protocol's domain-separation rule.
+        xdr.ScVal.scvBytes(sourceAddrBytes),
           ],
         }) as any,
       )
@@ -121,6 +129,15 @@ export class OpenLend {
       nativeToScVal(asset, { type: "symbol" }),
       nativeToScVal(BigInt(amount), { type: "i128" }),
     ]);
+  }
+
+  /**
+   * @deprecated Use {@link supply} instead. The on-chain entry point is
+   * `supply_collateral`; this alias is kept for compatibility with the
+   * README examples.
+   */
+  async supplyCollateral(asset: string, amount: string): Promise<{ hash: string }> {
+    return this.supply(asset, amount);
   }
 
   async withdraw(asset: string, amount: string): Promise<{ hash: string }> {

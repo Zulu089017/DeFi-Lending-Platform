@@ -188,4 +188,62 @@ mod tests {
         // value = 10_000_000_000 * 2.5 = 25_000_000_000 in 14 dec = $2,500.00
         assert_eq!(v, 25_000_000_000i128);
     }
+
+    // ──────────────────────── INVARIANT TESTS (O-*) ────────────────────────
+    //
+    // UNVERIFIED: `cargo test` is blocked by a `soroban-sdk 21.x` dep-tree
+    // split. See `../../BUILD_ENV_NOTES.md`. Tests are static-reviewed as
+    // well-formed against the existing test patterns in this module.
+
+    /// **O-1:** `set_price` from a non-publisher reverts.
+    #[test]
+    #[should_panic]
+    fn invariant_O1_only_publishers_set_price() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let stranger = Address::random(&env);
+        let oracle = OracleClient::new(&env, &env.register_contract(None, Oracle {}));
+        oracle.initialize(&admin);
+        // Note: do NOT call add_publisher for `stranger`.
+        let asset = Symbol::new(&env, "XLM");
+        oracle.set_asset_config(&asset, &300u64);
+        oracle.set_price(&stranger, &asset, &1_000_000_000_000i128);
+    }
+
+    /// **O-3:** `set_price` with a non-positive price reverts.
+    #[test]
+    #[should_panic]
+    fn invariant_O3_price_must_be_positive() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let pub_ = Address::random(&env);
+        let oracle = OracleClient::new(&env, &env.register_contract(None, Oracle {}));
+        oracle.initialize(&admin);
+        oracle.add_publisher(&pub_);
+        let asset = Symbol::new(&env, "XLM");
+        oracle.set_asset_config(&asset, &300u64);
+        oracle.set_price(&pub_, &asset, &0i128);
+    }
+
+    /// **O-2:** Stale price reverts. We jump the ledger sequence past the
+    /// heartbeat to simulate the passage of time.
+    #[test]
+    #[should_panic]
+    fn invariant_O2_stale_price_reverts() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::random(&env);
+        let pub_ = Address::random(&env);
+        let oracle = OracleClient::new(&env, &env.register_contract(None, Oracle {}));
+        oracle.initialize(&admin);
+        oracle.add_publisher(&pub_);
+        let asset = Symbol::new(&env, "XLM");
+        oracle.set_asset_config(&asset, &10u64);
+        oracle.set_price(&pub_, &asset, &1_000_000_000_000i128);
+        // Advance the ledger by more than the heartbeat.
+        env.ledger().set_sequence_number(env.ledger().sequence() + 11);
+        oracle.get_price(&asset);
+    }
 }

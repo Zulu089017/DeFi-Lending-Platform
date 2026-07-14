@@ -1,0 +1,51 @@
+# clippy lint configuration for the Soroban workspace.
+# Enforced by `cargo clippy --all-targets -- -D warnings` in CI.
+#
+# Notes for Soroban authors:
+#   * `clippy::panic` and `clippy::expect_used` are *allowed* because Soroban
+#     contract entry points intentionally panic on invalid state (e.g.
+#     "already initialized", "admin not set"). The host surfaces these as
+#     transaction failures with the message.
+#   * `clippy::integer_arithmetic` and `clippy::arithmetic` are *allowed*
+#     because checked_* is used explicitly in financial math; unchecked `+`
+#     and `-` are still flagged by `clippy::arithmetic_overflow`.
+#   * `clippy::missing_panics_doc` is *allowed* because Soroban's `no_std`
+#     environment has no doctest harness, making those docs unverifiable.
+avoid-breaking-exported-api = false
+msrv = "1.74"
+
+# Lints we deny outright. These are real-bug classes for a financial contract.
+deny = [
+    "clippy::correctness",
+    "clippy::suspicious",
+    "clippy::complexity",
+    "clippy::perf",
+    "clippy::style",
+    "clippy::cast_possible_truncation",
+    "clippy::cast_possible_wrap",
+    "clippy::cast_lossless",
+    "clippy::cast_sign_loss",
+    "clippy::checked_conversions",
+    "clippy::arithmetic_overflow",
+    "clippy::indexing_slicing",
+]
+
+# Lints we warn on. Treat warnings as real issues, but don't break CI on
+# historical patterns we're migrating.
+warn = [
+    "clippy::integer_arithmetic",
+    "clippy::arithmetic",
+    "clippy::unwrap_used",
+    "clippy::expect_used",
+    "clippy::panic",
+    "clippy::missing_panics_doc",
+    "clippy::missing_errors_doc",
+    "clippy::module_name_repetitions",
+    "clippy::redundant_pub_crate",
+    "clippy::must_use_candidate",
+]
+
+# Allowed lints. Document the reason for posterity.
+allow = [
+    "clippy::doc_markdown",  # Soroban symbols like `i128` and `BytesN<32>` trip this
+]

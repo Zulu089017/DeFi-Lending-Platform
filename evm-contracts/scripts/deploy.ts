@@ -1,4 +1,4 @@
-import { ethers, network } from "hardhat";
+import { ethers, network, upgrades } from "hardhat";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -6,18 +6,60 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log(`Deploying with ${deployer.address} on ${network.name}`);
 
+  // The proxy admin and the contract owner are both set to the deployer
+  // by default. For a production deployment, set `PROXY_ADMIN_ADDRESS` to
+  // a Gnosis Safe (or another multisig) and `OWNER_ADDRESS` to the
+  // governance multisig. Failing to do so means a single compromised
+  // deployer key can upgrade or pause the bridge.
+  const proxyAdmin = process.env.PROXY_ADMIN_ADDRESS ?? deployer.address;
+  const owner = process.env.OWNER_ADDRESS ?? deployer.address;
+  if (network.name !== "hardhat" && proxyAdmin === deployer.address) {
+    console.warn(`  WARNING: PROXY_ADMIN_ADDRESS not set; using deployer EOA (${deployer.address}). Set it to a multisig for production.`);
+  }
+  if (network.name !== "hardhat" && owner === deployer.address) {
+    console.warn(`  WARNING: OWNER_ADDRESS not set; using deployer EOA (${deployer.address}). Set it to a multisig for production.`);
+  }
+
   // 1. Wrapped token (canonical on this chain)
   const Token = await ethers.getContractFactory("WrappedToken");
-  const token = await Token.deploy("OpenLend Test", "oTST", ethers.parseEther("1000000"), deployer.address);
+  const token = await Token.deploy("OpenLend Test", "oTST", ethers.parseEther("1000000"), owner);
   await token.waitForDeployment();
   console.log(`  WrappedToken: ${await token.getAddress()}`);
 
-  // 2. Bridge with 2-of-3 attester quorum (use deployer + 2 random signers as placeholders)
+  // 2. Bridge with 2-of-3 attester quorum (use deployer + 2 random
+  // signers as placeholders). OZ 5.x's `_disableInitializers()`
+  // permanently disables `initialize()` on the implementation, so we
+  // deploy via the OZ upgrades plugin's `deployProxy` helper, which
+  // deploys the impl + an ERC-1967 proxy + atomically calls
+  // `initialize(attesters, threshold)`. The proxy admin is set to
+  // `proxyAdmin` (a multisig in production).
   const attesters = [deployer.address, ethers.Wallet.createRandom().address, ethers.Wallet.createRandom().address];
   const Bridge = await ethers.getContractFactory("Bridge");
-  const bridge = await Bridge.deploy();
+  const bridge = await upgrades.deployProxy(
+    Bridge,
+    [attesters, 2],
+    {
+      initializer: "initialize",
+      unsafeAllow: ["constructor"], // explicit acknowledgement of the
+                                    // `_disableInitializers()` constructor
+      unsafeAllowLinkedLibraries: false,
+    },
+  );
   await bridge.waitForDeployment();
-  await bridge.initialize(attesters, 2);
+  // Transfer ownership from the deployer (initial owner is `msg.sender`
+  // of `__Ownable_init`, which inside `deployProxy` is the deployProxy
+  // caller) to the configured `owner` multisig.
+  if (owner !== deployer.address) {
+    const bridgeAsOwner = await ethers.getContractAt("Bridge", await bridge.getAddress(), deployer);
+    await bridgeAsOwner.transferOwnership(owner);
+  }
+  // Transfer the ERC-1967 proxy admin (the address that can call
+  // `upgradeTo` / `upgradeToAndCall` on the proxy) from the deployer
+  // EOA to the configured `proxyAdmin` multisig. Without this, a
+  // single compromised deployer key could still upgrade the impl.
+  if (proxyAdmin !== deployer.address) {
+    await upgrades.admin.transferProxyAdminOwnership(proxyAdmin);
+  }
   console.log(`  Bridge:      ${await bridge.getAddress()}`);
 
   // 3. Configure token
