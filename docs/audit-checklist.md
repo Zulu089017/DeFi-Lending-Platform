@@ -60,6 +60,23 @@
 - [ ] Rate limiting enabled on API
 - [ ] Monitoring dashboards deployed (Prometheus + Grafana)
 
+## CI toolchain pins
+
+### Slither (`crytic/slither-action@v0.4.0`)
+
+- `slither-version` is pinned to **0.11.4** in `.github/workflows/ci.yml`.
+- **Do not raise the pin above 0.11.4** without first updating the CI image: the
+  action is built on `python:3.9`, and `slither-analyzer` 0.11.5+ requires
+  Python >= 3.10. A newer pin fails the EVM job with
+  `No matching distribution found for slither-analyzer==0.11.x`.
+- To upgrade Slither: bump the pin, verify the findings locally with
+  `slither . --filter-paths "node_modules|openzeppelin" --fail-low`, and (if
+  needed) switch to a slither-action build based on Python >= 3.10 before
+  raising the pin past 0.11.4.
+- Keep `fail-on: low` (it emits `--fail-low`); never pass `--fail-*` flags via
+  `slither-args` — the action appends its own `--fail-*` flag and the two
+  conflict.
+
 ## Audit scope
 
 | Component            | Lines of code | Language       | Auditor |
