@@ -1,7 +1,5 @@
 #!/usr/bin/env sh
 # Husky pre-commit hook for OpenLend
-# Runs lint-staged and typecheck before every commit.
-
-. "$(dirname "$0")/_/husky.sh"
+# Runs lint-staged before every commit.
 
 npx lint-staged

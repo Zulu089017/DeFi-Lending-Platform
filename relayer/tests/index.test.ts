@@ -19,8 +19,11 @@ describe("Relayer module loads without crashing", () => {
     vi.useFakeTimers();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("exports a basic tick loop concept", async () => {
     await expect(import("../src/index.js")).resolves.toBeDefined();
-    vi.useRealTimers();
   });
 });

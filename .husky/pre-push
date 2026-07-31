@@ -2,8 +2,6 @@
 # Husky pre-push hook for OpenLend
 # Runs typecheck and tests before pushing.
 
-. "$(dirname "$0")/_/husky.sh"
-
 echo "🔍 Running typechecks and tests before push..."
 
 # TypeScript services typecheck

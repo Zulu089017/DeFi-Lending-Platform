@@ -70,6 +70,9 @@ export function rateLimiter(max = DEFAULT_MAX, windowMs = DEFAULT_WINDOW_MS) {
  * Per-route rate limiter with stricter limits for expensive endpoints.
  *
  * Uses a separate bucket namespace keyed by `prefix + ":" + ip`.
+ *
+ * @remarks Reserved for future use on expensive endpoints (e.g. quote
+ * endpoint may need a stricter per-IP limit than the global 300/min).
  */
 export function routeRateLimiter(
   prefix: string,
