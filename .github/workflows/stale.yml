@@ -1,0 +1,31 @@
+# Stale issue / PR management for OpenLend
+# https://github.com/actions/staler
+
+name: "Stale issue handler"
+on:
+  schedule:
+    - cron: "0 12 * * 1" # Every Monday at noon UTC
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v9
+        with:
+          days-before-issue-stale: 90
+          days-before-pr-stale: 45
+          days-before-close: 14
+          stale-issue-label: "stale"
+          stale-pr-label: "stale"
+          exempt-issue-labels: "security,audit,bug,bounty"
+          exempt-pr-labels: "security,audit,do-not-close"
+          stale-issue-message: |-
+            This issue has been automatically marked as stale because it has not
+            had recent activity. It will be closed in 14 days if no further
+            activity occurs. Thank you for your contribution.
+          close-issue-message: |-
+            Closing this issue due to inactivity. Feel free to reopen if this
+            is still relevant.
