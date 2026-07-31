@@ -39,8 +39,10 @@ listed here so they cannot be forgotten:
       `fee_bps × (gross - repay)`.
 - [ ] `liquidation` should enforce `close_factor_bps` against the borrower's
       outstanding debt before allowing a `liquidate`.
-- [ ] The EVM `Bridge.release` should use **EIP-712** with a domain separator,
-      not a raw `keccak256`.
+- [x] The EVM `Bridge.release` should use **EIP-712** with a domain separator,
+      not a raw `keccak256`. **Closed (2026-01)** — `Bridge` now inherits
+      `EIP712Upgradeable` and `_hashTypedDataV4` replaces the raw digest; see
+      `docs/invariants.md` § 7 (B-7) and `CHANGELOG.md`.
 - [ ] The off-chain `bridge` service should use **multi-attester signing** with
       **staggered key release** (e.g. one key in HSM, one in cold storage, one
       on a hot server).

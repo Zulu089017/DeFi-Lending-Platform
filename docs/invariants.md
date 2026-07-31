@@ -91,12 +91,12 @@
 > ⚠️ **C-6 cross-language drift canary.** The off-chain signer pins the
 > canonical payload digest in `bridge/tests/signer.test.ts`
 > (`CANONICAL_DIGEST`). The Rust side has **no** equivalent pinned-digest test
-> yet because `cargo test` is blocked (see
-> `stellar-contracts/BUILD_ENV_NOTES.md`). When the Rust build is unblocked, add
-> a Rust test that hashes `build_canonical_payload` with the same canonical
-> inputs and asserts the same 64-hex digest, so any drift between the two
-> languages surfaces immediately in CI. | C-7 | **(TODO, production)** `wrap`
-> must actually cross-call `wrapped_asset.mint(to, amount)` | Cross-contract
+> yet. The Rust build is unblocked (soroban-sdk 27.0.4, Rust 1.91.0 — see
+> `stellar-contracts/BUILD_ENV_NOTES.md`), so this is now a plain TODO: add a
+> Rust test that hashes `build_canonical_payload` with the same canonical inputs
+> and asserts the same 64-hex digest, so any drift between the two languages
+> surfaces immediately in CI. | C-7 | **(TODO, production)** `wrap` must
+> actually cross-call `wrapped_asset.mint(to, amount)` | Cross-contract
 > integration | | C-8 | **(TODO, production)** `supply_collateral` and `borrow`
 > must cross-call the lending pool and collateral vault | Cross-contract
 > integration |
@@ -143,14 +143,12 @@
 3. **Manual review.** The contract-level `*_TODO_*` markers in code point
    auditors at the specific lines that still need human review.
 
-> **⚠️ Status of the invariant tests in this repo.** The 18 `invariant_*` tests
-> across `stellar-contracts/contracts/*/src/lib.rs` are **static-reviewed as
-> well-formed** (they mirror existing test patterns verbatim and use only
-> standard Soroban test-client APIs) but have **not been executed**. The current
-> `soroban-sdk 21.x` dependency tree has a fundamental split between two
-> `ed25519-dalek` majors and `elliptic-curve` that prevents
-> `cargo test --workspace` from resolving. See
-> [`stellar-contracts/BUILD_ENV_NOTES.md`](../stellar-contracts/BUILD_ENV_NOTES.md)
-> for the two real paths forward (bump `soroban-sdk` to 22+, or use Docker with
-> a pre-baked `Cargo.lock`). Once the build is unblocked, these tests should
-> pass without modification.
+> **✅ Status of the invariant tests in this repo.** The `invariant_*` tests
+> across `stellar-contracts/contracts/*/src/lib.rs` now **execute and pass**. On
+> the pinned toolchain (Rust 1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`),
+> `cargo test --workspace --locked` runs 17 `invariant_*` tests together with
+> the functional suites (27 passed, 0 failed). Only the `test_TODO_*` stubs for
+> the open security gaps — C-1, L-10, Q-1/Q-2 — and one C-2 variant blocked on
+> C-1 remain `#[ignore]`d; they still `panic!` if un-ignored until the gaps in
+> `docs/security.md` § "Open TODOs" are closed. Migration history:
+> [`stellar-contracts/BUILD_ENV_NOTES.md`](../stellar-contracts/BUILD_ENV_NOTES.md).
