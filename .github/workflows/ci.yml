@@ -85,6 +85,12 @@ jobs:
         with:
           target: evm-contracts
           solc-version: 0.8.24
+          # Pin Slither for deterministic runs: when `slither-version` is
+          # unset the action installs `slither-analyzer` at the latest PyPI
+          # release, so a future release could change finding severities and
+          # trip --fail-low. 0.11.6 is the version verified to pass on this
+          # repo (local `--fail-low` run exits 0).
+          slither-version: 0.11.6
           # The action appends its own --fail flag from the `fail-on` input
           # (default `all` -> --fail-pedantic). Passing --fail-low via
           # slither-args as well made slither reject the step (the --fail-*
