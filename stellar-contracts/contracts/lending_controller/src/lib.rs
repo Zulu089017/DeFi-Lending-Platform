@@ -490,11 +490,38 @@ mod tests {
         ctrl.set_paused(&true);
     }
 
-    // ──────────────────────── INVARIANT + TODO TESTS (C-* ) ────────────────────────
+    // ──────────────────────── INVARIANT TESTS (C-* ) ────────────────────────
     //
-    // UNVERIFIED: `cargo test` is blocked by a `soroban-sdk 21.x` dep-tree
-    // split. See `../../BUILD_ENV_NOTES.md`. Tests are static-reviewed as
-    // well-formed against the existing test patterns in this module.
+    // Executed on the migrated toolchain (Rust 1.91.0, soroban-sdk 27.0.4);
+    // see `../../BUILD_ENV_NOTES.md`.
+
+    /// Sign `sha256(canonical_payload)` with the given keypair and return the
+    /// 64-byte ed25519 attestation, mirroring `bridge/src/attest/signer.ts`
+    /// (`payloadHash` then `collectSignatures`).
+    fn valid_attestation(
+        env: &Env,
+        signer: &ed25519_dalek::SigningKey,
+        chain_id: u32,
+        source_addr: &BytesN<32>,
+        amount: i128,
+        to: &Address,
+        salt: &BytesN<32>,
+        nonce: u64,
+    ) -> BytesN<64> {
+        use ed25519_dalek::Signer as _;
+        let payload = LendingController::build_canonical_payload(
+            env,
+            chain_id,
+            source_addr.clone(),
+            amount,
+            to,
+            salt,
+            nonce,
+        );
+        let hash = env.crypto().sha256(&payload);
+        let sig = signer.sign(&hash.to_array());
+        BytesN::from_array(env, &sig.to_bytes())
+    }
 
     /// **C-4:** When `paused == true`, `wrap` reverts.
     #[test]
@@ -514,7 +541,8 @@ mod tests {
             &Address::generate(&env),
         );
         ctrl.set_paused(&true);
-        // Calling wrap while paused must revert.
+        // Calling wrap while paused must revert (checked before the
+        // attestation, so an arbitrary signature still hits the pause gate).
         let sig = BytesN::from_array(&env, &[0u8; 64]);
         let src = BytesN::from_array(&env, &[0u8; 32]);
         let salt = BytesN::from_array(&env, &[2u8; 32]);
@@ -529,19 +557,15 @@ mod tests {
         );
     }
 
-    /// **C-2 (replay protection):** A `wrap` with a re-used `salt` reverts.
-    /// This test is `#[ignore]`d because the scaffold still calls
-    /// `ed25519_verify` with a fake signature, so the first call already
-    /// panics in the verify step before the salt is ever recorded. Once
-    /// `test_TODO_C1_bridge_attestation_verified` is implemented, this
-    /// test should be re-enabled and will exercise the salt-replay branch.
+    /// **C-1:** `wrap` accepts a valid ed25519 attestation from the
+    /// registered bridge pubkey.
     #[test]
-    #[ignore = "blocked on C-1: ed25519 verify fails on a fake sig before salt is recorded"]
-    fn invariant_C2_salt_replay_reverts() {
+    fn test_C1_bridge_attestation_verified() {
         let env = Env::default();
         env.mock_all_auths();
         let admin = Address::generate(&env);
-        let bridge = BytesN::from_array(&env, &[1u8; 32]);
+        let signer = ed25519_dalek::SigningKey::from_bytes(&[2u8; 32]);
+        let bridge = BytesN::from_array(&env, &signer.verifying_key().to_bytes());
         let ctrl = LendingControllerClient::new(&env, &env.register(LendingController {}, ()));
         ctrl.initialize(
             &admin,
@@ -551,43 +575,93 @@ mod tests {
             &Address::generate(&env),
             &Address::generate(&env),
         );
-        let sig = BytesN::from_array(&env, &[0u8; 64]);
-        let src = BytesN::from_array(&env, &[0u8; 32]);
-        let salt = BytesN::from_array(&env, &[3u8; 32]);
-        // Once C-1 lands, the first call should succeed and record the
-        // salt, and the second call (same salt) must revert.
-        ctrl.wrap(
-            &sig,
-            &1u32,
-            &src,
-            &1_000i128,
-            &Address::generate(&env),
-            &salt,
-            &0u64,
+        let chain_id = 1u32;
+        let src = BytesN::from_array(&env, &[4u8; 32]);
+        let amount = 1_000i128;
+        // Use an ed25519 *account* address (44-byte XDR), matching the
+        // off-chain signer (`ScAddress.fromString("G...")` in
+        // bridge/src/attest/signer.ts). `Address::generate` would create a
+        // contract address (40-byte XDR) and trip the 44-byte sanity check
+        // in `build_canonical_payload`.
+        let to = Address::from_str(
+            &env,
+            "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
         );
-        ctrl.wrap(
-            &sig,
-            &1u32,
-            &src,
-            &1_000i128,
-            &Address::generate(&env),
-            &salt,
-            &0u64,
-        );
+        let salt = BytesN::from_array(&env, &[5u8; 32]);
+        let nonce = 7u64;
+        let sig = valid_attestation(&env, &signer, chain_id, &src, amount, &to, &salt, nonce);
+        // Must not panic: the attestation verifies against the registered
+        // bridge pubkey, the salt is recorded, and the Wrap event is emitted.
+        ctrl.wrap(&sig, &chain_id, &src, &amount, &to, &salt, &nonce);
     }
 
-    /// **TODO C-1 (C-7, C-8):** Real ed25519 verification + cross-contract
-    /// integration for `wrap`, `supply_collateral`, and `borrow`. The
-    /// scaffold accepts any signature. The full test must:
-    ///   1. Generate a real ed25519 keypair off-chain.
-    ///   2. Compute the canonical payload (see `build_canonical_payload`).
-    ///   3. Sign `sha256(payload)` and submit the sig.
-    ///   4. Assert that a *different* keypair is rejected.
-    ///   5. Assert that `wrapped_asset.balance(to)` increased by `amount`.
-    ///   6. Assert that `lending_pool.total_deposit(asset)` increased.
+    /// **C-1 (negative):** a signature from a *different* keypair reverts.
     #[test]
-    #[ignore = "TODO C-1: ed25519 verify not yet wired; see docs/security.md"]
-    fn test_TODO_C1_bridge_attestation_verified() {
-        panic!("TODO C-1: see docs/security.md and docs/invariants.md");
+    #[should_panic]
+    fn test_C1_wrong_attester_rejected() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let signer = ed25519_dalek::SigningKey::from_bytes(&[2u8; 32]);
+        let bridge = BytesN::from_array(&env, &signer.verifying_key().to_bytes());
+        let ctrl = LendingControllerClient::new(&env, &env.register(LendingController {}, ()));
+        ctrl.initialize(
+            &admin,
+            &bridge,
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+        );
+        let chain_id = 1u32;
+        let src = BytesN::from_array(&env, &[4u8; 32]);
+        let amount = 1_000i128;
+        let to = Address::from_str(
+            &env,
+            "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+        );
+        let salt = BytesN::from_array(&env, &[5u8; 32]);
+        let nonce = 7u64;
+        // Forge the attestation with a *different* keypair.
+        let attacker = ed25519_dalek::SigningKey::from_bytes(&[9u8; 32]);
+        let sig = valid_attestation(&env, &attacker, chain_id, &src, amount, &to, &salt, nonce);
+        // Must revert: not the registered bridge key.
+        ctrl.wrap(&sig, &chain_id, &src, &amount, &to, &salt, &nonce);
+    }
+
+    /// **C-2 (replay protection):** A `wrap` with a re-used `salt` reverts.
+    /// The first call succeeds (valid attestation, salt recorded); the second
+    /// call with the same salt reverts with "salt already used".
+    #[test]
+    #[should_panic(expected = "salt already used")]
+    fn invariant_C2_salt_replay_reverts() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let signer = ed25519_dalek::SigningKey::from_bytes(&[6u8; 32]);
+        let bridge = BytesN::from_array(&env, &signer.verifying_key().to_bytes());
+        let ctrl = LendingControllerClient::new(&env, &env.register(LendingController {}, ()));
+        ctrl.initialize(
+            &admin,
+            &bridge,
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+        );
+        let chain_id = 1u32;
+        let src = BytesN::from_array(&env, &[0u8; 32]);
+        let amount = 1_000i128;
+        let to = Address::from_str(
+            &env,
+            "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+        );
+        let salt = BytesN::from_array(&env, &[3u8; 32]);
+        let nonce = 0u64;
+        let sig = valid_attestation(&env, &signer, chain_id, &src, amount, &to, &salt, nonce);
+        // First wrap succeeds and records the salt.
+        ctrl.wrap(&sig, &chain_id, &src, &amount, &to, &salt, &nonce);
+        // Second wrap with the same salt must revert.
+        ctrl.wrap(&sig, &chain_id, &src, &amount, &to, &salt, &nonce);
     }
 }

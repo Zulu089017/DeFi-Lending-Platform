@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **Closed invariant C-1** (ed25519 attestation verification for
+  `lending_controller.wrap`): `wrap` now rejects any attestation that is not a
+  valid ed25519 signature over `sha256(build_canonical_payload)` from the
+  registered bridge pubkey. `require_bridge` wires `env.crypto().ed25519_verify`
+  (previously a documented accept-all stub). Added `test_C1_bridge_attestation_verified`
+  and `test_C1_wrong_attester_rejected` (real keypairs via `ed25519-dalek`
+  dev-dep), and re-enabled `invariant_C2_salt_replay_reverts` now that a valid
+  signature can reach the replay branch.
 - **Closed invariant B-7** (EIP-712 for `Bridge.release`): the on-chain
   digest is now a proper EIP-712 typed-data hash
   (`keccak256("\x19\x01" || domainSeparator || structHash)`) using
@@ -39,9 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (V-1/V-2/V-3/V-5, C-2/C-4, L-1..L-6/L-9, O-1/O-2/O-3, Q-3/Q-4) and
   `test_TODO_*` stubs (C-1, L-10, Q-1/Q-2) for the documented security
   gaps. The suite executes and passes on the migrated toolchain (Rust
-  1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`): 27 passed, 0 failed,
-  with only the `test_TODO_*` stubs and one C-2 variant `#[ignore]`d;
-  see `stellar-contracts/BUILD_ENV_NOTES.md`.
+  1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`): 30 passed, 0 failed,
+  with only the `test_TODO_*` stubs for the still-open gaps — L-10 and
+  Q-1/Q-2 — `#[ignore]`d (C-1 and C-2 are now implemented and tested); see
+  `stellar-contracts/BUILD_ENV_NOTES.md`.
 - Expanded EVM `Bridge.test.ts` with release, threshold, and pause tests.
 - Expanded `sdk` tests with config, supply, and chain-id coverage.
 - **API integration test suite** (`api/`): vitest + testcontainers

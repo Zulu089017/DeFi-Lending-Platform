@@ -22,9 +22,10 @@
 The current scaffold contains a number of **known placeholders**. They are
 listed here so they cannot be forgotten:
 
-- [ ] `lending_controller.wrap` must verify the ed25519 attestation via
-      `env.crypto().ed25519_verify(bridge_pub, payload, sig)`. The current
-      implementation accepts every call.
+- [x] `lending_controller.wrap` must verify the ed25519 attestation via
+      `env.crypto().ed25519_verify(bridge_pub, payload, sig)`. **Closed
+      (2026-07)** — `require_bridge` verifies `sha256(build_canonical_payload)`
+      against the registered bridge pubkey; see `docs/invariants.md` § 6 (C-1).
 - [ ] `lending_pool.borrow` must enforce a **health factor check** (sum
       collateral value across all assets, multiply by `ltv_bps`, compare to
       total debt). The current code accepts any borrow.

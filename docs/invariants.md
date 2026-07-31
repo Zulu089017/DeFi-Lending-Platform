@@ -88,6 +88,12 @@
 | C-5 | `set_bridge` and `set_paused` are admin-only                                               | Access control    |
 | C-6 | `(chain_id, source_addr, amount, to, salt, nonce)` is bound to the attestation             | Domain separation |
 
+> ✅ **Closed (2026-07).** `wrap` now verifies the ed25519 attestation via
+> `env.crypto().ed25519_verify` over `sha256(build_canonical_payload)` against
+> the registered bridge pubkey, and `invariant_C2_salt_replay_reverts` is
+> re-enabled with a real signature to exercise the replay branch. See
+> `CHANGELOG.md`.
+
 > ⚠️ **C-6 cross-language drift canary.** The off-chain signer pins the
 > canonical payload digest in `bridge/tests/signer.test.ts`
 > (`CANONICAL_DIGEST`). The Rust side has **no** equivalent pinned-digest test
@@ -147,8 +153,8 @@
 > across `stellar-contracts/contracts/*/src/lib.rs` now **execute and pass**. On
 > the pinned toolchain (Rust 1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`),
 > `cargo test --workspace --locked` runs 17 `invariant_*` tests together with
-> the functional suites (27 passed, 0 failed). Only the `test_TODO_*` stubs for
-> the open security gaps — C-1, L-10, Q-1/Q-2 — and one C-2 variant blocked on
-> C-1 remain `#[ignore]`d; they still `panic!` if un-ignored until the gaps in
-> `docs/security.md` § "Open TODOs" are closed. Migration history:
+> the functional suites (30 passed, 0 failed). Only the `test_TODO_*` stubs for
+> the remaining open security gaps — L-10 and Q-1/Q-2 — stay `#[ignore]`d; they
+> still `panic!` if un-ignored until those gaps in `docs/security.md` § "Open
+> TODOs" are closed. C-1 and C-2 are closed. Migration history:
 > [`stellar-contracts/BUILD_ENV_NOTES.md`](../stellar-contracts/BUILD_ENV_NOTES.md).
