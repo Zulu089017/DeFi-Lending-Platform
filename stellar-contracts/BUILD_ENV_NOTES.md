@@ -37,9 +37,10 @@ the `edition2024` Cargo feature — unparseable by Rust 1.81.
    1.82+ the `wasm32-unknown-unknown` target enables `reference-types` /
    `multi-value` features that soroban-sdk 27's `build.rs` rejects; the
    Soroban-native target is `wasm32v1-none` (available with Rust 1.84+).
-3. **Toolchain: `stable`** (soroban-sdk 27 MSRV is 1.91; current stable 1.97
-   works). The CI job pins `dtolnay/rust-toolchain@stable` with
-   `targets: wasm32v1-none, components: rustfmt, clippy`.
+3. **Toolchain: pinned to `1.91.0`** (the soroban-sdk 27 MSRV; current stable
+   also works). The CI job pins `dtolnay/rust-toolchain@1.91.0` with
+   `targets: wasm32v1-none, components: rustfmt, clippy` — keep the `components`
+   input as a single scalar (block style) so both components are installed.
 4. **Contract API migrations for sdk 27:** `env.storage()` is now a method
    (`env.storage().instance()`), `env.events().publish(...)` is replaced by
    `#[contractevent]` types with a `.publish(&env)` method, test utils use
