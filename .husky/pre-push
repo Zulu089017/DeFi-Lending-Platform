@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+# Husky pre-push hook for OpenLend
+# Runs typecheck and tests before pushing.
+
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running typechecks and tests before push..."
+
+# TypeScript services typecheck
+for dir in bridge relayer indexer api sdk frontend; do
+  if [ -f "$dir/tsconfig.json" ]; then
+    echo "  → typechecking $dir..."
+    (cd "$dir" && npx tsc --noEmit) || {
+      echo "❌ Typecheck failed in $dir"
+      exit 1
+    }
+  fi
+done
+
+echo "✅ Pre-push checks passed"
