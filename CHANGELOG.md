@@ -33,11 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `cargo test --workspace` dep-resolution blocker and the two real
   paths forward (bump `soroban-sdk` to 22+, or use Docker with a
   pre-baked `Cargo.lock`).
-- 18 new `invariant_*` tests in `stellar-contracts/contracts/*/src/lib.rs`
-  (W-1, L-1..L-9, C-2/C-4, O-1/O-2/O-3, V-1..V-5, Q-3/Q-4) and
-  `test_TODO_*` stubs for the documented security gaps. The tests are
-  well-formed but cannot be executed in this environment until the
-  dep-tree issue is resolved; see `BUILD_ENV_NOTES.md`.
+- 17 `invariant_*` tests in `stellar-contracts/contracts/*/src/lib.rs`
+  (V-1..V-5, C-2/C-4, L-1..L-9, O-1/O-2/O-3, Q-3/Q-4) and `test_TODO_*`
+  stubs (C-1, L-10, Q-1/Q-2) for the documented security gaps. The suite
+  executes and passes on the migrated toolchain (Rust 1.91.0, soroban-sdk
+  27.0.4, `wasm32v1-none`): 27 passed, 0 failed, with only the
+  `test_TODO_*` stubs and one C-2 variant `#[ignore]`d; see
+  `stellar-contracts/BUILD_ENV_NOTES.md`.
 - Expanded EVM `Bridge.test.ts` with release, threshold, and pause tests.
 - Expanded `sdk` tests with config, supply, and chain-id coverage.
 - **API integration test suite** (`api/`): vitest + testcontainers
