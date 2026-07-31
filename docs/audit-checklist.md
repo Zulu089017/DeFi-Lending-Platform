@@ -95,6 +95,20 @@
   are enforced with `-D warnings`, not `clippy.toml` keys.
 - Full history and migration notes: `stellar-contracts/BUILD_ENV_NOTES.md`.
 
+### GitHub Actions (`actions/*`, `pnpm/action-setup`)
+
+- `actions/checkout@v5` and `actions/setup-node@v5` are pinned in
+  `.github/workflows/ci.yml` and `.github/workflows/release.yml`.
+- **Why v5:** the v4 releases target Node.js 20, which GitHub now runs on
+  Node.js 24 with a deprecation warning on every job; v5 targets Node.js 24
+  natively and has identical inputs (`node-version`, `cache: pnpm|npm`,
+  `cache-dependency-path`), so the upgrade was behavior-neutral.
+- `pnpm/action-setup@v4` stays on v4 — it is the latest major for that action.
+- Policy: keep these actions at their current majors. When a new major ships,
+  upgrade deliberately and verify input parity (especially `setup-node`'s
+  `cache`/`cache-dependency-path`); upgrading promptly avoids accumulating
+  runner deprecation warnings.
+
 ## Audit scope
 
 | Component            | Lines of code | Language       | Auditor |
