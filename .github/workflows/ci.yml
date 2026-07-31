@@ -43,7 +43,13 @@ jobs:
       # See `stellar-contracts/BUILD_ENV_NOTES.md`. Pinned to the MSRV for
       # deterministic builds (matches clippy.toml msrv).
       - uses: dtolnay/rust-toolchain@1.91.0
-        with: { targets: wasm32v1-none, components: rustfmt, clippy }
+        with:
+          targets: wasm32v1-none
+          # Block style is required: the action's `components` input takes a
+          # single comma-separated string, and flow-style `with: { ...
+          # components: rustfmt, clippy }` made GitHub parse `clippy` as a
+          # separate input key, so the clippy component was never installed.
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: "./stellar-contracts" }
       - run: cargo fmt --all -- --check
@@ -79,7 +85,14 @@ jobs:
         with:
           target: evm-contracts
           solc-version: 0.8.24
-          slither-args: --filter-paths "node_modules|openzeppelin" --fail-low
+          # The action appends its own --fail flag from the `fail-on` input
+          # (default `all` -> --fail-pedantic). Passing --fail-low via
+          # slither-args as well made slither reject the step (the --fail-*
+          # flags are mutually exclusive). `low` fails the job only on
+          # low-severity+ findings; the informational naming-convention
+          # findings pass through.
+          fail-on: low
+          slither-args: --filter-paths "node_modules|openzeppelin"
 
   # ─── TypeScript services (pnpm workspace) ───
   ts-services:
