@@ -26,20 +26,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `stellar-contracts/rustfmt.toml` and `clippy.toml` for consistent Rust style.
 - `stellar-contracts/rust-toolchain.toml` pinning the Soroban workspace
   to Rust 1.81.0 (avoids the `zeroize 1.9.0` `edition2024` requirement
-  that forces Rust >= 1.85). Does **not** fix the deeper
-  `rand_core`/`ed25519-dalek` split — see `stellar-contracts/BUILD_ENV_NOTES.md`.
+  that forces Rust >= 1.85). **Removed in the sdk-27 migration** — the
+  toolchain is now pinned by CI (`dtolnay/rust-toolchain@1.91.0`, the
+  soroban-sdk 27 MSRV); `rust-toolchain.toml` no longer exists in the
+  repo. See `stellar-contracts/BUILD_ENV_NOTES.md`.
 - `docs/invariants.md` documenting protocol invariants for auditors.
 - `stellar-contracts/BUILD_ENV_NOTES.md` documenting the known
   `cargo test --workspace` dep-resolution blocker and the two real
   paths forward (bump `soroban-sdk` to 22+, or use Docker with a
   pre-baked `Cargo.lock`).
 - 17 `invariant_*` tests in `stellar-contracts/contracts/*/src/lib.rs`
-  (V-1..V-5, C-2/C-4, L-1..L-9, O-1/O-2/O-3, Q-3/Q-4) and `test_TODO_*`
-  stubs (C-1, L-10, Q-1/Q-2) for the documented security gaps. The suite
-  executes and passes on the migrated toolchain (Rust 1.91.0, soroban-sdk
-  27.0.4, `wasm32v1-none`): 27 passed, 0 failed, with only the
-  `test_TODO_*` stubs and one C-2 variant `#[ignore]`d; see
-  `stellar-contracts/BUILD_ENV_NOTES.md`.
+  (V-1/V-2/V-3/V-5, C-2/C-4, L-1..L-6/L-9, O-1/O-2/O-3, Q-3/Q-4) and
+  `test_TODO_*` stubs (C-1, L-10, Q-1/Q-2) for the documented security
+  gaps. The suite executes and passes on the migrated toolchain (Rust
+  1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`): 27 passed, 0 failed,
+  with only the `test_TODO_*` stubs and one C-2 variant `#[ignore]`d;
+  see `stellar-contracts/BUILD_ENV_NOTES.md`.
 - Expanded EVM `Bridge.test.ts` with release, threshold, and pause tests.
 - Expanded `sdk` tests with config, supply, and chain-id coverage.
 - **API integration test suite** (`api/`): vitest + testcontainers
@@ -55,9 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   See `api/README.md` → “Testing”.
 
 ### Changed
-- `.github/workflows/ci.yml` pins `dtolnay/rust-toolchain@1.81.0` in
+- `.github/workflows/ci.yml` pins `dtolnay/rust-toolchain@1.91.0` in
   the `stellar-contracts` job (was `@stable`, which would also fail
-  on 1.97+).
+  on 1.97+; the earlier `@1.81.0` pin was superseded as part of the
+  soroban-sdk 27 migration).
 - `evm-contracts/contracts/Bridge.sol` now uses `OpenZeppelin`'s `ECDSA` and
   `MessageHashUtils` libraries instead of a custom signature-recovery
   implementation.
