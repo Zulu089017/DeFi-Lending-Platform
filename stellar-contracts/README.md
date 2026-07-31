@@ -17,8 +17,8 @@ The on-chain core of the OpenLend protocol, written in Rust for
 ## Build
 
 ```bash
-rustup target add wasm32-unknown-unknown
-cargo build --target wasm32-unknown-unknown --release
+rustup target add wasm32v1-none
+cargo build --workspace --target wasm32v1-none --release
 ```
 
 ## Test
@@ -29,8 +29,24 @@ cargo test
 
 ## Deploy to testnet
 
+Build the WASMs (wasm32v1-none, release) and run the JS deployer:
+
 ```bash
 bash scripts/deploy-testnet.sh
+```
+
+`scripts/deploy-testnet.mjs` (stellar-sdk v16, no stellar CLI required) funds
+the admin via friendbot, uploads the six WASMs, creates the seven contracts
+(deterministic IDs via
+`sha256(HashIdPreimage::ContractId{network_id, preimage})`, so re-runs are
+resumable), initializes them in dependency order, verifies each contract's
+on-chain instance storage, and writes `sdk/src/manifest.json`, `stellar.toml`,
+and the SEP-1 hosted copy at `frontend/public/.well-known/stellar.toml`. Secrets
+are stored in `stellar-contracts/.env` (gitignored). Validate the generated
+`stellar.toml` with:
+
+```bash
+python3 scripts/validate-sep1.py ../stellar.toml
 ```
 
 ## Architecture
@@ -50,6 +66,6 @@ stellar-contracts/
 │   ├── liquidation/
 │   └── lending_controller/
 ├── tests/                  # Cross-contract integration tests
-├── scripts/                # deploy / upgrade scripts
+├── scripts/                # deploy-testnet.{mjs,sh} + validate-sep1.py
 └── Cargo.toml              # workspace
 ```

@@ -1,64 +1,32 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────────────
-# Deploy all OpenLend Soroban contracts to Stellar testnet, in the right order.
+# Deploy all OpenLend Soroban contracts to Stellar testnet.
 #
-# Prereqs:
-#   • stellar-cli (soroban-cli) installed and on PATH
-#   • A funded testnet identity: `stellar keys generate deployer --network testnet`
-#   • `cargo build --target wasm32-unknown-unknown --release` already run
+# Thin wrapper around deploy-testnet.mjs (stellar-sdk v16, no stellar CLI
+# required). Builds the WASMs for wasm32v1-none first, then runs the JS
+# deployer which handles friendbot funding, upload, create, initialize,
+# on-chain verification and writes sdk/src/manifest.json + stellar.toml +
+# frontend/public/.well-known/stellar.toml.
+#
+#   bash scripts/deploy-testnet.sh
+#
+# Requires:
+#   • Rust toolchain with the wasm32v1-none target installed
+#     (see BUILD_ENV_NOTES.md)
+#   • `node` + `@stellar/stellar-sdk` v16 (resolved via the `sdk` package)
+#   • Secrets in stellar-contracts/.env (gitignored; auto-generated if absent)
 # ──────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-NETWORK="${NETWORK:-testnet}"
-ADMIN="${ADMIN:-$(stellar keys address deployer)}"
-SOURCE="${SOURCE:-deployer}"
-RPC="https://soroban-testnet.stellar.org"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# Build
-echo "▶ Building WASMs..."
-cargo build --target wasm32-unknown-unknown --release
+echo "▶ Building WASMs (wasm32v1-none, release)..."
+cargo build --workspace --locked --target wasm32v1-none --release
 
-# Deploy (in order)
-deploy() {
-  local name="$1"
-  local wasm="$2"
-  echo "▶ Deploying $name..."
-  stellar contract deploy \
-    --wasm "$wasm" \
-    --source "$SOURCE" \
-    --network "$NETWORK" \
-    --rpc-url "$RPC"
-}
+echo "▶ Deploying to testnet via stellar-sdk v16..."
+node "${ROOT}/stellar-contracts/scripts/deploy-testnet.mjs"
 
-WA=$(deploy wrapped_asset    "target/wasm32-unknown-unknown/release/wrapped_asset.wasm")
-OR=$(deploy oracle           "target/wasm32-unknown-unknown/release/oracle.wasm")
-CV=$(deploy collateral_vault "target/wasm32-unknown-unknown/release/collateral_vault.wasm")
-LP=$(deploy lending_pool     "target/wasm32-unknown-unknown/release/lending_pool.wasm")
-LQ=$(deploy liquidation      "target/wasm32-unknown-unknown/release/liquidation.wasm")
-CT=$(deploy lending_controller "target/wasm32-unknown-unknown/release/lending_controller.wasm")
-
-echo ""
-echo "✔ Deployments complete:"
-echo "  WRAPPED_ASSET=$WA"
-echo "  ORACLE=$OR"
-echo "  COLLATERAL_VAULT=$CV"
-echo "  LENDING_POOL=$LP"
-echo "  LIQUIDATION=$LQ"
-echo "  LENDING_CONTROLLER=$CT"
-
-# Write addresses to a manifest the SDK and frontend can consume
-cat > ../sdk/src/manifest.json <<JSON
-{
-  "network": "$NETWORK",
-  "contracts": {
-    "wrapped_asset":    "$WA",
-    "oracle":           "$OR",
-    "collateral_vault": "$CV",
-    "lending_pool":     "$LP",
-    "liquidation":      "$LQ",
-    "lending_controller": "$CT"
-  }
-}
-JSON
-
-echo "✔ Wrote manifest to ../sdk/src/manifest.json"
+echo "✔ Done. Artifacts written:"
+echo "  • ${ROOT}/sdk/src/manifest.json"
+echo "  • ${ROOT}/stellar.toml"
+echo "  • ${ROOT}/frontend/public/.well-known/stellar.toml (SEP-1 hosted copy)"

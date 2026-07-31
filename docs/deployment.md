@@ -17,9 +17,8 @@ public mainnet-like cluster.
 ```bash
 # Stellar
 cd stellar-contracts
-cargo build --target wasm32-unknown-unknown --release
-NETWORK=public STELLAR_NETWORK_PASSPHRASE="Public Global Stellar Network ; September 2015" \
-  bash scripts/deploy-testnet.sh   # adjust for mainnet
+cargo build --workspace --target wasm32v1-none --release
+bash scripts/deploy-testnet.sh   # deploy to testnet (mainnet: edit .env / script)
 
 # EVM (Ethereum + Polygon)
 cd ../evm-contracts
@@ -28,8 +27,19 @@ npx hardhat run scripts/deploy.ts --network mainnet
 npx hardhat run scripts/deploy.ts --network polygon
 ```
 
-Both scripts update `sdk/src/manifest.json` with the live addresses. Commit that
-file.
+The Stellar deployer (`scripts/deploy-testnet.mjs`) handles friendbot funding,
+wasm upload, contract creation, initialization in dependency order, an on-chain
+read-back verification of every contract, and writes `sdk/src/manifest.json`,
+`stellar.toml`, and the SEP-1 hosted copy at
+`frontend/public/.well-known/stellar.toml`. Contract IDs are deterministic (salt
+= sha256(saltLabel)) so re-runs resume cleanly. Secrets live in
+`stellar-contracts/.env` (gitignored) and are auto-generated + funded on first
+run. Commit `sdk/src/manifest.json`, `stellar.toml`, and the frontend copy.
+
+> ⚠️ Redeploying after a **contract code change**: the salts do not depend on
+> wasm bytes, so a re-run hits "contract already exists" and resumes with the
+> OLD wasm. To ship new contract code, bump the saltLabel in
+> `deploy-testnet.mjs` (or use a fresh admin keypair).
 
 ## 2. Build & push images
 
@@ -42,7 +52,8 @@ REGISTRY=ghcr.io/openlend TAG=0.1.0 bash infra/scripts/build-images.sh
 Replace the secrets in `infra/k8s/01-postgres.yaml`, `02-bridge.yaml`, etc. with
 real values, ideally sealed with
 [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) or an external
-secret manager.
+secret manager. The Stellar bridge signers must match the attester keys written
+to `stellar-contracts/.env` by the deploy script (see `docs/security.md`).
 
 ## 4. Deploy the cluster
 

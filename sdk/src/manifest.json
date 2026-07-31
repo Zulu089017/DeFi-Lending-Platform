@@ -5,17 +5,22 @@
     "rpc": "https://horizon-testnet.stellar.org",
     "networkPassphrase": "Test SDF Network ; September 2015",
     "contracts": {
-      "wrapped_asset": "C...",
-      "oracle": "C...",
-      "collateral_vault": "C...",
-      "lending_pool": "C...",
-      "liquidation": "C...",
-      "lending_controller": "C..."
+      "wrapped_asset": "CDFM46L5MR6HBMS524K6JD45UXPPMVITWYENAQQT5EHZT6UNU4XHSUI4",
+      "wrapped_usdc": "CDBDXFPIOWZMNXQBOZAAOH3NLBB5OG4TSGIO3PTUCS3MDXBUKEID5NNC",
+      "oracle": "CCHY2I447VEM4M3RPZCNZ3MQKH5J26M32AAFLUFY6KCC5MZT7PZB5DSZ",
+      "collateral_vault": "CCX4RT5LU5VITUJRS7IPH4YGHLHUDEZOZ7BBXGEA46EE635OGZ3WH7MI",
+      "lending_pool": "CDIQ47UUIYMFBOD4B5BQJI7SH3JTBLDPKBPLBOUCKGAWAA6OZEWLKWGJ",
+      "liquidation": "CDER5LR4BS2ROCMOA7IGTPNCL4LGS65UIO4FORMF6ZGLQH6MRMVQ5AAL",
+      "lending_controller": "CBPTTJGOQ6BYVSSKC7XJLUWMTUNJ2QTFDG34E54YL3QOBP7U6EFHRMJH"
     }
   },
   "evm": {
-    "ethereum": { "bridge": "0x0000000000000000000000000000000000000000" },
-    "polygon": { "bridge": "0x0000000000000000000000000000000000000000" }
+    "ethereum": {
+      "bridge": "0x0000000000000000000000000000000000000000"
+    },
+    "polygon": {
+      "bridge": "0x0000000000000000000000000000000000000000"
+    }
   },
   "api": "https://api.openlend.xyz"
 }

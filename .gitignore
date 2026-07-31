@@ -19,6 +19,10 @@ sdk/package-lock.json
 
 # ────── Rust / Soroban ──────
 target/
+
+# ────── Python ──────
+__pycache__/
+*.pyc
 # Soroban snapshot files written by failing `Env::default()` tests
 **/test_snapshots/
 # Cargo.lock IS committed for the Soroban workspace (deterministic CI via

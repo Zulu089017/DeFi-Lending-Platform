@@ -1,7 +1,12 @@
 /** @type {import('lint-staged').Config} */
 module.exports = {
-  // Frontend: full ESLint + Prettier (next/core-web-vitals handles TS parsing)
-  "frontend/**/*.{ts,tsx,js,jsx}": ["prettier --write", "eslint --fix --max-warnings 0"],
+  // Frontend TS/TSX: full ESLint + Prettier (next/core-web-vitals handles TS
+  // parsing). Frontend JS is prettier-only: the root .eslintrc.json has
+  // `ignorePatterns: ["*.js"]`, so passing config files like next.config.js /
+  // postcss.config.js to `eslint --max-warnings 0` makes it FAIL on the
+  // "File ignored" warning.
+  "frontend/**/*.{ts,tsx}": ["prettier --write", "eslint --fix --max-warnings 0"],
+  "frontend/**/*.{js,jsx}": ["prettier --write"],
   // Non-frontend TS: prettier only (root .eslintrc.json lacks TS parser)
   "api/**/*.ts": ["prettier --write"],
   "bridge/**/*.ts": ["prettier --write"],
