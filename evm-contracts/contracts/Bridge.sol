@@ -23,6 +23,14 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable
 // half-order of secp256k1) and clear revert reasons.
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+/// @notice Interface for burnable tokens consumed by the Bridge.
+///         Tokens that support `burnFrom` must implement this interface
+///         so the Bridge can verify the call at compile time rather than
+///         using a low-level `call`. This closes C5 (unsafe burn).
+interface IBurnable {
+    function burnFrom(address from, uint256 amount) external returns (bool);
+}
+
 // TODO(audit): OZ's `ReentrancyGuard` is marked
 // "Deprecated. This storage-based reentrancy guard will be removed and
 // replaced by the {ReentrancyGuardTransient} variant in v6.0." (see
@@ -82,6 +90,8 @@ contract Bridge is
     error Bridge__DuplicateSignature(address signer);
     error Bridge__InsufficientSignatures(uint256 got, uint256 need);
     error Bridge__BurnFailed();
+    error Bridge__ReleaseReplayed(bytes32 stellarTxHash);
+    error Bridge__TooManySignatures(uint256 count, uint256 max);
 
     // ────────────────────────────── Structs ──────────────────────────────
 
@@ -98,8 +108,11 @@ contract Bridge is
 
     // ────────────────────────────── Storage ──────────────────────────────
 
-    /// @dev Maps Stellar destination pubkey hash to nonces
+    /// @dev Maps salt/nonce to prevent replay of lock/burn
     mapping(bytes32 => bool) public usedNonces;
+
+    /// @dev Maps stellarTxHash to prevent replay of release (C4 fix)
+    mapping(bytes32 => bool) public releasedNonces;
 
     /// @dev Per-token configuration
     mapping(address => TokenConfig) public tokenConfigs;
@@ -190,20 +203,23 @@ contract Bridge is
         if (usedNonces[salt]) revert Bridge__SaltReused(salt);
         if (stellarDest == bytes32(0)) revert Bridge__InvalidDest();
 
-        // Interactions (effects happen after the transfer succeeds so a
-        // failed safeTransferFrom does not consume the salt).
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-
-        // Effects
+        // Effects (H7 FIX: write state BEFORE external call per CEI pattern).
+        // A failed safeTransferFrom reverts the tx, so the stored nonce is
+        // safe — it will be rolled back atomically.
         usedNonces[salt] = true;
         userLockCount[msg.sender][token] += 1;
         nonce = uint256(keccak256(abi.encodePacked(msg.sender, token, amount, salt, block.chainid)));
+
+        // Interactions
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
         emit Locked(msg.sender, token, amount, stellarDest, salt, nonce);
     }
 
     /// @notice Burn canonical (ownable) tokens; emits a `Burned` event.
     ///         Used when the source chain token is the canonical token (e.g. WETH).
+    ///         The token MUST implement `IBurnable.burnFrom` (checked at compile
+    ///         time via the typed interface call).
     function burn(
         address token,
         uint256 amount,
@@ -218,15 +234,16 @@ contract Bridge is
         if (usedNonces[salt]) revert Bridge__SaltReused(salt);
         if (stellarDest == bytes32(0)) revert Bridge__InvalidDest();
 
+        // Effects before interactions (CEI pattern)
         usedNonces[salt] = true;
         nonce = uint256(keccak256(abi.encodePacked(msg.sender, token, amount, salt, block.chainid)));
 
-        // For burnable tokens, the user must have approved the bridge and the
-        // token must implement burn. For ERC-20-only, use `lock` instead.
-        (bool ok, bytes memory ret) = token.call(
-            abi.encodeWithSignature("burnFrom(address,uint256)", msg.sender, amount)
-        );
-        if (!(ok && (ret.length == 0 || abi.decode(ret, (bool))))) revert Bridge__BurnFailed();
+        // C5 FIX: Use typed interface call instead of low-level `call()`.
+        // This provides compile-time safety and uses the contract's
+        // standard custom-error pattern for consistency.
+        // If the token does not implement `IBurnable`, this reverts with
+        // a standard Solidity "function selector not recognized" error.
+        if (!IBurnable(token).burnFrom(msg.sender, amount)) revert Bridge__BurnFailed();
 
         emit Burned(msg.sender, token, amount, stellarDest, salt, nonce);
     }
@@ -238,6 +255,9 @@ contract Bridge is
     ///         in `initialize`; the `Release` type hash is pinned in
     ///         `RELEASE_TYPEHASH`. Closes invariant B-7. Off-chain
     ///         counterpart: `bridge/src/attest/signer.ts` → `signEvmRelease`.
+    ///         **C4 fix:** `stellarTxHash` is now checked against
+    ///         `releasedNonces` before and set after the transfer, preventing
+    ///         replay of the same release call.
     function release(
         address token,
         address recipient,
@@ -247,6 +267,10 @@ contract Bridge is
         bytes[] calldata signatures
     ) external whenNotPaused nonReentrant {
         if (recipient == address(0)) revert Bridge__InvalidRecipient();
+
+        // ── C4 FIX: Replay protection via stellarTxHash ──
+        if (releasedNonces[stellarTxHash]) revert Bridge__ReleaseReplayed(stellarTxHash);
+
         // `abi.encode` (not `abi.encodePacked`) so each field is padded to
         // 32 bytes — the canonical EIP-712 struct hash layout.
         bytes32 structHash = keccak256(
@@ -260,6 +284,12 @@ contract Bridge is
             )
         );
         _verifySignatures(_hashTypedDataV4(structHash), signatures);
+
+        // Mark as released BEFORE the external call (checks-effects-
+        // interactions). A failed `safeTransfer` (e.g. token blacklist)
+        // will revert the whole tx and NOT consume the nonce.
+        releasedNonces[stellarTxHash] = true;
+
         IERC20(token).safeTransfer(recipient, amount);
         emit Released(recipient, token, amount, stellarTxHash, nonce);
     }
@@ -318,7 +348,16 @@ contract Bridge is
         emit AttesterSetUpdated(_attesters, _threshold);
     }
 
+    /// @dev Maximum number of signatures accepted (prevents gas griefing
+    ///      with O(n²) duplicate check). Quorum is typically 2-5 signers.
+    uint256 private constant MAX_SIGNATURES = 20;
+
     function _verifySignatures(bytes32 digest, bytes[] calldata signatures) internal view {
+        // M7 FIX: Cap the number of signatures to prevent gas griefing
+        if (signatures.length > MAX_SIGNATURES) {
+            revert Bridge__TooManySignatures(signatures.length, MAX_SIGNATURES);
+        }
+
         // Recover each signature via OpenZeppelin's ECDSA (membership + dup
         // checks). We do NOT require ascending order — multisig wallets are
         // not ordered.

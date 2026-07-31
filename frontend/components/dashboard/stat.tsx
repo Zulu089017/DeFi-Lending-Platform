@@ -1,4 +1,8 @@
-"use client";
+// NOTE: intentionally NOT a "use client" component. It is rendered from
+// both a Server Component (app/dashboard/page.tsx, which passes Lucide
+// icon *components* as props — forbidden across the Server→Client
+// boundary) and from the client "StatsOverview" wrapper. As a shared
+// component it has no hooks or browser APIs, so it works in both.
 import type { LucideIcon } from "lucide-react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";

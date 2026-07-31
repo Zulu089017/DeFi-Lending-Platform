@@ -267,11 +267,13 @@ impl LendingController {
     ///   2. chain_id (u32 LE)
     ///   3. source_addr (32 raw bytes)
     ///   4. amount (i64 LE, saturating cast)
-    ///   5. to: full ScVal XDR representation of the Address (40 bytes for
-    ///      an ed25519 account). The off-chain side produces the matching
-    ///      bytes via `ScAddress.fromString(...).toScVal().toXDR()`.
-    ///   6. salt (32 raw bytes)
-    ///   7. nonce (u64 LE)
+///   5. to: full ScVal XDR representation of the Address (44 bytes for
+///      an ed25519 account: 4-byte ScVal tag + 4-byte ScAddress tag +
+///      4-byte AccountId tag + 32-byte raw pubkey). The off-chain side
+///      produces the matching bytes via
+///      `ScAddress.fromString(...).toScVal().toXDR()`.
+///   6. salt (32 raw bytes)
+///   7. nonce (u64 LE)
     fn build_canonical_payload(
         env: &Env,
         chain_id: u32,
@@ -288,11 +290,12 @@ impl LendingController {
         let amt_i64 = amount as i64; // saturating cast; production should bounds-check
         payload.append(&Bytes::from_slice(env, &amt_i64.to_le_bytes()));
         let to_xdr = to.to_xdr(env);
-        // Sanity check: an ed25519 Address serializes to exactly 40 bytes
-        // (ScVal envelope: 4-byte type tag + 4-byte ScAddress tag + 32-byte
-        // raw pubkey). If this ever changes, the off-chain signer will
-        // produce a different digest and every `wrap` will revert.
-        if to_xdr.len() != 40 {
+        // Sanity check: an ed25519 Address serializes to exactly 44 bytes
+        // (ScVal envelope: 4-byte type tag + 4-byte ScAddress tag +
+        // 4-byte AccountId tag + 32-byte raw pubkey). If this ever
+        // changes, the off-chain signer will produce a different digest
+        // and every `wrap` will revert.
+        if to_xdr.len() != 44 {
             panic!("unexpected Address XDR length");
         }
         payload.append(&to_xdr);

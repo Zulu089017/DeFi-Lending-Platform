@@ -1,6 +1,8 @@
 # OpenLend — Bridge Middleware
 
-Off-chain TypeScript service that watches `Locked` / `Burned` events on source chains (Ethereum, Polygon, Solana) and submits mint transactions to the Soroban `lending_controller` to mint wrapped tokens.
+Off-chain TypeScript service that watches `Locked` / `Burned` events on source
+chains (Ethereum, Polygon, Solana) and submits mint transactions to the Soroban
+`lending_controller` to mint wrapped tokens.
 
 ## How it works
 

@@ -6,14 +6,10 @@ labels: enhancement
 assignees: ""
 ---
 
-**Problem**
-What problem does this solve?
+**Problem** What problem does this solve?
 
-**Proposed solution**
-Describe the change.
+**Proposed solution** Describe the change.
 
-**Alternatives considered**
-Any alternative approaches?
+**Alternatives considered** Any alternative approaches?
 
-**Additional context**
-Links, references, screenshots.
+**Additional context** Links, references, screenshots.

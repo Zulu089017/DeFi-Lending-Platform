@@ -21,8 +21,14 @@ const openlend = new OpenLend({
     secretKey: process.env.STELLAR_SECRET!,
   },
   evm: {
-    ethereum: { rpc: process.env.ETH_RPC!, bridgeAddress: process.env.ETH_BRIDGE! },
-    polygon:  { rpc: process.env.POLY_RPC!, bridgeAddress: process.env.POLY_BRIDGE! },
+    ethereum: {
+      rpc: process.env.ETH_RPC!,
+      bridgeAddress: process.env.ETH_BRIDGE!,
+    },
+    polygon: {
+      rpc: process.env.POLY_RPC!,
+      bridgeAddress: process.env.POLY_BRIDGE!,
+    },
   },
   api: "https://api.openlend.xyz",
 });
@@ -97,4 +103,6 @@ unsub();
 
 ## Manifest
 
-Contract addresses are read from `src/manifest.json`. The deploy scripts in `stellar-contracts/scripts/deploy-testnet.sh` and `evm-contracts/scripts/deploy.ts` update this file automatically.
+Contract addresses are read from `src/manifest.json`. The deploy scripts in
+`stellar-contracts/scripts/deploy-testnet.sh` and
+`evm-contracts/scripts/deploy.ts` update this file automatically.

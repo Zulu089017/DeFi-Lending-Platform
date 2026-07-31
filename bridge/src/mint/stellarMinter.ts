@@ -11,10 +11,14 @@ import { ethers } from "ethers";
 import { config } from "../config.js";
 import { markMinted, prisma } from "../store/db.js";
 import { collectSignatures, payloadHash } from "../attest/signer.js";
-import type { StellarMintRequest, SourceEvent } from "../types.js";
+import type { StellarMintRequest, SourceChainId, SourceEvent } from "../types.js";
 import { logger } from "../utils/logger.js";
 
-const CHAIN_IDS = { ethereum: 1, polygon: 137, solana: 0 } as const;
+const CHAIN_IDS: Record<SourceChainId, number> = {
+  ethereum: 1,
+  polygon: 137,
+  solana: 0,
+};
 
 // NOTE: The on-chain `lending_controller.wrap` expects a single ed25519
 // signature (`BytesN<64>`) over a payload that binds (chain_id, source_addr,
@@ -37,6 +41,12 @@ export class StellarMinter {
 
   /** Queue a mint request from a SourceEvent. */
   async enqueue(ev: SourceEvent, stellarDest: string): Promise<void> {
+    // Only source-chain `Locked`/`Burned` events mint. Stellar events are
+    // unwraps and must never reach the mint queue (they have no chain id).
+    if (ev.chain === "stellar") {
+      logger.warn({ txHash: ev.txHash }, "skipping stellar event in mint queue");
+      return;
+    }
     await prisma.mintRequest.upsert({
       where: { sourceTx_sourceLogIndex: { sourceTx: ev.txHash, sourceLogIndex: ev.logIndex } },
       create: {
@@ -67,7 +77,7 @@ export class StellarMinter {
     for (const req of pending) {
       try {
         const req_typed: StellarMintRequest = {
-          chain: req.chain as "ethereum" | "polygon" | "solana",
+          chain: req.chain as SourceChainId,
           sourceTx: req.sourceTx,
           sourceLogIndex: req.sourceLogIndex,
           sourceAddress: req.sourceAddress,
@@ -114,8 +124,29 @@ export class StellarMinter {
       return false;
     }
 
-    // The on-chain controller verifies a single ed25519 signature from the
-    // bridge attester set. We pack the first collected signature as BytesN<64>.
+    // ── C6 WARNING: Single-signer model ──────────────────────────────
+    // The on-chain `lending_controller.wrap` accepts a single `BytesN<64>`
+    // ed25519 signature. This means only ONE attester's signature is sent
+    // on-chain — the 2-of-3 (or N-of-M) quorum is NOT enforced on-chain.
+    //
+    // PRODUCTION FIX: The on-chain contract must be upgraded to:
+    //   a) Accept `Vec<BytesN<64>>` (multiple signatures), and
+    //   b) Verify that at least `threshold` distinct attester pubkeys
+    //      have signed the payload.
+    //
+    // Until that upgrade, we enforce the quorum check OFF-CHAIN:
+    // we require at least ATTESTER_THRESHOLD signatures to be collected
+    // before we submit. This is NOT a substitute for on-chain enforcement.
+    if (sigs.length < config.ATTESTER_THRESHOLD) {
+      logger.error(
+        { got: sigs.length, need: config.ATTESTER_THRESHOLD },
+        "C6: insufficient attester signatures (quorum not met)",
+      );
+      return false;
+    }
+
+    // The first signature is sent on-chain. Production should send ALL
+    // signatures once the contract supports multi-sig verification.
     const firstSig = sigs[0];
     const sigBytes = Buffer.from(firstSig.replace(/^0x/, ""), "hex");
     if (sigBytes.length !== 64) {

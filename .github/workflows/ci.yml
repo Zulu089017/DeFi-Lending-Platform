@@ -30,8 +30,8 @@ jobs:
       - uses: actions/checkout@v4
       # Pinned to 1.81.0 to avoid zeroize 1.9.0 edition2024 issue.
       # See `stellar-contracts/BUILD_ENV_NOTES.md`. `cargo test
-      # --workspace` is still broken due to the rand_core split;
-      # we run `cargo check` instead to at least verify compilation.
+      # --workspace` is still broken due to the rand_core split; we run
+      # `cargo check` instead to at least verify compilation.
       - uses: dtolnay/rust-toolchain@1.81.0
         with: { targets: wasm32-unknown-unknown, components: rustfmt, clippy }
       - uses: Swatinem/rust-cache@v2
@@ -41,7 +41,7 @@ jobs:
       - name: Lint
         run: cargo clippy --workspace --all-targets -- -D warnings
 
-  # ─── EVM contracts ───
+  # ─── EVM contracts (standalone npm package, not in the pnpm workspace) ───
   evm-contracts:
     name: EVM contracts
     runs-on: ubuntu-latest
@@ -49,7 +49,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm, cache-dependency-path: evm-contracts/package-lock.json }
+        with:
+          {
+            node-version: "${{ env.NODE_VERSION }}",
+            cache: npm,
+            cache-dependency-path: evm-contracts/package-lock.json,
+          }
       - run: npm ci
       - run: npx hardhat compile
       - run: npx hardhat test
@@ -60,7 +65,7 @@ jobs:
           solc_version: 0.8.24
           slither_args: --filter-paths "node_modules|openzeppelin" --fail-low
 
-  # ─── TypeScript services ───
+  # ─── TypeScript services (pnpm workspace) ───
   ts-services:
     name: TS services (${{ matrix.service }})
     runs-on: ubuntu-latest
@@ -69,50 +74,59 @@ jobs:
       matrix:
         service: [bridge, relayer, indexer, api, sdk]
         include:
+          # bridge and relayer import @prisma/client (bridge/src/store/db.ts,
+          # relayer/src/queue.ts); pnpm skips prisma's postinstall build
+          # script, so a fresh checkout needs an explicit `prisma generate`
+          # for their typechecks to resolve.
           - service: bridge
-            prisma: false
-            test-env: {}
+            prisma: true
           - service: relayer
-            prisma: false
-            test-env: {}
+            prisma: true
           - service: indexer
             prisma: true
-            test-env: {}
           - service: api
             prisma: true
-            test-env: {}
           - service: sdk
             prisma: false
-            test-env: {}
-    defaults: { run: { working-directory: ${{ matrix.service }} } }
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
       - uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm, cache-dependency-path: "${{ matrix.service }}/package-lock.json" }
-      - run: npm ci
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
       - if: matrix.prisma
-        run: npx prisma generate
-      - run: npx tsc --noEmit
-      - run: npm test
-        env: ${{ matrix.test-env }}
-      - name: Audit
-        run: npm audit --audit-level=high
-        continue-on-error: true
+        run: pnpm --filter "@openlend/${{ matrix.service }}" exec prisma generate
+      - run: pnpm --filter "@openlend/${{ matrix.service }}" exec tsc --noEmit
+      - run: pnpm --filter "@openlend/${{ matrix.service }}" test
+      - name: Audit (non-blocking, workspace-wide)
+        # pnpm audit does not support --filter; run it once at the workspace
+        # root and treat as advisory. The api package still reports
+        # devDep-only findings (testcontainers/vitest chains) that require
+        # breaking major upgrades. Tracked in docs/audit-checklist.md.
+        # Re-enable as a blocking gate once the dependency upgrades land.
+        run: pnpm audit --audit-level=high || true
 
   # ─── Frontend ───
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: ./frontend } }
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
       - uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm, cache-dependency-path: frontend/package-lock.json }
-      - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npm test -- --passWithNoTests
-      - run: npx next lint
-      - run: npx next build
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      # @openlend/dashboard depends on @openlend/sdk via `workspace:*`;
+      # the SDK's `main` points at `dist/index.js`, so it must be built
+      # before the frontend can resolve/transpile it.
+      - run: pnpm --filter "@openlend/sdk" build
+      - run: pnpm --filter "@openlend/dashboard" exec tsc --noEmit
+      - run: pnpm --filter "@openlend/dashboard" test
+      - run: pnpm --filter "@openlend/dashboard" exec next lint
+      - name: Build
+        run: pnpm --filter "@openlend/dashboard" build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:4000
           NEXT_PUBLIC_STELLAR_CONTROLLER: "CABC"

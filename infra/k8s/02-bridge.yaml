@@ -1,23 +1,18 @@
-apiVersion: v1
-kind: Secret
-metadata: { name: bridge-env, namespace: openlend }
-type: Opaque
-stringData:
-  DATABASE_URL: postgresql://openlend:changeme@postgres:5432/bridge
-  ETHEREUM_RPC: https://eth.llamarpc.com
-  POLYGON_RPC: https://polygon-rpc.com
-  SOLANA_RPC: https://api.mainnet-beta.solana.com
-  ETHEREUM_BRIDGE: "0x0000000000000000000000000000000000000000"
-  POLYGON_BRIDGE: "0x0000000000000000000000000000000000000000"
-  STELLAR_RPC: https://horizon.stellar.org
-  STELLAR_NETWORK_PASSPHRASE: "Public Global Stellar Network ; September 2015"
-  STELLAR_CONTROLLER: "C..."
-  RELAYER_SECRET: "S..."
-  ATTESTER_KEYS: "0x..,0x..,0x.."
-  ATTESTER_THRESHOLD: "2"
-  LOG_LEVEL: info
-  POLL_INTERVAL_MS: "4000"
----
+# Bridge middleware Deployment.
+#
+# SECRETS: this file must NOT contain credentials. The `bridge-env` Secret is
+# referenced below via `envFrom` and must be provisioned out-of-band BEFORE
+# applying this manifest. Required keys (see bridge/.env.example):
+#
+#   DATABASE_URL, ETHEREUM_RPC, POLYGON_RPC, SOLANA_RPC,
+#   ETHEREUM_BRIDGE, POLYGON_BRIDGE,
+#   STELLAR_RPC, STELLAR_NETWORK_PASSPHRASE, STELLAR_CONTROLLER,
+#   RELAYER_SECRET (Stellar secret key), ATTESTER_KEYS (comma-separated
+#   ed25519 secret keys), ATTESTER_THRESHOLD, LOG_LEVEL, POLL_INTERVAL_MS, PORT
+#
+# Provision with:
+#   kubectl create secret generic bridge-env --namespace openlend --from-env-file=bridge/.env
+# In production use Sealed Secrets / External Secrets (never plaintext).
 apiVersion: apps/v1
 kind: Deployment
 metadata: { name: bridge, namespace: openlend }
@@ -31,6 +26,15 @@ spec:
         - name: bridge
           image: openlend/bridge:latest
           envFrom: [{ secretRef: { name: bridge-env } }]
+          ports: [{ containerPort: 4100 }]
           resources:
             requests: { cpu: "200m", memory: "256Mi" }
-            limits:   { cpu: "1",    memory: "1Gi"  }
+            limits: { cpu: "1", memory: "1Gi" }
+          livenessProbe:
+            httpGet: { path: /health, port: 4100 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /health, port: 4100 }
+            initialDelaySeconds: 5
+            periodSeconds: 5

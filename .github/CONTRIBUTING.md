@@ -4,7 +4,8 @@ Thanks for your interest in contributing! 🎉
 
 ## How to start
 
-1. Fork & clone the repo (or the relevant sub-repo if you've split per `docs/polyrepo.md`).
+1. Fork & clone the repo (or the relevant sub-repo if you've split per
+   `docs/polyrepo.md`).
 2. Pick an issue or open one to discuss the change you want to make.
 3. Branch from `main`: `git checkout -b feat/my-feature`.
 4. Make your change. Add tests. Run lints.
@@ -12,7 +13,9 @@ Thanks for your interest in contributing! 🎉
 
 ## Subproject conventions
 
-Each subproject is its own package with its own `package.json` / `Cargo.toml`. Please follow the conventions within whichever subproject you're contributing to.
+Each subproject is its own package with its own `package.json` / `Cargo.toml`.
+Please follow the conventions within whichever subproject you're contributing
+to.
 
 ### Soroban contracts (Rust)
 
@@ -40,8 +43,11 @@ Each subproject is its own package with its own `package.json` / `Cargo.toml`. P
 
 ## Security
 
-If you discover a security vulnerability, please **do not** open a public issue. Email `security@openlend.xyz` with details. See [`docs/security.md`](../docs/security.md) for the threat model.
+If you discover a security vulnerability, please **do not** open a public issue.
+Email `security@openlend.xyz` with details. See
+[`docs/security.md`](../docs/security.md) for the threat model.
 
 ## Code of conduct
 
-This project follows the [Contributor Covenant](https://www.contributor-covenant.org/).
+This project follows the
+[Contributor Covenant](https://www.contributor-covenant.org/).

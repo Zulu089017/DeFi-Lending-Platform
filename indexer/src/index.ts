@@ -8,6 +8,9 @@ import pino from "pino";
 const logger = pino({ transport: { target: "pino-pretty", options: { colorize: true } } });
 const prisma = new PrismaClient();
 
+// H9 FIX: Graceful shutdown flag — checked by poll loops before each iteration.
+let running = true;
+
 const STELLAR_RPC = process.env.STELLAR_RPC ?? "https://horizon-testnet.stellar.org";
 const ETHEREUM_RPC = process.env.ETHEREUM_RPC ?? "https://eth.llamarpc.com";
 const ETHEREUM_BRIDGE = process.env.ETHEREUM_BRIDGE ?? "0x0";
@@ -24,6 +27,7 @@ async function streamHorizon() {
   cursor = c?.pagingToken ?? null;
 
   setInterval(async () => {
+    if (!running) return;
     try {
       const builder = server
         .operations()
@@ -89,6 +93,7 @@ async function streamEvm() {
   );
 
   setInterval(async () => {
+    if (!running) return;
     try {
       const head = await provider.getBlockNumber();
       if (head < fromBlock) fromBlock = head - 1;
@@ -180,3 +185,17 @@ app.listen(PORT, () => {
   streamHorizon();
   streamEvm();
 });
+
+// H9 FIX: Graceful shutdown on SIGTERM/SIGINT.
+// Sets `running = false` first so no new poll iterations start, then
+// gives in-flight ops 5s to finish before disconnecting DB and exiting.
+const shutdown = async (signal: string) => {
+  logger.info({ signal }, "indexer shutting down...");
+  running = false;
+  await new Promise((r) => setTimeout(r, 5_000));
+  await prisma.$disconnect();
+  logger.info("indexer shut down cleanly");
+  process.exit(0);
+};
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

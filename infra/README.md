@@ -1,6 +1,7 @@
 # OpenLend — Infrastructure
 
-This directory contains everything you need to run the OpenLend stack locally for development and to deploy it to a Kubernetes cluster for production.
+This directory contains everything you need to run the OpenLend stack locally
+for development and to deploy it to a Kubernetes cluster for production.
 
 ## Layout
 

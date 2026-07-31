@@ -10,21 +10,17 @@ spec:
       containers:
         - name: api
           image: openlend/api:latest
-          env:
-            - name: DATABASE_URL
-              value: postgresql://openlend:changeme@postgres:5432/openlend
-            - name: STELLAR_RPC
-              value: https://horizon.stellar.org
-            - name: STELLAR_NETWORK_PASSPHRASE
-              value: "Public Global Stellar Network ; September 2015"
-            - name: STELLAR_CONTROLLER
-              value: "C..."
-            - name: CORS_ORIGINS
-              value: "*"
+          # SECRETS: provision an `api-env` Secret out-of-band (see
+          # api/.env.example) containing DATABASE_URL, STELLAR_RPC,
+          # STELLAR_NETWORK_PASSPHRASE, STELLAR_CONTROLLER, PORT, HOST,
+          # LOG_LEVEL. NOTE: CORS_ORIGINS must be a comma-separated list of
+          # allowed origins (e.g. https://openlend.xyz), NEVER "*", in
+          # production.
+          envFrom: [{ secretRef: { name: api-env } }]
           ports: [{ containerPort: 4000 }]
           resources:
             requests: { cpu: "200m", memory: "256Mi" }
-            limits:   { cpu: "1",    memory: "1Gi"  }
+            limits: { cpu: "1", memory: "1Gi" }
 ---
 apiVersion: v1
 kind: Service

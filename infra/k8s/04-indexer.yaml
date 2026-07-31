@@ -10,21 +10,14 @@ spec:
       containers:
         - name: indexer
           image: openlend/indexer:latest
-          env:
-            - name: DATABASE_URL
-              value: postgresql://openlend:changeme@postgres:5432/openlend
-            - name: STELLAR_RPC
-              value: https://horizon.stellar.org
-            - name: STELLAR_CONTROLLER
-              value: "C..."
-            - name: ETHEREUM_RPC
-              value: https://eth.llamarpc.com
-            - name: ETHEREUM_BRIDGE
-              value: "0x0000000000000000000000000000000000000000"
+          # SECRETS: provision an `indexer-env` Secret out-of-band (see
+          # indexer/.env.example) containing DATABASE_URL, STELLAR_RPC,
+          # STELLAR_CONTROLLER, ETHEREUM_RPC, ETHEREUM_BRIDGE, etc.
+          envFrom: [{ secretRef: { name: indexer-env } }]
           ports: [{ containerPort: 4200 }]
           resources:
             requests: { cpu: "300m", memory: "512Mi" }
-            limits:   { cpu: "2",    memory: "2Gi"   }
+            limits: { cpu: "2", memory: "2Gi" }
 ---
 apiVersion: v1
 kind: Service

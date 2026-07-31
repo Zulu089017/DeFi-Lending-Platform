@@ -14,7 +14,9 @@ import { logger } from "../utils/logger.js";
  *   2. chain_id (u32 LE)
  *   3. source_addr (32 raw bytes)
  *   4. amount (i64 LE)
- *   5. to: full ScVal XDR of the Address (40 bytes for an ed25519 account)
+ *   5. to: full ScVal XDR of the Address (44 bytes for an ed25519
+ *      account: 4-byte ScVal tag + 4-byte ScAddress tag + 4-byte
+ *      AccountId tag + 32-byte raw pubkey)
  *   6. salt (32 raw bytes)
  *   7. nonce (u64 LE)
  *
@@ -59,11 +61,12 @@ export function payloadHash(args: {
   const toScVal = ScAddress.fromString(args.stellarDest).toScVal();
   const toXdr = Buffer.from(toScVal.toXDR());
   // Mirror the on-chain sanity check: an ed25519 Address serializes to
-  // exactly 40 bytes. If this ever changes, the on-chain assertion in
+  // exactly 44 bytes (ScVal tag 4 + ScAddress tag 4 + AccountId tag 4 +
+  // 32-byte pubkey). If this ever changes, the on-chain assertion in
   // `build_canonical_payload` will catch it — but failing fast at signing
   // time is much cheaper than reverting at mint time.
-  if (toXdr.length !== 40) {
-    throw new Error(`expected 40-byte Address XDR, got ${toXdr.length}`);
+  if (toXdr.length !== 44) {
+    throw new Error(`expected 44-byte Address XDR, got ${toXdr.length}`);
   }
   bufs.push(toXdr);
   // 6. salt (32 raw bytes)

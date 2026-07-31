@@ -1,4 +1,8 @@
-export type ChainId = "ethereum" | "polygon" | "solana" | "stellar";
+/** Chains whose `Locked`/`Burned` events can mint on Stellar. */
+export type SourceChainId = "ethereum" | "polygon" | "solana";
+
+/** Any chain the bridge watches, including Stellar (unwrap events only). */
+export type ChainId = SourceChainId | "stellar";
 
 export interface SourceEvent {
   chain: ChainId;
@@ -15,7 +19,7 @@ export interface SourceEvent {
 }
 
 export interface StellarMintRequest {
-  chain: ChainId;
+  chain: SourceChainId;
   sourceTx: string;
   sourceLogIndex: number;
   sourceAddress: string;

@@ -6,7 +6,11 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "manifest.json", "manifests"],
+  "files": [
+    "dist",
+    "manifest.json",
+    "manifests"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",

@@ -12,7 +12,14 @@
         "networkPassphrase": { "type": "string" },
         "contracts": {
           "type": "object",
-          "required": ["wrapped_asset", "oracle", "collateral_vault", "lending_pool", "liquidation", "lending_controller"]
+          "required": [
+            "wrapped_asset",
+            "oracle",
+            "collateral_vault",
+            "lending_pool",
+            "liquidation",
+            "lending_controller"
+          ]
         }
       }
     },

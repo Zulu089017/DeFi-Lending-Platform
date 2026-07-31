@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import type { SourceEvent, StellarMintRequest, UnwrapEvent } from "../types.js";
+import type { SourceChainId, SourceEvent, StellarMintRequest, UnwrapEvent } from "../types.js";
 
 export const prisma = new PrismaClient();
 
@@ -32,7 +32,7 @@ export async function listPendingMints(): Promise<StellarMintRequest[]> {
     take: 50,
   });
   return rows.map((r: { chain: string; sourceTx: string; sourceLogIndex: number; sourceAddress: string; amount: bigint; to: string; salt: string }) => ({
-    chain: r.chain as "ethereum" | "polygon" | "solana",
+    chain: r.chain as SourceChainId,
     sourceTx: r.sourceTx,
     sourceLogIndex: r.sourceLogIndex,
     sourceAddress: r.sourceAddress,

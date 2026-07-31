@@ -1,14 +1,15 @@
 # OpenLend — EVM Contracts
 
-Solidity contracts deployed on source chains (Ethereum, Polygon, BSC, etc.) that lock/burn canonical tokens and emit events the off-chain bridge watches.
+Solidity contracts deployed on source chains (Ethereum, Polygon, BSC, etc.) that
+lock/burn canonical tokens and emit events the off-chain bridge watches.
 
 ## Contracts
 
-| Contract | Purpose |
-|---|---|
-| `Bridge.sol` | Lock/burn entry point, event emission, attester quorum |
+| Contract           | Purpose                                                     |
+| ------------------ | ----------------------------------------------------------- |
+| `Bridge.sol`       | Lock/burn entry point, event emission, attester quorum      |
 | `WrappedToken.sol` | Optional canonical ERC-20 (when source has no native token) |
-| `MockERC20.sol` | Test helper |
+| `MockERC20.sol`    | Test helper                                                 |
 
 ## Setup
 

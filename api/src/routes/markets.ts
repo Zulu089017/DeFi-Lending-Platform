@@ -20,11 +20,29 @@ async function computeMarkets(asset?: string) {
   const totalSupply = v.supply;
   const totalBorrow = v.borrow - v.repay;
   const utilization = totalSupply === 0n ? 0 : Number((totalBorrow * 10_000n) / totalSupply) / 10_000;
-  // Kinked rate: 0% at 0% util, 5% at 80% (kink), 50% at 100%
-  const borrowApy = utilization <= 0.8
-    ? utilization * 0.0625
-    : 0.05 + (utilization - 0.8) * 2.25;
-  const supplyApy = borrowApy * utilization * 0.9; // 10% reserve factor
+
+  // H4 FIX: Use the same kinked-linear rate model as the on-chain
+  // `lending_pool.borrow_apy_bps()`. Default params:
+  //   base_rate_bps = 200 (2%), slope1_bps = 1000, slope2_bps = 13000,
+  //   kink_bps = 8000 (80%).
+  // This matches the on-chain formula exactly so the API never reports
+  // incorrect APYs. In production, these params should be fetched from
+  // the on-chain AssetConfig for each asset.
+  const BASE_BPS = 200;
+  const SLOPE1_BPS = 1000;
+  const SLOPE2_BPS = 13000;
+  const KINK_BPS = 8000;
+  const RESERVE_FACTOR = 0.10;
+
+  const uBps = Math.round(utilization * 10_000);
+  let borrowApyBps: number;
+  if (uBps <= KINK_BPS) {
+    borrowApyBps = BASE_BPS + (SLOPE1_BPS * uBps) / KINK_BPS;
+  } else {
+    borrowApyBps = BASE_BPS + SLOPE1_BPS + (SLOPE2_BPS * (uBps - KINK_BPS)) / (10_000 - KINK_BPS);
+  }
+  const borrowApy = borrowApyBps / 10_000;
+  const supplyApy = borrowApy * utilization * (1 - RESERVE_FACTOR);
 
   return {
     totalSupply: totalSupply.toString(),

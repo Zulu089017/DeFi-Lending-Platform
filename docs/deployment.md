@@ -1,6 +1,7 @@
 # Deployment Guide
 
-This guide walks through deploying the OpenLend stack from a clean machine to a public mainnet-like cluster.
+This guide walks through deploying the OpenLend stack from a clean machine to a
+public mainnet-like cluster.
 
 ## 0. Prerequisites
 
@@ -27,7 +28,8 @@ npx hardhat run scripts/deploy.ts --network mainnet
 npx hardhat run scripts/deploy.ts --network polygon
 ```
 
-Both scripts update `sdk/src/manifest.json` with the live addresses. Commit that file.
+Both scripts update `sdk/src/manifest.json` with the live addresses. Commit that
+file.
 
 ## 2. Build & push images
 
@@ -37,7 +39,10 @@ REGISTRY=ghcr.io/openlend TAG=0.1.0 bash infra/scripts/build-images.sh
 
 ## 3. Configure secrets
 
-Replace the secrets in `infra/k8s/01-postgres.yaml`, `02-bridge.yaml`, etc. with real values, ideally sealed with [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) or an external secret manager.
+Replace the secrets in `infra/k8s/01-postgres.yaml`, `02-bridge.yaml`, etc. with
+real values, ideally sealed with
+[Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) or an external
+secret manager.
 
 ## 4. Deploy the cluster
 
@@ -55,7 +60,8 @@ curl localhost:4000/health
 
 ## 6. Set up TLS
 
-Install [cert-manager](https://cert-manager.io/) and a ClusterIssuer for Let's Encrypt. Apply `infra/k8s/07-ingress.yaml` once the issuer is ready.
+Install [cert-manager](https://cert-manager.io/) and a ClusterIssuer for Let's
+Encrypt. Apply `infra/k8s/07-ingress.yaml` once the issuer is ready.
 
 ## 7. Monitoring (optional but recommended)
 

@@ -54,10 +54,22 @@ export async function buildApp(opts: {
   return app;
 }
 
+import { fileURLToPath } from "url";
+
 async function main() {
   const app = await buildApp();
   await app.listen({ port: config.PORT, host: config.HOST });
   app.log.info(`🚀 OpenLend API listening on :${config.PORT}`);
+
+  // H9 FIX: Graceful shutdown on SIGTERM/SIGINT.
+  const shutdown = async (signal: string) => {
+    app.log.info({ signal }, "API shutting down...");
+    await app.close();
+    app.log.info("API shut down cleanly");
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 // Only run `main()` when this file is the process entrypoint. Without
@@ -65,14 +77,11 @@ async function main() {
 // server on `config.PORT` (default 4000), colliding with any other
 // process on that port and tripping EADDRINUSE.
 //
-// Node 20.11+ supports `import.meta.main` but the TypeScript lib types
-// shipped with the project's `node` module resolution don't include it.
-// We use a widely-compatible fallback: compare `import.meta.url` to
-// `process.argv[1]` (the resolved entry-point path). In a test context
-// `process.argv[1]` is never `index.ts`, so `main()` is not called.
+// L6 FIX: Use `import.meta.url` comparison with `fileURLToPath` for a
+// robust entrypoint check. This works reliably in Node ESM mode and
+// doesn't rely on fragile path-ending heuristics.
 const isEntrypoint =
-  process.argv[1]?.endsWith("index.ts") ||
-  process.argv[1]?.endsWith("index.js");
+  process.argv[1] === fileURLToPath(import.meta.url);
 if (isEntrypoint) {
   main().catch((err) => {
     console.error(err);

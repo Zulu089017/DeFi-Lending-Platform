@@ -14,6 +14,7 @@ type: "Security"
 -->
 
 **Severity estimate**
+
 - [ ] Informational
 - [ ] Low
 - [ ] Medium
@@ -21,6 +22,7 @@ type: "Security"
 - [ ] Critical
 
 **Component**
+
 - [ ] stellar-contracts
 - [ ] evm-contracts
 - [ ] bridge
@@ -31,14 +33,12 @@ type: "Security"
 - [ ] frontend
 - [ ] infra / deployment
 
-**Description**
-What is the vulnerability? Be specific about the attack vector and impact.
+**Description** What is the vulnerability? Be specific about the attack vector
+and impact.
 
-**Proof of concept**
-Steps to reproduce, including any scripts, tx hashes, or code.
+**Proof of concept** Steps to reproduce, including any scripts, tx hashes, or
+code.
 
-**Impact**
-Who / what is affected? Loss of funds? DoS? Key compromise?
+**Impact** Who / what is affected? Loss of funds? DoS? Key compromise?
 
-**Suggested fix**
-If you have a recommendation for remediation, describe it.
+**Suggested fix** If you have a recommendation for remediation, describe it.

@@ -3,6 +3,12 @@ import { defineConfig } from "vitest/config";
 import path from "path";
 
 export default defineConfig({
+  // Frontend uses the automatic JSX runtime (see tsconfig `jsx: preserve`
+  // + Next.js). Vitest/esbuild must use the same transform or component
+  // tests fail with "React is not defined".
+  esbuild: {
+    jsx: "automatic",
+  },
   test: {
     globals: true,
     environment: "jsdom",

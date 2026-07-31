@@ -1,7 +1,7 @@
 # Audit Readiness Checklist
 
-> This checklist must be completed before the first formal audit.
-> Status: 🚧 In Progress
+> This checklist must be completed before the first formal audit. Status: 🚧 In
+> Progress
 
 ## Pre-audit requirements
 
@@ -26,7 +26,7 @@
 
 - [x] Unit tests for each Soroban contract function
 - [x] Invariant tests (18 tests documented, build blocked — see
-  `stellar-contracts/BUILD_ENV_NOTES.md`)
+      `stellar-contracts/BUILD_ENV_NOTES.md`)
 - [x] Bridge unit tests (Solidity, attest signing)
 - [ ] Fuzz tests for Soroban financial math
 - [ ] Property-based tests (e.g., `proptest` for Rust)
@@ -62,17 +62,16 @@
 
 ## Audit scope
 
-| Component | Lines of code | Language | Auditor |
-|---|---|---|---|
-| `stellar-contracts/` | ~2,500 | Rust (Soroban) | TBD |
-| `evm-contracts/` | ~400 | Solidity | TBD |
-| `bridge/` | ~800 | TypeScript | TBD |
-| `relayer/` | ~200 | TypeScript | TBD |
+| Component            | Lines of code | Language       | Auditor |
+| -------------------- | ------------- | -------------- | ------- |
+| `stellar-contracts/` | ~2,500        | Rust (Soroban) | TBD     |
+| `evm-contracts/`     | ~400          | Solidity       | TBD     |
+| `bridge/`            | ~800          | TypeScript     | TBD     |
+| `relayer/`           | ~200          | TypeScript     | TBD     |
 
 ## Post-audit
 
-- [ ] All findings triaged (critical/high fixed; medium/low
-  acknowledged)
+- [ ] All findings triaged (critical/high fixed; medium/low acknowledged)
 - [ ] Retest regression suite against fixes
 - [ ] Publish audit report
 - [ ] Launch bug bounty program

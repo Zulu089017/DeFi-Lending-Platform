@@ -10,6 +10,10 @@ const BRIDGE_ABI = [
 
 const POLLER_NAME = "polygon";
 
+/** Polygon produces blocks every ~2s and has probabilistic finality via
+ *  Bor + Heimdall checkpoints. We require 256 blocks (~8 min) for safety. */
+const REQUIRED_CONFIRMATIONS = 256;
+
 export class PolygonWatcher {
   private provider: ethers.JsonRpcProvider;
   private iface = new ethers.Interface(BRIDGE_ABI);
@@ -23,7 +27,10 @@ export class PolygonWatcher {
     const head = await this.provider.getBlockNumber();
     const from = (this.lastProcessed ?? head - 100) + 1;
     if (from > head) return [];
-    const to = Math.min(from + 200, head);
+    // C7 FIX: Only process blocks with sufficient confirmations.
+    const safeHead = head - REQUIRED_CONFIRMATIONS;
+    const to = Math.min(from + 200, Math.max(from, safeHead));
+    if (from > to) return [];
 
     const logs = await this.provider.getLogs({
       address: config.POLYGON_BRIDGE,

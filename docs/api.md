@@ -2,7 +2,8 @@
 
 The OpenLend API is a Fastify-based REST + WebSocket service.
 
-- **Base URL:** `https://api.openlend.xyz` (production) / `http://localhost:4000` (local)
+- **Base URL:** `https://api.openlend.xyz` (production) /
+  `http://localhost:4000` (local)
 - **WebSocket:** `wss://api.openlend.xyz/v1/stream`
 - **Content type:** `application/json`
 - **CORS:** open in dev, restricted in prod
@@ -10,20 +11,32 @@ The OpenLend API is a Fastify-based REST + WebSocket service.
 ## REST
 
 ### `GET /health`
+
 Returns `{ ok: true, service: "openlend-api" }`.
 
 ### `GET /v1/markets`
+
 Returns a list of supported markets.
+
 ```json
 [
-  { "asset": "XLM", "totalSupply": "1234567890", "totalBorrow": "800000000", "utilization": 0.65, "supplyApy": 0.034, "borrowApy": 0.051 }
+  {
+    "asset": "XLM",
+    "totalSupply": "1234567890",
+    "totalBorrow": "800000000",
+    "utilization": 0.65,
+    "supplyApy": 0.034,
+    "borrowApy": 0.051
+  }
 ]
 ```
 
 ### `GET /v1/markets/:asset`
+
 Single-market detail, e.g. `/v1/markets/XLM`.
 
 ### `GET /v1/positions/:user`
+
 ```json
 {
   "user": "G...",
@@ -33,11 +46,13 @@ Single-market detail, e.g. `/v1/markets/XLM`.
 ```
 
 ### `GET /v1/health-factor/:user`
+
 ```json
 { "user": "G...", "healthFactor": 1.85, "status": "ok" }
 ```
 
 ### `POST /v1/quote/wrap`
+
 ```json
 // request
 { "sourceChain": "ethereum", "token": "0x...", "amount": "1000000", "stellarDest": "G..." }
@@ -46,13 +61,16 @@ Single-market detail, e.g. `/v1/markets/XLM`.
 ```
 
 ### `POST /v1/quote/unwrap`
+
 ```json
 // request
 { "amount": "1000000", "sourceChain": "ethereum", "sourceAddr": "0x..." }
 ```
 
 ### `GET /v1/wrap-events` / `GET /v1/unwrap-events` / `GET /v1/lending-events`
-Lists recent protocol events (max 100). Filter lending-events with `?user=...` and `?asset=...`.
+
+Lists recent protocol events (max 100). Filter lending-events with `?user=...`
+and `?asset=...`.
 
 ## WebSocket
 
@@ -73,4 +91,5 @@ Connect to `wss://api.openlend.xyz/v1/stream`. The server pushes JSON frames:
 
 ## Auth
 
-The public API is unauthenticated. The `relayer` and `bridge` services authenticate via Postgres-issued JWTs (out of scope for this doc).
+The public API is unauthenticated. The `relayer` and `bridge` services
+authenticate via Postgres-issued JWTs (out of scope for this doc).

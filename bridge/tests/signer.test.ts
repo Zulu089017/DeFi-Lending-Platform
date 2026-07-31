@@ -1,22 +1,9 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 
-// Set required env vars BEFORE the static import below evaluates config.ts.
-// vitest's `vi.stubEnv` only works inside test hooks, so we mutate
-// process.env directly here at module scope.
-process.env.ETHEREUM_RPC = "https://eth.llamarpc.com";
-process.env.POLYGON_RPC = "https://polygon-rpc.com";
-process.env.SOLANA_RPC = "https://api.mainnet-beta.solana.com";
-process.env.ETHEREUM_BRIDGE = "0x0000000000000000000000000000000000000001";
-process.env.POLYGON_BRIDGE = "0x0000000000000000000000000000000000000002";
-process.env.STELLAR_RPC = "https://horizon-testnet.stellar.org";
-process.env.STELLAR_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
-process.env.STELLAR_CONTROLLER = "CABC";
-process.env.RELAYER_SECRET = "SAFPBBB7QFEQXNQ37LJLYH3KMBVYMB4NEHUKYQA7DETL4WTC4HWOOYBA";
-process.env.ATTESTER_KEYS = "key1,key2,key3";
-process.env.ATTESTER_THRESHOLD = "2";
-process.env.DATABASE_URL = "postgresql://user:pass@localhost:5432/db";
-process.env.POLL_INTERVAL_MS = "1000";
-process.env.PORT = "4100";
+// NOTE: required env vars for `config.ts` are provided by `vitest.setup.ts`
+// (see `setupFiles` in vitest.config.ts). Setting them here in module scope
+// does NOT work because ESM static imports are hoisted and evaluate
+// `config.ts` before this module body runs.
 
 import { payloadHash } from "../src/attest/signer.js";
 
@@ -27,7 +14,7 @@ describe("payloadHash", () => {
       sourceToken:
         "0x1111111111111111111111111111111111111111111111111111111111111111",
       amount: 1_000_000n,
-      stellarDest: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACJUR",
+      stellarDest: "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H",
       salt: "0x2222222222222222222222222222222222222222222222222222222222222222",
       nonce: 42n,
     };
@@ -56,14 +43,18 @@ describe("payloadHash", () => {
    *      should also pin the same bytes (or its sha256) so a
    *      cross-language drift surfaces immediately.
    */
-  const CANONICAL_DIGEST = "REPLACE_WITH_ACTUAL_SHA256_HEX_64_CHARS_LONG_xxxxxxxxxxxxxxxx";
+  // Pinned on 2026-07-31 against @stellar/stellar-sdk 12.x. Regenerate
+  // only after a verified intentional change to the payload layout, then
+  // update the matching Rust test in
+  // stellar-contracts/contracts/lending_controller/src/lib.rs.
+  const CANONICAL_DIGEST = "fd426f52b5772d98e1ae591139e3935b5c56671f2b1b7d2e1adb7460dffcffcc";
   it("matches the pinned canonical sha256 digest (drift canary)", () => {
     const args = {
       chainId: 1,
       sourceToken:
         "0x1111111111111111111111111111111111111111111111111111111111111111",
       amount: 1_000_000n,
-      stellarDest: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACJUR",
+      stellarDest: "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H",
       salt: "0x2222222222222222222222222222222222222222222222222222222222222222",
       nonce: 42n,
     };
@@ -83,16 +74,18 @@ describe("payloadHash", () => {
         chainId: 1,
         sourceToken: "0x" + "11".repeat(32),
         amount: 1n,
-        stellarDest: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACJUR",
+        stellarDest: "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H",
         salt: "0x" + "22".repeat(31), // 31 bytes
         nonce: 1n,
       }),
     ).toThrow(/salt must be 32 bytes/);
   });
 
-  it("rejects an Address XDR of unexpected length", async () => {
-    // We can't easily mock toXDR() to return a wrong length, so instead
-    // verify that a well-formed G-address produces exactly 40 bytes of XDR.
+  it("serialises an ed25519 Address to 44 bytes of XDR", async () => {
+    // An ed25519 account Address serialises to 44 bytes of ScVal XDR:
+    // 4-byte ScVal tag + 4-byte ScAddress tag + 4-byte AccountId tag +
+    // 32-byte raw pubkey. The on-chain `build_canonical_payload` asserts
+    // this exact length, so the off-chain signer must too.
     // (If @stellar/stellar-sdk changes its XDR format, this test will fail.)
     const { Address } = await import("@stellar/stellar-sdk");
     const xdr = Address.fromString(
@@ -100,7 +93,7 @@ describe("payloadHash", () => {
     )
       .toScVal()
       .toXDR();
-    expect(Buffer.from(xdr).length).toBe(40);
+    expect(Buffer.from(xdr).length).toBe(44);
   });
 
   it("changes digest when any field changes", () => {
@@ -108,7 +101,7 @@ describe("payloadHash", () => {
       chainId: 1,
       sourceToken: "0x" + "11".repeat(32),
       amount: 1_000_000n,
-      stellarDest: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACJUR",
+      stellarDest: "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H",
       salt: "0x" + "22".repeat(32),
       nonce: 42n,
     };

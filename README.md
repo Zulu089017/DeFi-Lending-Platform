@@ -1,6 +1,7 @@
 # OpenLend
 
-> A decentralized cross-chain lending protocol with automated liquidation, built on Stellar's ultra-fast, low-fee network.
+> A decentralized cross-chain lending protocol with automated liquidation, built
+> on Stellar's ultra-fast, low-fee network.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-scaffold-yellow.svg)](docs/security.md)
@@ -9,25 +10,31 @@
 [![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF.svg)](.github/workflows/ci.yml)
 [![Code style: rustfmt](https://img.shields.io/badge/code%20style-rustfmt-orange.svg)](stellar-contracts/rustfmt.toml)
 
-**OpenLend** is a middleware that allows developers on other chains (Ethereum, Solana, Polygon) to instantly spin up wrapped versions of their tokens on Stellar. These wrapped assets can then be used in a fully on-chain lending protocol featuring automated liquidation, powered by Stellar's near-instant settlement.
+**OpenLend** is a middleware that allows developers on other chains (Ethereum,
+Solana, Polygon) to instantly spin up wrapped versions of their tokens on
+Stellar. These wrapped assets can then be used in a fully on-chain lending
+protocol featuring automated liquidation, powered by Stellar's near-instant
+settlement.
 
 ---
 
 ## 🌍 Why OpenLend?
 
-| Pain Point | OpenLend Solution |
-|---|---|
+| Pain Point                       | OpenLend Solution                                  |
+| -------------------------------- | -------------------------------------------------- |
 | High gas fees on Ethereum/Solana | Mint wrapped assets on Stellar for ~$0.000005 / tx |
-| Slow cross-chain bridging | Near-instant settlement via Stellar's consensus |
-| Liquidity fragmentation | Single canonical wrapped-asset hub on Stellar |
-| Manual liquidations | Fully automated liquidation engine on Soroban |
-| Opaque bridge state | Real-time Horizon stream → live dashboard |
+| Slow cross-chain bridging        | Near-instant settlement via Stellar's consensus    |
+| Liquidity fragmentation          | Single canonical wrapped-asset hub on Stellar      |
+| Manual liquidations              | Fully automated liquidation engine on Soroban      |
+| Opaque bridge state              | Real-time Horizon stream → live dashboard          |
 
 ---
 
 ## 🏗️ Polyrepo Layout
 
-OpenLend is composed of **independent, loosely-coupled subprojects**. Each one is a self-contained unit with its own build, test, and deploy pipeline. Together they form the protocol.
+OpenLend is composed of **independent, loosely-coupled subprojects**. Each one
+is a self-contained unit with its own build, test, and deploy pipeline. Together
+they form the protocol.
 
 ```
 OpenLend/
@@ -45,7 +52,9 @@ OpenLend/
 └── .github/             # CI workflows, issue & PR templates
 ```
 
-> **Note**: Each top-level directory is designed to live in its own git repository. The monorepo layout here is for local development and orchestration. See `docs/polyrepo.md` for the recommended split.
+> **Note**: Each top-level directory is designed to live in its own git
+> repository. The monorepo layout here is for local development and
+> orchestration. See `docs/polyrepo.md` for the recommended split.
 
 ---
 
@@ -75,6 +84,7 @@ cd ../frontend && pnpm install && pnpm dev
 ```
 
 Visit:
+
 - Dashboard → http://localhost:3000
 - API → http://localhost:4000
 - Horizon testnet → https://horizon-testnet.stellar.org
@@ -106,6 +116,7 @@ Visit:
 ```
 
 **On Stellar (Soroban):**
+
 - `wrapped_asset` — canonical wrapped token contract
 - `lending_pool` — supply/borrow/withdraw/repay
 - `collateral_vault` — locked collateral accounting
@@ -114,6 +125,7 @@ Visit:
 - `lending_controller` — orchestrates the above
 
 **On source chains (EVM/Solana):**
+
 - `Bridge.sol` / `bridge.ts` — locks or burns the canonical token
 - Emits `Locked` / `Burned` events that the off-chain bridge watches
 
@@ -123,7 +135,8 @@ Visit:
 
 - [Architecture Deep Dive](docs/architecture.md)
 - [Protocol Invariants](docs/invariants.md) — what an audit will check
-- [Security Model & Threat Model](docs/security.md) — known TODOs and disclosure policy
+- [Security Model & Threat Model](docs/security.md) — known TODOs and disclosure
+  policy
 - [Polyrepo Guide](docs/polyrepo.md)
 - [API Reference](docs/api.md)
 - [SDK Reference](docs/sdk.md)
@@ -134,9 +147,9 @@ Visit:
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome. Code owners
-per subproject are listed in [CODEOWNERS](.github/CODEOWNERS). Dependency
-updates are automated via [Dependabot](.github/dependabot.yml).
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome. Code owners per
+subproject are listed in [CODEOWNERS](.github/CODEOWNERS). Dependency updates
+are automated via [Dependabot](.github/dependabot.yml).
 
 ## 📄 License
 
@@ -146,6 +159,6 @@ Apache 2.0 — see [LICENSE](LICENSE).
 
 This repository is a **scaffold / reference implementation**. The smart
 contracts have not been audited and the documented security TODOs in
-[`docs/security.md`](docs/security.md) are still open. **Do not deposit
-real assets.** A formal audit, bug-bounty program, and coordinated
-disclosure policy are tracked in [`SECURITY.md`](SECURITY.md).
+[`docs/security.md`](docs/security.md) are still open. **Do not deposit real
+assets.** A formal audit, bug-bounty program, and coordinated disclosure policy
+are tracked in [`SECURITY.md`](SECURITY.md).

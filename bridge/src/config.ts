@@ -21,6 +21,7 @@ const Env = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   POLL_INTERVAL_MS: z.coerce.number().int().positive().default(4_000),
   PORT: z.coerce.number().int().positive().default(4100),
+  HOST: z.string().default("0.0.0.0"),
 });
 
 export const config = Env.parse(process.env);

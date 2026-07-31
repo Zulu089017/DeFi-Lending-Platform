@@ -1,6 +1,8 @@
 # Security Policy
 
-> **OpenLend is currently in a scaffold stage and has not been audited.** The contracts and off-chain services in this monorepo are reference implementations intended for testnet usage. Do not deposit real assets.
+> **OpenLend is currently in a scaffold stage and has not been audited.** The
+> contracts and off-chain services in this monorepo are reference
+> implementations intended for testnet usage. Do not deposit real assets.
 
 ## Reporting a vulnerability
 
@@ -8,19 +10,22 @@ Please **do not** file public issues for security bugs.
 
 Email **security@openlend.xyz** with:
 
-- A clear description of the issue and impact (e.g. loss of funds, DoS, key compromise).
+- A clear description of the issue and impact (e.g. loss of funds, DoS, key
+  compromise).
 - A reproducible proof-of-concept, test case, or set of steps.
-- The affected subproject and version (`stellar-contracts`, `evm-contracts`, `bridge`, `relayer`, `indexer`, `api`, `sdk`, `frontend`).
+- The affected subproject and version (`stellar-contracts`, `evm-contracts`,
+  `bridge`, `relayer`, `indexer`, `api`, `sdk`, `frontend`).
 - Your name / handle if you'd like to be credited in the disclosure timeline.
 
-We aim to acknowledge within **3 business days** and to issue a fix or mitigation within **30 days** for critical-severity issues.
+We aim to acknowledge within **3 business days** and to issue a fix or
+mitigation within **30 days** for critical-severity issues.
 
 ## Supported versions
 
-| Subproject | Audited | Maintained |
-|---|---|---|
-| `stellar-contracts` | ❌ (planned) | ✅ latest tag |
-| `evm-contracts`     | ❌ (planned) | ✅ latest tag |
+| Subproject                                               | Audited      | Maintained    |
+| -------------------------------------------------------- | ------------ | ------------- |
+| `stellar-contracts`                                      | ❌ (planned) | ✅ latest tag |
+| `evm-contracts`                                          | ❌ (planned) | ✅ latest tag |
 | `bridge`, `relayer`, `indexer`, `api`, `sdk`, `frontend` | ❌ (planned) | ✅ latest tag |
 
 Only the latest tagged release of each subproject receives security fixes.

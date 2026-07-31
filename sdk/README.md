@@ -1,6 +1,8 @@
 # @openlend/sdk
 
-A TypeScript SDK for the OpenLend protocol. Wrap tokens from any supported source chain, supply/borrow/liquidate on Stellar, and stream real-time events from the OpenLend API.
+A TypeScript SDK for the OpenLend protocol. Wrap tokens from any supported
+source chain, supply/borrow/liquidate on Stellar, and stream real-time events
+from the OpenLend API.
 
 ## Install
 
@@ -17,12 +19,19 @@ const openlend = new OpenLend({
   stellar: {
     rpc: "https://horizon-testnet.stellar.org",
     networkPassphrase: "Test SDF Network ; September 2015",
-    controllerContract: "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQAHHAGK3YNS",
+    controllerContract:
+      "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQAHHAGK3YNS",
     secretKey: process.env.STELLAR_SECRET!,
   },
   evm: {
-    ethereum: { rpc: process.env.ETH_RPC!, bridgeAddress: process.env.ETH_BRIDGE! },
-    polygon:  { rpc: process.env.POLY_RPC!, bridgeAddress: process.env.POLY_BRIDGE! },
+    ethereum: {
+      rpc: process.env.ETH_RPC!,
+      bridgeAddress: process.env.ETH_BRIDGE!,
+    },
+    polygon: {
+      rpc: process.env.POLY_RPC!,
+      bridgeAddress: process.env.POLY_BRIDGE!,
+    },
   },
   api: "https://api.openlend.xyz",
 });
@@ -38,13 +47,19 @@ console.log(wrap.sourceTx, "→", await wrap.stellarTx);
 
 // Lend: supply collateral, borrow
 await openlend.supplyCollateral("XLM", "1000000000"); // 100 XLM
-await openlend.borrow({ collateralAsset: "XLM", collateralAmount: "1000000000", debtAsset: "USDC", borrowAmount: "50000000" });
+await openlend.borrow({
+  collateralAsset: "XLM",
+  collateralAmount: "1000000000",
+  debtAsset: "USDC",
+  borrowAmount: "50000000",
+});
 
 // Stream live events
 const unsub = openlend.stream((evt) => {
   if (evt.type === "wrap") console.log("🌉 new wrap", evt.data);
   if (evt.type === "unwrap") console.log("🌉 new unwrap", evt.data);
-  if (evt.type === "lending" && evt.data.type === "liquidate") console.log("💥 liquidation!", evt.data);
+  if (evt.type === "lending" && evt.data.type === "liquidate")
+    console.log("💥 liquidation!", evt.data);
 });
 ```
 

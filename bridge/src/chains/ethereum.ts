@@ -11,6 +11,11 @@ const BRIDGE_ABI = [
 
 const POLLER_NAME = "ethereum";
 
+/** Minimum block confirmations before processing an event.
+ *  Ethereum PoS: 2 epochs (~12.8 min) safety margin, but we use 12 blocks
+ *  (~2 min) as a practical lower bound for testnet. Mainnet should use 15+. */
+const REQUIRED_CONFIRMATIONS = 12;
+
 export class EthereumWatcher {
   private provider: ethers.JsonRpcProvider;
   private iface = new ethers.Interface(BRIDGE_ABI);
@@ -27,7 +32,12 @@ export class EthereumWatcher {
     const head = await this.provider.getBlockNumber();
     const from = (this.lastProcessed ?? head - 50) + 1;
     if (from > head) return [];
-    const to = Math.min(from + 50, head);
+    // C7 FIX: Only process blocks that have sufficient confirmations.
+    // Events in blocks above (head - REQUIRED_CONFIRMATIONS) are deferred
+    // to the next poll cycle.
+    const safeHead = head - REQUIRED_CONFIRMATIONS;
+    const to = Math.min(from + 50, Math.max(from, safeHead));
+    if (from > to) return [];
 
     const logs = await this.provider.getLogs({
       address: this.bridge,

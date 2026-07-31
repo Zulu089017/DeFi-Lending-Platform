@@ -1,6 +1,7 @@
 # OpenLend — Dashboard
 
-A Next.js 14 dashboard for the OpenLend protocol. Real-time cross-chain bridge activity, lending markets, positions, and liquidation monitor.
+A Next.js 14 dashboard for the OpenLend protocol. Real-time cross-chain bridge
+activity, lending markets, positions, and liquidation monitor.
 
 ## Features
 

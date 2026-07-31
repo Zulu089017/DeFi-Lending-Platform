@@ -20,9 +20,11 @@ describe("GET /v1/markets", () => {
   });
 
   it("returns per-asset stats with the kinked-rate model (util <= 0.8)", async () => {
-    // XLM: 1000 supply, 400 borrow → util = 0.4, borrowApy = 0.4 * 0.0625 = 0.025,
-    //      supplyApy = 0.025 * 0.4 * 0.9 = 0.009
-    // USDC: 2000 supply, 0 borrow → util = 0
+    // On-chain model (lending_pool.borrow_apy_bps): base 200bps, slope1 1000,
+    // slope2 13000, kink 80%, reserve factor 10%.
+    // XLM: util = 0.4 → borrowApy = (200 + 1000*0.4/0.8)/10000 = 0.07,
+    //      supplyApy = 0.07 * 0.4 * 0.9 = 0.0252
+    // USDC: 2000 supply, 0 borrow → util = 0 → borrowApy = 200/10000 = 0.02
     await seedLendingEvent({ type: "supply", user: "alice", asset: "XLM", amount: 1000n });
     await seedLendingEvent({ type: "borrow", user: "alice", asset: "XLM", amount: 400n });
     await seedLendingEvent({ type: "supply", user: "bob", asset: "USDC", amount: 2000n });
@@ -38,13 +40,13 @@ describe("GET /v1/markets", () => {
       expect(xlm.totalSupply).toBe("1000");
       expect(xlm.totalBorrow).toBe("400");
       expect(xlm.utilization).toBeCloseTo(0.4);
-      expect(xlm.borrowApy).toBeCloseTo(0.025);
-      expect(xlm.supplyApy).toBeCloseTo(0.009);
+      expect(xlm.borrowApy).toBeCloseTo(0.07);
+      expect(xlm.supplyApy).toBeCloseTo(0.0252);
 
       expect(usdc.totalSupply).toBe("2000");
       expect(usdc.totalBorrow).toBe("0");
       expect(usdc.utilization).toBe(0);
-      expect(usdc.borrowApy).toBe(0);
+      expect(usdc.borrowApy).toBeCloseTo(0.02);
       expect(usdc.supplyApy).toBe(0);
     } finally {
       await app.close();
@@ -52,7 +54,7 @@ describe("GET /v1/markets", () => {
   });
 
   it("applies the post-kink slope when util > 0.8", async () => {
-    // XLM: 1000 supply, 900 borrow → util = 0.9, borrowApy = 0.05 + (0.9-0.8)*2.25 = 0.275
+    // XLM: util = 0.9 → borrowApy = (200 + 1000 + 13000*(0.9-0.8)/0.2)/10000 = 0.77
     await seedLendingEvent({ type: "supply", user: "alice", asset: "XLM", amount: 1000n });
     await seedLendingEvent({ type: "borrow", user: "alice", asset: "XLM", amount: 900n });
 
@@ -63,7 +65,7 @@ describe("GET /v1/markets", () => {
         (m) => m.asset === "XLM",
       )!;
       expect(xlm.utilization).toBeCloseTo(0.9);
-      expect(xlm.borrowApy).toBeCloseTo(0.275);
+      expect(xlm.borrowApy).toBeCloseTo(0.77);
     } finally {
       await app.close();
     }

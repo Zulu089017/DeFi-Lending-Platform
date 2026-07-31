@@ -16,6 +16,12 @@ const DEPLOYER_PK = process.env.DEPLOYER_PK ?? "";
 const SEPOLIA_RPC = process.env.SEPOLIA_RPC ?? "https://rpc.sepolia.org";
 const MUMBAI_RPC = process.env.MUMBAI_RPC ?? "https://rpc-mumbai.maticvigil.com";
 
+// Only wire `accounts` when a deploy key is present. Hardhat's config
+// validation (HH8) rejects empty/invalid private keys even for
+// `hardhat compile`, which would break CI. Deploy commands require
+// DEPLOYER_PK to be set.
+const accounts = DEPLOYER_PK ? [DEPLOYER_PK] : undefined;
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.24",
@@ -40,12 +46,12 @@ const config: HardhatUserConfig = {
     },
     sepolia: {
       url: SEPOLIA_RPC,
-      accounts: [DEPLOYER_PK],
+      accounts,
       chainId: 11155111,
     },
     mumbai: {
       url: MUMBAI_RPC,
-      accounts: [DEPLOYER_PK],
+      accounts,
       chainId: 80001,
     },
   },
