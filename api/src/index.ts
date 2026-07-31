@@ -6,6 +6,7 @@ import { positionsRoutes } from "./routes/positions.js";
 import { quoteRoutes } from "./routes/quote.js";
 import { eventsRoutes } from "./routes/events.js";
 import { attachWebsocket } from "./stream.js";
+import { rateLimiter } from "./middleware/rate-limiter.js";
 
 /**
  * Build a fully-configured Fastify instance WITHOUT calling `.listen()`.
@@ -16,22 +17,32 @@ import { attachWebsocket } from "./stream.js";
  *
  * Production code in `main()` calls `buildApp()` and then `app.listen()`.
  *
- * @param opts.corsOrigin  Override the CORS origin. Defaults to `*` for
- *                         tests (we don't need browser CORS for
- *                         `app.inject()`). Pass an array of origins in
- *                         production via the `CORS_ORIGINS` env var.
- * @param opts.logger      Pass `false` for tests to silence pino output.
- *                         Pass `{ level: ... }` (or `true`) for prod.
+ * @param opts.corsOrigin     Override the CORS origin. Defaults to `*` for
+ *                            tests (we don't need browser CORS for
+ *                            `app.inject()`). Pass an array of origins in
+ *                            production via the `CORS_ORIGINS` env var.
+ * @param opts.logger         Pass `false` for tests to silence pino output.
+ *                            Pass `{ level: ... }` (or `true`) for prod.
+ * @param opts.rateLimit      Whether to enable rate limiting. Default `true`.
  */
 export async function buildApp(opts: {
   corsOrigin?: string | string[] | true;
   logger?: boolean | object;
+  rateLimit?: boolean;
 } = {}) {
   const app = Fastify({ logger: opts.logger ?? { level: config.LOG_LEVEL } });
   const origin = opts.corsOrigin ?? (config.CORS_ORIGINS === "*" ? true : config.CORS_ORIGINS.split(","));
   await app.register(cors, { origin });
 
-  app.get("/health", async () => ({ ok: true, service: "openlend-api" }));
+  // Global rate limiter for all routes (300 req/min per IP).
+  // Disabled in tests via opts.rateLimit = false.
+  if (opts.rateLimit !== false) {
+    const limit = parseInt(process.env.RATE_LIMIT_PER_MIN ?? "300", 10);
+    const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? "60000", 10);
+    app.addHook("preHandler", rateLimiter(limit, windowMs));
+  }
+
+  app.get("/health", async () => ({ ok: true, service: "openlend-api", uptime: process.uptime() }));
 
   await app.register(marketsRoutes);
   await app.register(positionsRoutes);
