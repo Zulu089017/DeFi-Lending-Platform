@@ -8,6 +8,9 @@ jobs:
   release:
     name: Build & publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -19,7 +22,9 @@ jobs:
           pnpm install --frozen-lockfile
           cd sdk
           pnpm build
-          pnpm publish --access public
+          # Tag-push checkouts have a detached HEAD, so pnpm's default
+          # git-checks (which require being on master|main) would fail.
+          pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Build & push container images
