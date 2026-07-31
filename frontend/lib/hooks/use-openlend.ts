@@ -26,7 +26,8 @@ export function useOpenLendStream() {
       ws.onmessage = (msg) => {
         try {
           const parsed = JSON.parse(msg.data as string) as Omit<StreamEvent, "receivedAt">;
-          if (parsed.type === "hello") return;
+          // Ignore keepalive/system messages (type is not a known event type).
+          if (!["wrap", "unwrap", "lending", "bridge"].includes(parsed.type)) return;
           setEvents((prev) => [{ ...parsed, receivedAt: Date.now() }, ...prev].slice(0, 200));
         } catch {
           /* ignore */

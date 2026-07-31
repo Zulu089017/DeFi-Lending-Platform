@@ -1,4 +1,23 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
+
+// Set required env vars BEFORE the static import below evaluates config.ts.
+// vitest's `vi.stubEnv` only works inside test hooks, so we mutate
+// process.env directly here at module scope.
+process.env.ETHEREUM_RPC = "https://eth.llamarpc.com";
+process.env.POLYGON_RPC = "https://polygon-rpc.com";
+process.env.SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+process.env.ETHEREUM_BRIDGE = "0x0000000000000000000000000000000000000001";
+process.env.POLYGON_BRIDGE = "0x0000000000000000000000000000000000000002";
+process.env.STELLAR_RPC = "https://horizon-testnet.stellar.org";
+process.env.STELLAR_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
+process.env.STELLAR_CONTROLLER = "CABC";
+process.env.RELAYER_SECRET = "SAFPBBB7QFEQXNQ37LJLYH3KMBVYMB4NEHUKYQA7DETL4WTC4HWOOYBA";
+process.env.ATTESTER_KEYS = "key1,key2,key3";
+process.env.ATTESTER_THRESHOLD = "2";
+process.env.DATABASE_URL = "postgresql://user:pass@localhost:5432/db";
+process.env.POLL_INTERVAL_MS = "1000";
+process.env.PORT = "4100";
+
 import { payloadHash } from "../src/attest/signer.js";
 
 describe("payloadHash", () => {
@@ -71,13 +90,14 @@ describe("payloadHash", () => {
     ).toThrow(/salt must be 32 bytes/);
   });
 
-  it("rejects an Address XDR of unexpected length", () => {
+  it("rejects an Address XDR of unexpected length", async () => {
     // We can't easily mock toXDR() to return a wrong length, so instead
     // verify that a well-formed G-address produces exactly 40 bytes of XDR.
     // (If @stellar/stellar-sdk changes its XDR format, this test will fail.)
-    const xdr = (
-      await import("@stellar/stellar-sdk")
-    ).Address.fromString("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACJUR")
+    const { Address } = await import("@stellar/stellar-sdk");
+    const xdr = Address.fromString(
+      "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H",
+    )
       .toScVal()
       .toXDR();
     expect(Buffer.from(xdr).length).toBe(40);

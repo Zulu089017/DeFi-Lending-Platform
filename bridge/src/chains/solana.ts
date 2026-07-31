@@ -22,10 +22,9 @@ export class SolanaWatcher {
 
   async pollOnce(): Promise<SourceEvent[]> {
     const head = await this.conn.getSlot();
-    const from = (this.lastSlot ?? head - 50) + 1;
-    if (from > head) return [];
+    const _from = (this.lastSlot ?? head - 50) + 1;
 
-    const sigs = await this.conn.getSignaturesForAddress(this.bridge, { min: from, limit: 100 });
+    const sigs = await this.conn.getSignaturesForAddress(this.bridge, { limit: 100 });
     const events: SourceEvent[] = [];
     for (const s of sigs) {
       // For the scaffold we just record the signature; the real implementation

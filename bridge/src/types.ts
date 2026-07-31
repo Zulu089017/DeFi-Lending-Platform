@@ -1,4 +1,4 @@
-export type ChainId = "ethereum" | "polygon" | "solana";
+export type ChainId = "ethereum" | "polygon" | "solana" | "stellar";
 
 export interface SourceEvent {
   chain: ChainId;

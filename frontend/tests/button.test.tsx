@@ -9,7 +9,7 @@ describe("Button", () => {
   });
 
   it("applies variant classes", () => {
-    const { container } = render(<Button variant="destructive">Danger</Button>);
+    const { container } = render(<Button variant="danger">Danger</Button>);
     expect(container.firstChild).toBeDefined();
   });
 

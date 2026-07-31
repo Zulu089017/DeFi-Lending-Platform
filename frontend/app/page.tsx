@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Bridge, Shield, Zap, Activity, GitBranch, Layers } from "lucide-react";
+import { ArrowRight, Waypoints, Shield, Zap, Activity, GitBranch, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventFeedPreview } from "@/components/events/event-feed-preview";
@@ -8,7 +8,7 @@ import { LiveTicker } from "@/components/events/live-ticker";
 
 const features = [
   {
-    icon: Bridge,
+    icon: Waypoints,
     title: "Wrap from any chain",
     desc: "Lock tokens on Ethereum, Polygon or Solana and receive a Stellar-native wrapped asset in seconds.",
   },

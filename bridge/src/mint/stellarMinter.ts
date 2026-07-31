@@ -132,8 +132,11 @@ export class StellarMinter {
     // constructor directly for the BytesN fields because `nativeToScVal` with
     // `type: "bytes"` produces a variable-length Bytes which the Soroban
     // host will reject for a BytesN<64> / BytesN<32> parameter.
-    const sigScval = xdr.ScVal.scvBytesN(sigBytes);
-    const saltScval = xdr.ScVal.scvBytesN(saltBytes);
+    // NOTE: @stellar/stellar-sdk v12 does not expose scvBytesN, so we use
+    // scvBytes with correctly-sized buffers. A 32-byte and 64-byte buffer
+    // produce the same on-wire XDR as BytesN<32> and BytesN<64> respectively.
+    const sigScval = xdr.ScVal.scvBytes(sigBytes);
+    const saltScval = xdr.ScVal.scvBytes(saltBytes);
     const nonceU64 = nativeToScVal(nonce, { type: "u64" });
 
     // sourceAddress is now a 32-byte BytesN<32> on-chain. Accept either
@@ -151,7 +154,7 @@ export class StellarMinter {
         .subarray(0, 32)
         .copy(sourceAddrBytes);
     }
-    const sourceAddrScval = xdr.ScVal.scvBytesN(sourceAddrBytes);
+    const sourceAddrScval = xdr.ScVal.scvBytes(sourceAddrBytes);
 
     const source = await this.server.loadAccount(this.keypair.publicKey());
     const tx = new TransactionBuilder(source, {

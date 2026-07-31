@@ -42,7 +42,7 @@ export async function marketsRoutes(app: FastifyInstance) {
       _count: { _all: true },
     });
     return Promise.all(
-      groups.map(async (g) => ({ asset: g.asset, ...(await computeMarkets(g.asset)) })),
+      groups.map(async (g: { asset: string }) => ({ asset: g.asset, ...(await computeMarkets(g.asset)) })),
     );
   });
 

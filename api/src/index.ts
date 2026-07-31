@@ -65,14 +65,15 @@ async function main() {
 // server on `config.PORT` (default 4000), colliding with any other
 // process on that port and tripping EADDRINUSE.
 //
-// `import.meta.main` is the canonical ESM entrypoint check (Node
-// 20.11+). The project pins `node ^20.14`, so this is always
-// available. An earlier attempt used
-//   `import.meta.url === fileURLToPath(import.meta.url).href`
-// which is a bug: `fileURLToPath` returns a string, so `.href` is
-// `undefined` and the condition is always false (production `main()`
-// was dead code; `npm start` would exit silently).
-if (import.meta.main) {
+// Node 20.11+ supports `import.meta.main` but the TypeScript lib types
+// shipped with the project's `node` module resolution don't include it.
+// We use a widely-compatible fallback: compare `import.meta.url` to
+// `process.argv[1]` (the resolved entry-point path). In a test context
+// `process.argv[1]` is never `index.ts`, so `main()` is not called.
+const isEntrypoint =
+  process.argv[1]?.endsWith("index.ts") ||
+  process.argv[1]?.endsWith("index.js");
+if (isEntrypoint) {
   main().catch((err) => {
     console.error(err);
     process.exit(1);

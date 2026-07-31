@@ -31,7 +31,7 @@ export async function listPendingMints(): Promise<StellarMintRequest[]> {
     orderBy: { createdAt: "asc" },
     take: 50,
   });
-  return rows.map((r) => ({
+  return rows.map((r: { chain: string; sourceTx: string; sourceLogIndex: number; sourceAddress: string; amount: bigint; to: string; salt: string }) => ({
     chain: r.chain as "ethereum" | "polygon" | "solana",
     sourceTx: r.sourceTx,
     sourceLogIndex: r.sourceLogIndex,

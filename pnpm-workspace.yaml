@@ -1,0 +1,7 @@
+packages:
+  - "bridge"
+  - "relayer"
+  - "indexer"
+  - "api"
+  - "sdk"
+  - "frontend"
