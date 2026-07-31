@@ -13,7 +13,9 @@ for dir in bridge relayer indexer api sdk frontend; do
     # the CI ts-services matrix). Otherwise the last service to generate
     # wins and every other service's types are wrong.
     if [ -f "$dir/prisma/schema.prisma" ]; then
-      (cd "$dir" && npx prisma generate >/dev/null 2>&1)
+      (cd "$dir" && npx prisma generate >/dev/null 2>&1) || {
+        echo "⚠️ prisma generate failed in $dir (typecheck may run against a stale client)"
+      }
     fi
     echo "  → typechecking $dir..."
     (cd "$dir" && npx tsc --noEmit) || {
