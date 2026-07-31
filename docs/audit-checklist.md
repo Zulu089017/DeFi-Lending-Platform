@@ -25,8 +25,9 @@
 ### Testing
 
 - [x] Unit tests for each Soroban contract function
-- [x] Invariant tests (18 tests documented, build blocked — see
-      `stellar-contracts/BUILD_ENV_NOTES.md`)
+- [x] Invariant tests (17 tests execute and pass on Rust 1.91.0 + soroban-sdk
+      27.0.4 — see `stellar-contracts/BUILD_ENV_NOTES.md`; `docs/invariants.md`
+      § 9)
 - [x] Bridge unit tests (Solidity, attest signing)
 - [ ] Fuzz tests for Soroban financial math
 - [ ] Property-based tests (e.g., `proptest` for Rust)
