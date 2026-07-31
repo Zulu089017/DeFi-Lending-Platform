@@ -77,6 +77,24 @@
   `slither-args` — the action appends its own `--fail-*` flag and the two
   conflict.
 
+### Rust / Soroban (`stellar-contracts/`)
+
+- The Soroban job pins `dtolnay/rust-toolchain@1.91.0` (the soroban-sdk 27 MSRV)
+  with `targets: wasm32v1-none, components: rustfmt, clippy`. Keep the
+  `components` input as a single scalar (block style): the earlier flow-style
+  `with: { ..., components: rustfmt, clippy }` made GitHub parse `clippy` as a
+  separate input key and the Lint step failed with
+  `'cargo-clippy' is not installed`.
+- **Use the `wasm32v1-none` target for wasm builds.** On Rust 1.82+,
+  `wasm32-unknown-unknown` enables `reference-types`/`multi-value` features that
+  soroban-sdk 27's `build.rs` rejects; `wasm32v1-none` (Rust 1.84+) is the
+  Soroban-native target.
+- All cargo commands run with `--locked` against the committed `Cargo.lock`, so
+  a crates.io drift cannot silently change the resolved dependency graph.
+- `clippy.toml` contains only valid settings (`msrv`, thresholds); lint levels
+  are enforced with `-D warnings`, not `clippy.toml` keys.
+- Full history and migration notes: `stellar-contracts/BUILD_ENV_NOTES.md`.
+
 ## Audit scope
 
 | Component            | Lines of code | Language       | Auditor |
