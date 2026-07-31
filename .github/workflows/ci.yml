@@ -19,9 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
       - uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}" }
-      - run: npx prettier --check "**/*.{json,md,yml,yaml}" "!**/node_modules/**" "!**/dist/**" "!**/target/**"
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      # Install the workspace so `pnpm exec prettier` resolves the
+      # lockfile-pinned version (3.9.6). A bare `npx prettier` without
+      # node_modules would fetch the latest prettier from the registry,
+      # making formatting checks non-deterministic across runs.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --check "**/*.{json,md,yml,yaml}" "!**/node_modules/**" "!**/dist/**" "!**/target/**"
 
   # ─── Soroban contracts ───
   stellar-contracts:
