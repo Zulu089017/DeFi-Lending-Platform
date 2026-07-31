@@ -1,0 +1,18 @@
+# OpenLend security.txt — RFC 9116
+# https://www.rfc-editor.org/rfc/rfc9116
+#
+# This file helps security researchers know how to contact us and
+# where to find our security policy. It should be served at:
+#   https://openlend.xyz/.well-known/security.txt
+
+Contact: mailto:security@openlend.xyz
+Expires: 2027-01-01T00:00:00Z
+Preferred-Languages: en
+Canonical: https://openlend.xyz/.well-known/security.txt
+Policy: https://openlend.xyz/security
+Encryption: https://openlend.xyz/pgp-key.txt
+Acknowledgments: https://openlend.xyz/security#acknowledgments
+Hiring: https://openlend.xyz/careers
+
+# OpenLend bug bounty is planned after audit.
+# We follow coordinated disclosure with a 90-day window.
