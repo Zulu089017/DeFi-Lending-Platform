@@ -1,7 +1,6 @@
 "use client";
 import * as React from "react";
 import { ToastProvider, ToastViewport } from "@radix-ui/react-toast";
-import { cn } from "@/lib/utils";
 
 export function Toaster() {
   return (

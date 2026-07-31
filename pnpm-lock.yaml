@@ -140,6 +140,9 @@ importers:
       '@types/pg':
         specifier: ^8.11.6
         version: 8.20.0
+      prisma:
+        specifier: ^5.16.1
+        version: 5.22.0
       tsx:
         specifier: ^4.16.2
         version: 4.23.1
@@ -292,6 +295,9 @@ importers:
       '@types/node':
         specifier: ^20.14.10
         version: 20.19.43
+      prisma:
+        specifier: ^5.16.1
+        version: 5.22.0
       tsx:
         specifier: ^4.16.2
         version: 4.23.1
@@ -329,6 +335,9 @@ importers:
       '@types/node':
         specifier: ^20.14.10
         version: 20.19.43
+      prisma:
+        specifier: ^5.16.1
+        version: 5.22.0
       tsx:
         specifier: ^4.16.2
         version: 4.23.1

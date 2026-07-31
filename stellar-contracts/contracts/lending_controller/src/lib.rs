@@ -6,7 +6,10 @@
 
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, xdr::ToXdr, Address, Bytes, BytesN, Env, Symbol};
+use soroban_sdk::{
+    contract, contractevent, contractimpl, contracttype, xdr::ToXdr, Address, Bytes, BytesN, Env,
+    Symbol,
+};
 
 #[contracttype]
 #[derive(Clone)]
@@ -25,6 +28,48 @@ pub enum DataKey {
     /// Max mints per hour (circuit breaker)
     MintWindowStart,
     MintWindowCount,
+}
+
+// ──────────────────────── Events ────────────────────────
+//
+// `#[contractevent]` replaces the deprecated `env.events().publish(...)`
+// API (soroban-sdk >= 22). The topic symbol defaults to the snake_case of
+// the struct name; `data_format = "vec"` keeps the previous Vec-shaped
+// event data so downstream indexers that decode raw topics/vecs are
+// unaffected.
+
+#[contractevent(data_format = "vec")]
+pub struct Wrap {
+    chain_id: u32,
+    source_addr: BytesN<32>,
+    to: Address,
+    amount: i128,
+    salt: BytesN<32>,
+    nonce: u64,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct Unwrap {
+    user: Address,
+    amount: i128,
+    chain_id: u32,
+    source_addr: BytesN<32>,
+    nonce: BytesN<32>,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct Supply {
+    user: Address,
+    asset: Symbol,
+    amount: i128,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct Borrow {
+    user: Address,
+    collateral_asset: Symbol,
+    debt_asset: Symbol,
+    borrow_amount: i128,
 }
 
 #[contract]
@@ -47,10 +92,16 @@ impl LendingController {
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Bridge, &bridge);
-        env.storage.instance().set(&DataKey::WrappedAsset, &wrapped_asset);
-        env.storage.instance().set(&DataKey::LendingPool, &lending_pool);
-        env.storage.instance().set(&DataKey::CollateralVault, &collateral_vault);
-        env.storage.instance().set(&DataKey::Oracle, &oracle);
+        env.storage()
+            .instance()
+            .set(&DataKey::WrappedAsset, &wrapped_asset);
+        env.storage()
+            .instance()
+            .set(&DataKey::LendingPool, &lending_pool);
+        env.storage()
+            .instance()
+            .set(&DataKey::CollateralVault, &collateral_vault);
+        env.storage().instance().set(&DataKey::Oracle, &oracle);
     }
 
     // ──────────────────────── Cross-chain wrap ────────────────────────
@@ -90,12 +141,17 @@ impl LendingController {
         // The variable reads below preserve the call shape for the
         // production implementation; do NOT delete them when refactoring.
         let _wrapped = Self::wrapped_asset(&env);
-        let _ = (_wrapped, to, amount);
+        let _ = (_wrapped, &to, &amount);
 
-        env.events().publish(
-            (Symbol::new(&env, "wrap"),),
-            (chain_id, source_addr, to, amount, salt, nonce),
-        );
+        Wrap {
+            chain_id,
+            source_addr,
+            to,
+            amount,
+            salt,
+            nonce,
+        }
+        .publish(&env);
     }
 
     /// Begin an unwrap. Burns the wrapped asset and emits a cross-chain
@@ -120,10 +176,14 @@ impl LendingController {
 
         // Generate a unique nonce
         let nonce = Self::gen_nonce(&env);
-        env.events().publish(
-            (Symbol::new(&env, "unwrap"),),
-            (user, amount, chain_id, source_addr, nonce.clone()),
-        );
+        Unwrap {
+            user,
+            amount,
+            chain_id,
+            source_addr,
+            nonce: nonce.clone(),
+        }
+        .publish(&env);
         nonce
     }
 
@@ -152,8 +212,13 @@ impl LendingController {
         // 21 client API. The reads below preserve the call shape.
         let _pool = Self::lending_pool(&env);
         let _vault = Self::collateral_vault(&env);
-        let _ = (_pool, _vault, user, asset, amount);
-        env.events().publish((Symbol::new(&env, "supply"),), (user, asset, amount));
+        let _ = (_pool, _vault, &user, &asset, &amount);
+        Supply {
+            user,
+            asset,
+            amount,
+        }
+        .publish(&env);
     }
 
     /// User-facing entry point: borrow against deposited collateral.
@@ -182,11 +247,23 @@ impl LendingController {
         let _pool = Self::lending_pool(&env);
         let _vault = Self::collateral_vault(&env);
         let _oracle = Self::oracle(&env);
-        let _ = (_pool, _vault, _oracle, user, collateral_asset, collateral_amount, debt_asset, borrow_amount);
-        env.events().publish(
-            (Symbol::new(&env, "borrow"),),
-            (user, collateral_asset, debt_asset, borrow_amount),
+        let _ = (
+            _pool,
+            _vault,
+            _oracle,
+            &user,
+            &collateral_asset,
+            &collateral_amount,
+            &debt_asset,
+            &borrow_amount,
         );
+        Borrow {
+            user,
+            collateral_asset,
+            debt_asset,
+            borrow_amount,
+        }
+        .publish(&env);
     }
 
     // ──────────────────────── Admin ────────────────────────
@@ -255,8 +332,9 @@ impl LendingController {
             nonce,
         );
         let hash = env.crypto().sha256(&payload);
+        let hash_bytes = Bytes::from_slice(env, &hash.to_array());
         env.crypto()
-            .ed25519_verify(&bridge_pub, &hash, attestation);
+            .ed25519_verify(&bridge_pub, &hash_bytes, attestation);
         // If the signature is invalid, ed25519_verify panics with a host
         // error and the transaction reverts.
     }
@@ -267,13 +345,13 @@ impl LendingController {
     ///   2. chain_id (u32 LE)
     ///   3. source_addr (32 raw bytes)
     ///   4. amount (i64 LE, saturating cast)
-///   5. to: full ScVal XDR representation of the Address (44 bytes for
-///      an ed25519 account: 4-byte ScVal tag + 4-byte ScAddress tag +
-///      4-byte AccountId tag + 32-byte raw pubkey). The off-chain side
-///      produces the matching bytes via
-///      `ScAddress.fromString(...).toScVal().toXDR()`.
-///   6. salt (32 raw bytes)
-///   7. nonce (u64 LE)
+    ///   5. to: full ScVal XDR representation of the Address (44 bytes for
+    ///      an ed25519 account: 4-byte ScVal tag + 4-byte ScAddress tag +
+    ///      4-byte AccountId tag + 32-byte raw pubkey). The off-chain side
+    ///      produces the matching bytes via
+    ///      `ScAddress.fromString(...).toScVal().toXDR()`.
+    ///   6. salt (32 raw bytes)
+    ///   7. nonce (u64 LE)
     fn build_canonical_payload(
         env: &Env,
         chain_id: u32,
@@ -305,16 +383,22 @@ impl LendingController {
     }
 
     fn check_and_bump_nonce(env: &Env, salt: &BytesN<32>) {
-        if env.storage().persistent().has(&DataKey::Nonce(salt.clone())) {
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::Nonce(salt.clone()))
+        {
             panic!("salt already used");
         }
-        env.storage().persistent().set(&DataKey::Nonce(salt.clone()), &true);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Nonce(salt.clone()), &true);
     }
 
     fn check_mint_rate(env: &Env) {
         const MAX_PER_HOUR: i128 = 1_000_000_000_000; // 10B in 7 dec — adjust per deployment
         const WINDOW_LEDGERS: u64 = 1_800; // ~1 hour at 5s/ledger
-        let now = env.ledger().sequence();
+        let now: u64 = env.ledger().sequence().into();
         let start: u64 = env
             .storage()
             .instance()
@@ -326,8 +410,12 @@ impl LendingController {
             .get(&DataKey::MintWindowCount)
             .unwrap_or(0);
         if now.saturating_sub(start) > WINDOW_LEDGERS {
-            env.storage().instance().set(&DataKey::MintWindowStart, &now);
-            env.storage().instance().set(&DataKey::MintWindowCount, &1i128);
+            env.storage()
+                .instance()
+                .set(&DataKey::MintWindowStart, &now);
+            env.storage()
+                .instance()
+                .set(&DataKey::MintWindowCount, &1i128);
             return;
         }
         if count >= MAX_PER_HOUR {
@@ -339,7 +427,9 @@ impl LendingController {
     }
 
     fn gen_nonce(env: &Env) -> BytesN<32> {
-        let seq = env.ledger().sequence().to_be_bytes();
+        // `sequence()` returns u32; widen to u64 so the leading 8 bytes are
+        // actually populated (copy_from_slice panics on length mismatch).
+        let seq = u64::from(env.ledger().sequence()).to_be_bytes();
         let ts = env.ledger().timestamp().to_be_bytes();
         let mut buf = [0u8; 32];
         buf[..8].copy_from_slice(&seq);
@@ -377,6 +467,7 @@ impl LendingController {
 
 #[cfg(test)]
 mod tests {
+    #![allow(non_snake_case)] // invariant tests are named after doc IDs
     use super::*;
     use soroban_sdk::testutils::Address as _;
 
@@ -384,19 +475,16 @@ mod tests {
     fn test_initialize() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         let bridge = BytesN::from_array(&env, &[1u8; 32]);
-        let ctrl = LendingControllerClient::new(
-            &env,
-            &env.register_contract(None, LendingController {}),
-        );
+        let ctrl = LendingControllerClient::new(&env, &env.register(LendingController {}, ()));
         ctrl.initialize(
             &admin,
             &bridge,
-            &Address::random(&env),
-            &Address::random(&env),
-            &Address::random(&env),
-            &Address::random(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
         );
         // set/get paused round-trip
         ctrl.set_paused(&true);
@@ -414,26 +502,31 @@ mod tests {
     fn invariant_C4_pause_halts_wrap() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         let bridge = BytesN::from_array(&env, &[1u8; 32]);
-        let ctrl = LendingControllerClient::new(
-            &env,
-            &env.register_contract(None, LendingController {}),
-        );
+        let ctrl = LendingControllerClient::new(&env, &env.register(LendingController {}, ()));
         ctrl.initialize(
             &admin,
             &bridge,
-            &Address::random(&env),
-            &Address::random(&env),
-            &Address::random(&env),
-            &Address::random(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
         );
         ctrl.set_paused(&true);
         // Calling wrap while paused must revert.
         let sig = BytesN::from_array(&env, &[0u8; 64]);
         let src = BytesN::from_array(&env, &[0u8; 32]);
         let salt = BytesN::from_array(&env, &[2u8; 32]);
-        ctrl.wrap(&sig, &1u32, &src, &1_000i128, &Address::random(&env), &salt, &0u64);
+        ctrl.wrap(
+            &sig,
+            &1u32,
+            &src,
+            &1_000i128,
+            &Address::generate(&env),
+            &salt,
+            &0u64,
+        );
     }
 
     /// **C-2 (replay protection):** A `wrap` with a re-used `salt` reverts.
@@ -447,27 +540,40 @@ mod tests {
     fn invariant_C2_salt_replay_reverts() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         let bridge = BytesN::from_array(&env, &[1u8; 32]);
-        let ctrl = LendingControllerClient::new(
-            &env,
-            &env.register_contract(None, LendingController {}),
-        );
+        let ctrl = LendingControllerClient::new(&env, &env.register(LendingController {}, ()));
         ctrl.initialize(
             &admin,
             &bridge,
-            &Address::random(&env),
-            &Address::random(&env),
-            &Address::random(&env),
-            &Address::random(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
+            &Address::generate(&env),
         );
         let sig = BytesN::from_array(&env, &[0u8; 64]);
         let src = BytesN::from_array(&env, &[0u8; 32]);
         let salt = BytesN::from_array(&env, &[3u8; 32]);
         // Once C-1 lands, the first call should succeed and record the
         // salt, and the second call (same salt) must revert.
-        ctrl.wrap(&sig, &1u32, &src, &1_000i128, &Address::random(&env), &salt, &0u64);
-        ctrl.wrap(&sig, &1u32, &src, &1_000i128, &Address::random(&env), &salt, &0u64);
+        ctrl.wrap(
+            &sig,
+            &1u32,
+            &src,
+            &1_000i128,
+            &Address::generate(&env),
+            &salt,
+            &0u64,
+        );
+        ctrl.wrap(
+            &sig,
+            &1u32,
+            &src,
+            &1_000i128,
+            &Address::generate(&env),
+            &salt,
+            &0u64,
+        );
     }
 
     /// **TODO C-1 (C-7, C-8):** Real ed25519 verification + cross-contract

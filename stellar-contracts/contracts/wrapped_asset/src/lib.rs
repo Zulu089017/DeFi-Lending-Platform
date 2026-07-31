@@ -6,9 +6,7 @@
 
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, String, Symbol,
-};
+use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, String};
 
 // ────────────────────────────── Storage Types ──────────────────────────────
 
@@ -40,6 +38,35 @@ pub struct TokenMetadata {
 }
 
 // ──────────────────────────────── Contract ────────────────────────────────
+
+// ──────────────────────── Events ────────────────────────
+//
+// `#[contractevent]` replaces the deprecated `env.events().publish(...)`
+// API (soroban-sdk >= 22). The topic symbol is the snake_case struct
+// name; `data_format = "vec"` keeps the previous Vec-shaped event data.
+
+#[contractevent(data_format = "vec")]
+pub struct Init {
+    admin: Address,
+    minter: Address,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct Mint {
+    to: Address,
+    amount: i128,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct Burn {
+    from: Address,
+    amount: i128,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct SetMinter {
+    new_minter: Address,
+}
 
 #[contract]
 pub struct WrappedAsset;
@@ -76,8 +103,11 @@ impl WrappedAsset {
         );
         env.storage().instance().set(&DataKey::TotalSupply, &0i128);
 
-        env.events()
-            .publish((symbol_short!("init"),), (admin.clone(), minter));
+        Init {
+            admin: admin.clone(),
+            minter,
+        }
+        .publish(&env);
     }
 
     // ──────────────────────────── Mint / Burn ────────────────────────────
@@ -101,13 +131,17 @@ impl WrappedAsset {
             .persistent()
             .set(&key, &(bal.checked_add(amount).expect("overflow")));
 
-        let supply: i128 = env.storage().instance().get(&DataKey::TotalSupply).unwrap_or(0);
-        env.storage()
+        let supply: i128 = env
+            .storage()
             .instance()
-            .set(&DataKey::TotalSupply, &supply.checked_add(amount).expect("overflow"));
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0);
+        env.storage().instance().set(
+            &DataKey::TotalSupply,
+            &supply.checked_add(amount).expect("overflow"),
+        );
 
-        env.events()
-            .publish((Symbol::new(&env, "mint"),), (to, amount));
+        Mint { to, amount }.publish(&env);
     }
 
     /// Burn wrapped tokens. Anyone holding tokens may burn their own; the
@@ -123,17 +157,18 @@ impl WrappedAsset {
         if bal < amount {
             panic!("insufficient balance");
         }
-        env.storage()
-            .persistent()
-            .set(&key, &(bal - amount));
+        env.storage().persistent().set(&key, &(bal - amount));
 
-        let supply: i128 = env.storage().instance().get(&DataKey::TotalSupply).unwrap_or(0);
+        let supply: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0);
         env.storage()
             .instance()
             .set(&DataKey::TotalSupply, &(supply - amount));
 
-        env.events()
-            .publish((Symbol::new(&env, "burn"),), (from, amount));
+        Burn { from, amount }.publish(&env);
     }
 
     // ──────────────────────────── Views ────────────────────────────
@@ -176,11 +211,8 @@ impl WrappedAsset {
             .get(&DataKey::Admin)
             .expect("admin not set");
         admin.require_auth();
-        env.storage()
-            .instance()
-            .set(&DataKey::Minter, &new_minter);
-        env.events()
-            .publish((symbol_short!("set_minter"),), (new_minter,));
+        env.storage().instance().set(&DataKey::Minter, &new_minter);
+        SetMinter { new_minter }.publish(&env);
     }
 }
 
@@ -195,11 +227,11 @@ mod tests {
     fn test_initialize_and_mint() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let minter = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let minter = Address::generate(&env);
+        let user = Address::generate(&env);
 
-        let contract = WrappedAssetClient::new(&env, &env.register_contract(None, WrappedAsset {}));
+        let contract = WrappedAssetClient::new(&env, &env.register(WrappedAsset {}, ()));
 
         contract.initialize(
             &admin,
@@ -220,11 +252,11 @@ mod tests {
     fn test_burn_reduces_supply() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let minter = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let minter = Address::generate(&env);
+        let user = Address::generate(&env);
 
-        let contract = WrappedAssetClient::new(&env, &env.register_contract(None, WrappedAsset {}));
+        let contract = WrappedAssetClient::new(&env, &env.register(WrappedAsset {}, ()));
 
         contract.initialize(
             &admin,
@@ -246,10 +278,10 @@ mod tests {
     fn test_burn_overbalance() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let minter = Address::random(&env);
-        let user = Address::random(&env);
-        let contract = WrappedAssetClient::new(&env, &env.register_contract(None, WrappedAsset {}));
+        let admin = Address::generate(&env);
+        let minter = Address::generate(&env);
+        let user = Address::generate(&env);
+        let contract = WrappedAssetClient::new(&env, &env.register(WrappedAsset {}, ()));
         contract.initialize(
             &admin,
             &minter,

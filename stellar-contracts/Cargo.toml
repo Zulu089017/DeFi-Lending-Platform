@@ -16,9 +16,14 @@ license = "Apache-2.0"
 repository = "https://github.com/openlend/stellar-contracts"
 
 [workspace.dependencies]
-soroban-sdk = "21.0.0"
-soroban-token-sdk = "21.0.0"
-stellar-asset-sdk = "21.0.0"
+soroban-sdk = "27.0.4"
+
+# NOTE: soroban-token-sdk / stellar-asset-sdk are intentionally NOT declared.
+# They were previously pinned at 21.0.0 but are not used by any contract in
+# this workspace (verified: zero `soroban_token_sdk`/`stellar_asset_sdk`
+# references), and their transitive `ed25519-dalek`/`rand_core` constraints
+# were a source of the CI dependency-resolution failures documented in
+# BUILD_ENV_NOTES.md. Re-add them only when a contract actually needs them.
 
 [profile.release]
 opt-level = "z"

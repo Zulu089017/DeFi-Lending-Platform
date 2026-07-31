@@ -74,7 +74,7 @@ impl Liquidation {
         if repay_amount <= 0 {
             panic!("amount must be positive");
         }
-        let cfg = Self::config(&env);
+        let cfg = Self::config(env);
 
         // 1) Repay `repay_amount` of debt on behalf of borrower
         //    (caller is the liquidator, who supplies funds).
@@ -91,14 +91,19 @@ impl Liquidation {
         // The scaffold returns the bonus-collateral equivalent in same units
         // (asset == collateral) and applies the fee to the BONUS, not gross.
         // Enforce close factor against the borrower's outstanding debt.
-        let _ = borrower;
+        // `debt_asset`/`collateral_asset` are inputs to the production oracle
+        // math below; the scaffold consumes them only via comments, so mark
+        // them read to satisfy `-D warnings` until the oracle wiring lands.
+        let _ = (borrower, debt_asset, collateral_asset);
         let bonus_mult = 10_000 + cfg.bonus_bps;
-        let gross = repay_amount.checked_mul(bonus_mult as i128).expect("overflow") / 10_000;
+        let gross = repay_amount
+            .checked_mul(bonus_mult as i128)
+            .expect("overflow")
+            / 10_000;
         let bonus = gross - repay_amount;
         // Fee is `fee_bps` of the bonus, NOT of gross.
         let fee = bonus.checked_mul(cfg.fee_bps as i128).expect("overflow") / 10_000;
-        let liquidator_share = repay_amount + bonus - fee;
-        liquidator_share
+        repay_amount + bonus - fee
     }
 
     // ──────────────────────── VIEWS ────────────────────────
@@ -129,6 +134,7 @@ impl Liquidation {
 
 #[cfg(test)]
 mod tests {
+    #![allow(non_snake_case)] // invariant tests are named after doc IDs
     use super::*;
     use soroban_sdk::testutils::Address as _;
 
@@ -136,18 +142,17 @@ mod tests {
     fn test_liquidate_with_bonus() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let liq = Address::random(&env);
-        let borrower = Address::random(&env);
-        let pool = Address::random(&env);
-        let vault = Address::random(&env);
-        let oracle = Address::random(&env);
-        let treasury = Address::random(&env);
+        let admin = Address::generate(&env);
+        let liq = Address::generate(&env);
+        let borrower = Address::generate(&env);
+        let pool = Address::generate(&env);
+        let vault = Address::generate(&env);
+        let oracle = Address::generate(&env);
+        let treasury = Address::generate(&env);
         let debt = Symbol::new(&env, "USDC");
         let coll = Symbol::new(&env, "USDC"); // same unit for scaffold
 
-        let liq_contract =
-            LiquidationClient::new(&env, &env.register_contract(None, Liquidation {}));
+        let liq_contract = LiquidationClient::new(&env, &env.register(Liquidation {}, ()));
         liq_contract.initialize(
             &admin,
             &LiquidationConfig {
@@ -178,26 +183,25 @@ mod tests {
     fn invariant_Q3_Q4_liquidator_share_formula() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let liq = Address::random(&env);
-        let borrower = Address::random(&env);
-        let pool = Address::random(&env);
-        let vault = Address::random(&env);
-        let oracle = Address::random(&env);
-        let treasury = Address::random(&env);
+        let admin = Address::generate(&env);
+        let liq = Address::generate(&env);
+        let borrower = Address::generate(&env);
+        let pool = Address::generate(&env);
+        let vault = Address::generate(&env);
+        let oracle = Address::generate(&env);
+        let treasury = Address::generate(&env);
         let debt = Symbol::new(&env, "USDC");
         let coll = Symbol::new(&env, "USDC");
 
-        let liq_contract =
-            LiquidationClient::new(&env, &env.register_contract(None, Liquidation {}));
+        let liq_contract = LiquidationClient::new(&env, &env.register(Liquidation {}, ()));
         liq_contract.initialize(
             &admin,
             &LiquidationConfig {
                 pool,
                 vault,
                 oracle,
-                bonus_bps: 1_000,           // 10%
-                fee_bps: 2_000,             // 20% of bonus
+                bonus_bps: 1_000, // 10%
+                fee_bps: 2_000,   // 20% of bonus
                 close_factor_bps: 5_000,
             },
             &treasury,

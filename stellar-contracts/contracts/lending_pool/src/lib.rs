@@ -81,9 +81,10 @@ impl LendingPool {
         env.storage()
             .persistent()
             .set(&DataKey::TotalBorrow(cfg.asset.clone()), &0i128);
-        env.storage()
-            .persistent()
-            .set(&DataKey::BorrowIndex(cfg.asset.clone()), &1_000_000_000_000_000_000i128);
+        env.storage().persistent().set(
+            &DataKey::BorrowIndex(cfg.asset.clone()),
+            &1_000_000_000_000_000_000i128,
+        );
     }
 
     // ──────────────────────── SUPPLY / WITHDRAW ────────────────────────
@@ -116,9 +117,10 @@ impl LendingPool {
             &DataKey::TotalDepositShares(asset.clone()),
             &total_shares.checked_add(minted_shares).expect("overflow"),
         );
-        env.storage()
-            .persistent()
-            .set(&DataKey::TotalDeposit(asset.clone()), &total_d.checked_add(amount).expect("overflow"));
+        env.storage().persistent().set(
+            &DataKey::TotalDeposit(asset.clone()),
+            &total_d.checked_add(amount).expect("overflow"),
+        );
 
         minted_shares
     }
@@ -164,21 +166,28 @@ impl LendingPool {
 
         let key = DataKey::Borrower(user.clone(), asset.clone());
         let idx = Self::borrow_index(&env, &asset);
-        let snap: BorrowerSnapshot = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .unwrap_or(BorrowerSnapshot { principal: 0, index: idx });
+        let snap: BorrowerSnapshot =
+            env.storage()
+                .persistent()
+                .get(&key)
+                .unwrap_or(BorrowerSnapshot {
+                    principal: 0,
+                    index: idx,
+                });
         let new_principal = snap.principal.checked_add(amount).expect("overflow");
         env.storage().persistent().set(
             &key,
-            &BorrowerSnapshot { principal: new_principal, index: idx },
+            &BorrowerSnapshot {
+                principal: new_principal,
+                index: idx,
+            },
         );
 
         let total_b = Self::total_borrow(&env, &asset);
-        env.storage()
-            .persistent()
-            .set(&DataKey::TotalBorrow(asset.clone()), &total_b.checked_add(amount).expect("overflow"));
+        env.storage().persistent().set(
+            &DataKey::TotalBorrow(asset.clone()),
+            &total_b.checked_add(amount).expect("overflow"),
+        );
     }
 
     pub fn repay(env: Env, user: Address, asset: Symbol, amount: i128) -> i128 {
@@ -190,27 +199,34 @@ impl LendingPool {
 
         let key = DataKey::Borrower(user.clone(), asset.clone());
         let idx = Self::borrow_index(&env, &asset);
-        let snap: BorrowerSnapshot = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .unwrap_or(BorrowerSnapshot { principal: 0, index: 1_000_000_000_000_000_000i128 });
+        let snap: BorrowerSnapshot =
+            env.storage()
+                .persistent()
+                .get(&key)
+                .unwrap_or(BorrowerSnapshot {
+                    principal: 0,
+                    index: 1_000_000_000_000_000_000i128,
+                });
         // Total debt = principal * current_index / snap_index
         let total_owed = if snap.principal == 0 {
             0
         } else {
-            snap.principal
-                .checked_mul(idx)
-                .expect("overflow")
-                / snap.index.max(1)
+            snap.principal.checked_mul(idx).expect("overflow") / snap.index.max(1)
         };
-        let repaid = if amount >= total_owed { total_owed } else { amount };
+        let repaid = if amount >= total_owed {
+            total_owed
+        } else {
+            amount
+        };
         // Repay against the new principal: keep index in sync with current.
         let new_principal = total_owed - repaid;
 
         env.storage().persistent().set(
             &key,
-            &BorrowerSnapshot { principal: new_principal, index: idx },
+            &BorrowerSnapshot {
+                principal: new_principal,
+                index: idx,
+            },
         );
 
         let total_b = Self::total_borrow(&env, &asset);
@@ -254,7 +270,7 @@ impl LendingPool {
         let snap: BorrowerSnapshot = env
             .storage()
             .persistent()
-            .get(&DataKey::Borrower(user, asset))
+            .get(&DataKey::Borrower(user, asset.clone()))
             .unwrap_or(BorrowerSnapshot {
                 principal: 0,
                 index: 1_000_000_000_000_000_000i128,
@@ -278,7 +294,7 @@ impl LendingPool {
         };
         let u = u as u32;
         if u <= cfg.kink_bps {
-            cfg.base_rate_bps + (cfg.slope1_bps as u32 * u / cfg.kink_bps.max(1))
+            cfg.base_rate_bps + (cfg.slope1_bps * u / cfg.kink_bps.max(1))
         } else {
             cfg.base_rate_bps
                 + cfg.slope1_bps
@@ -294,7 +310,9 @@ impl LendingPool {
             return;
         }
         // Time-based accrual: difference in ledger sequence since last accrual.
-        let last: u64 = env
+        // `env.ledger().sequence()` returns `u32`; keep the stored `LastAccrual`
+        // and the local `now`/`last`/`blocks` arithmetic in `u32` to match.
+        let last: u32 = env
             .storage()
             .persistent()
             .get(&DataKey::LastAccrual(asset.clone()))
@@ -308,9 +326,9 @@ impl LendingPool {
         // SECONDS_PER_YEAR = 31_536_000, LEDGER_TIME_SECS = 5
         // per-block rate = apy_bps / 10_000 / SECONDS_PER_YEAR * LEDGER_TIME_SECS
         // = apy_bps * LEDGER_TIME_SECS / (10_000 * SECONDS_PER_YEAR)
-        let per_block_numer = apy * 5i128;                     // LEDGER_TIME_SECS
-        let per_block_denom = 10_000i128 * 31_536_000i128;     // 10_000 * SECONDS_PER_YEAR
-        // Use 1e18-scaled index: delta = blocks * per_block_numer * 1e18 / per_block_denom
+        let per_block_numer = apy * 5i128; // LEDGER_TIME_SECS
+        let per_block_denom = 10_000i128 * 31_536_000i128; // 10_000 * SECONDS_PER_YEAR
+                                                           // Use 1e18-scaled index: delta = blocks * per_block_numer * 1e18 / per_block_denom
         let idx = Self::borrow_index(env, asset);
         let delta = blocks
             .checked_mul(per_block_numer)
@@ -354,6 +372,7 @@ impl LendingPool {
 
 #[cfg(test)]
 mod tests {
+    #![allow(non_snake_case)] // invariant tests are named after doc IDs
     use super::*;
     use soroban_sdk::testutils::Address as _;
 
@@ -361,17 +380,17 @@ mod tests {
     fn test_supply_mints_shares() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
 
-        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
         pool.add_asset(&AssetConfig {
             asset: asset.clone(),
-            collateral_vault: Address::random(&env),
-            oracle: Address::random(&env),
-            ltoken: Address::random(&env),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
             base_rate_bps: 0,
             slope1_bps: 500,
             slope2_bps: 5_000,
@@ -388,17 +407,17 @@ mod tests {
     fn test_borrow_then_repay() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
 
-        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
         pool.add_asset(&AssetConfig {
             asset: asset.clone(),
-            collateral_vault: Address::random(&env),
-            oracle: Address::random(&env),
-            ltoken: Address::random(&env),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
             base_rate_bps: 0,
             slope1_bps: 500,
             slope2_bps: 5_000,
@@ -428,16 +447,16 @@ mod tests {
     fn invariant_L1_borrows_le_deposits() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
         pool.add_asset(&AssetConfig {
             asset: asset.clone(),
-            collateral_vault: Address::random(&env),
-            oracle: Address::random(&env),
-            ltoken: Address::random(&env),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
             base_rate_bps: 0,
             slope1_bps: 500,
             slope2_bps: 5_000,
@@ -450,7 +469,10 @@ mod tests {
         pool.borrow(&user, &asset, &500_000);
         let d = pool.total_deposit(&asset);
         let b = pool.total_borrow(&asset);
-        assert!(b <= d, "invariant L-1 violated: borrows ({b}) > deposits ({d})");
+        assert!(
+            b <= d,
+            "invariant L-1 violated: borrows ({b}) > deposits ({d})"
+        );
     }
 
     /// **L-2:** `borrow_index` is monotone non-decreasing across operations.
@@ -458,16 +480,16 @@ mod tests {
     fn invariant_L2_borrow_index_monotone() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
         pool.add_asset(&AssetConfig {
             asset: asset.clone(),
-            collateral_vault: Address::random(&env),
-            oracle: Address::random(&env),
-            ltoken: Address::random(&env),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
             base_rate_bps: 0,
             slope1_bps: 500,
             slope2_bps: 5_000,
@@ -478,10 +500,16 @@ mod tests {
         let i0 = pool.borrow_index(&asset);
         pool.supply(&user, &asset, &1_000_000);
         let i1 = pool.borrow_index(&asset);
-        assert!(i1 >= i0, "invariant L-2 violated: index decreased across a no-op");
+        assert!(
+            i1 >= i0,
+            "invariant L-2 violated: index decreased across a no-op"
+        );
         pool.borrow(&user, &asset, &100_000);
         let i2 = pool.borrow_index(&asset);
-        assert!(i2 >= i1, "invariant L-2 violated: index decreased after a borrow");
+        assert!(
+            i2 >= i1,
+            "invariant L-2 violated: index decreased after a borrow"
+        );
     }
 
     /// **L-3:** `debt_of` equals `principal * borrow_index / snap.index` (within rounding).
@@ -489,16 +517,16 @@ mod tests {
     fn invariant_L3_debt_of_matches_principal_times_index() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
         pool.add_asset(&AssetConfig {
             asset: asset.clone(),
-            collateral_vault: Address::random(&env),
-            oracle: Address::random(&env),
-            ltoken: Address::random(&env),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
             base_rate_bps: 0,
             slope1_bps: 500,
             slope2_bps: 5_000,
@@ -521,17 +549,17 @@ mod tests {
     fn invariant_L4_share_math() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let a = Address::random(&env);
-        let b = Address::random(&env);
+        let admin = Address::generate(&env);
+        let a = Address::generate(&env);
+        let b = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
         pool.add_asset(&AssetConfig {
             asset: asset.clone(),
-            collateral_vault: Address::random(&env),
-            oracle: Address::random(&env),
-            ltoken: Address::random(&env),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
             base_rate_bps: 0,
             slope1_bps: 500,
             slope2_bps: 5_000,
@@ -543,7 +571,10 @@ mod tests {
         assert_eq!(s0, 1_000_000, "first supplier: 1:1 shares");
         // Second supplier deposits the same amount with no borrows -> same shares.
         let s1 = pool.supply(&b, &asset, &1_000_000);
-        assert_eq!(s1, 1_000_000, "second supplier of equal amount: equal shares");
+        assert_eq!(
+            s1, 1_000_000,
+            "second supplier of equal amount: equal shares"
+        );
     }
 
     /// **L-5:** `withdraw` rejects when the user has insufficient shares.
@@ -552,16 +583,16 @@ mod tests {
     fn invariant_L5_withdraw_rejects_insufficient_shares() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
         pool.add_asset(&AssetConfig {
             asset: asset.clone(),
-            collateral_vault: Address::random(&env),
-            oracle: Address::random(&env),
-            ltoken: Address::random(&env),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
             base_rate_bps: 0,
             slope1_bps: 500,
             slope2_bps: 5_000,
@@ -578,16 +609,16 @@ mod tests {
     fn invariant_L6_repay_caps_at_outstanding_debt() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
         pool.add_asset(&AssetConfig {
             asset: asset.clone(),
-            collateral_vault: Address::random(&env),
-            oracle: Address::random(&env),
-            ltoken: Address::random(&env),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
             base_rate_bps: 0,
             slope1_bps: 500,
             slope2_bps: 5_000,
@@ -608,17 +639,17 @@ mod tests {
     fn invariant_L9_apy_monotone_in_utilization() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let u1 = Address::random(&env);
-        let u2 = Address::random(&env);
+        let admin = Address::generate(&env);
+        let u1 = Address::generate(&env);
+        let u2 = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let pool = LendingPoolClient::new(&env, &env.register_contract(None, LendingPool {}));
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
         pool.add_asset(&AssetConfig {
             asset: asset.clone(),
-            collateral_vault: Address::random(&env),
-            oracle: Address::random(&env),
-            ltoken: Address::random(&env),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
             base_rate_bps: 0,
             slope1_bps: 500,
             slope2_bps: 5_000,
@@ -636,7 +667,10 @@ mod tests {
         pool.borrow(&u2, &asset, &600_000); // total util: 800k/2M = 40%
         let apy40 = pool.borrow_apy_bps(&asset);
         assert!(apy20 > apy0, "apy must increase with utilization");
-        assert!(apy40 >= apy20, "apy must continue to increase up to the kink");
+        assert!(
+            apy40 >= apy20,
+            "apy must continue to increase up to the kink"
+        );
     }
 
     // ──────────────────────── TODO MARKERS (L-10) ────────────────────────

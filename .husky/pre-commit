@@ -2,4 +2,12 @@
 # Husky pre-commit hook for OpenLend
 # Runs lint-staged before every commit.
 
+# lint-staged runs `cargo fmt --` for .rs files. When rustup installed cargo
+# into $HOME/.cargo/bin (the default location), that dir is often missing
+# from the non-interactive PATH of git hooks, causing ENOENT. Export it here
+# so the Rust formatting step resolves regardless of how the shell was set up.
+if [ -x "$HOME/.cargo/bin/cargo" ]; then
+  export PATH="$HOME/.cargo/bin:$PATH"
+fi
+
 npx lint-staged

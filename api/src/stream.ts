@@ -26,7 +26,12 @@ export function attachWebsocket(app: FastifyInstance) {
     ]);
 
     const broadcast = (event: any) => {
-      const payload = JSON.stringify(event);
+      // Prisma returns BigInt for numeric columns (ledger, amount, ...).
+      // `JSON.stringify` throws on BigInt, so serialize with a BigInt-aware
+      // replacer to avoid unhandled rejections when broadcasting rows.
+      const payload = JSON.stringify(event, (_key, value) =>
+        typeof value === "bigint" ? value.toString() : value,
+      );
       wss.clients.forEach((c) => c.readyState === 1 && c.send(payload));
     };
 

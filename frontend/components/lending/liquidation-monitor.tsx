@@ -2,7 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { shorten, formatNumber } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
 
 const DEMO = [
   { user: "GABC…XYZ", collat: "XLM", debt: "USDC", hf: 0.92, repay: 12500 },
@@ -30,14 +30,18 @@ export function LiquidationMonitor() {
             {DEMO.map((p) => (
               <tr key={p.user} className="transition-colors hover:bg-accent/5">
                 <td className="px-4 py-3 font-mono text-xs">{p.user}</td>
-                <td className="px-4 py-3"><Badge variant="stellar">{p.collat}</Badge></td>
+                <td className="px-4 py-3">
+                  <Badge variant="stellar">{p.collat}</Badge>
+                </td>
                 <td className="px-4 py-3">{p.debt}</td>
                 <td className="px-4 py-3 text-right">
                   <HF value={p.hf} />
                 </td>
                 <td className="px-4 py-3 text-right font-mono">${formatNumber(p.repay)}</td>
                 <td className="px-4 py-3 text-right">
-                  <Button size="sm" variant={p.hf < 1 ? "danger" : "outline"}>Liquidate</Button>
+                  <Button size="sm" variant={p.hf < 1 ? "danger" : "outline"}>
+                    Liquidate
+                  </Button>
                 </td>
               </tr>
             ))}

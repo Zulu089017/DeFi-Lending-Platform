@@ -88,18 +88,13 @@ impl CollateralVault {
 
         let total_key = DataKey::TotalByAsset(asset.clone());
         let total: i128 = env.storage().persistent().get(&total_key).unwrap_or(0);
-        env.storage().persistent().set(&total_key, &(total - amount));
+        env.storage()
+            .persistent()
+            .set(&total_key, &(total - amount));
     }
 
     /// Seize collateral from an underwater borrower to a liquidator.
-    pub fn seize(
-        env: Env,
-        op: Address,
-        from: Address,
-        to: Address,
-        asset: Symbol,
-        amount: i128,
-    ) {
+    pub fn seize(env: Env, op: Address, from: Address, to: Address, asset: Symbol, amount: i128) {
         Self::require_operator(&env, &op);
         if amount <= 0 {
             panic!("amount must be positive");
@@ -168,6 +163,7 @@ impl CollateralVault {
 
 #[cfg(test)]
 mod tests {
+    #![allow(non_snake_case)] // invariant tests are named after doc IDs
     use super::*;
     use soroban_sdk::testutils::Address as _;
 
@@ -175,12 +171,12 @@ mod tests {
     fn test_deposit_and_withdraw() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let op = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let op = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
 
-        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        let vault = CollateralVaultClient::new(&env, &env.register(CollateralVault {}, ()));
         vault.initialize(&admin);
         vault.add_operator(&op);
         vault.deposit(&op, &user, &asset, &1_000);
@@ -194,12 +190,12 @@ mod tests {
     fn test_seize_transfers() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let op = Address::random(&env);
-        let a = Address::random(&env);
-        let b = Address::random(&env);
+        let admin = Address::generate(&env);
+        let op = Address::generate(&env);
+        let a = Address::generate(&env);
+        let b = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        let vault = CollateralVaultClient::new(&env, &env.register(CollateralVault {}, ()));
         vault.initialize(&admin);
         vault.add_operator(&op);
         vault.deposit(&op, &a, &asset, &1_000);
@@ -219,22 +215,21 @@ mod tests {
     fn invariant_V1_total_equals_sum_of_positions() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let op = Address::random(&env);
-        let a = Address::random(&env);
-        let b = Address::random(&env);
-        let c = Address::random(&env);
+        let admin = Address::generate(&env);
+        let op = Address::generate(&env);
+        let a = Address::generate(&env);
+        let b = Address::generate(&env);
+        let c = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        let vault = CollateralVaultClient::new(&env, &env.register(CollateralVault {}, ()));
         vault.initialize(&admin);
         vault.add_operator(&op);
         vault.deposit(&op, &a, &asset, &400);
         vault.deposit(&op, &b, &asset, &600);
         vault.deposit(&op, &c, &asset, &1_000);
         let total = vault.total_by_asset(&asset);
-        let sum = vault.position(&a, &asset)
-            + vault.position(&b, &asset)
-            + vault.position(&c, &asset);
+        let sum =
+            vault.position(&a, &asset) + vault.position(&b, &asset) + vault.position(&c, &asset);
         assert_eq!(total, sum, "V-1 violated: total != sum(positions)");
     }
 
@@ -244,11 +239,11 @@ mod tests {
     fn invariant_V2_withdraw_rejects_overdraw() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let op = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let op = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        let vault = CollateralVaultClient::new(&env, &env.register(CollateralVault {}, ()));
         vault.initialize(&admin);
         vault.add_operator(&op);
         vault.deposit(&op, &user, &asset, &100);
@@ -261,15 +256,15 @@ mod tests {
     fn invariant_V3_non_operator_cannot_deposit() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let op = Address::random(&env);
-        let user = Address::random(&env);
+        let admin = Address::generate(&env);
+        let op = Address::generate(&env);
+        let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        let vault = CollateralVaultClient::new(&env, &env.register(CollateralVault {}, ()));
         vault.initialize(&admin);
         vault.add_operator(&op);
         // `op` is NOT the registered operator; the call should panic.
-        let stranger_op = Address::random(&env);
+        let stranger_op = Address::generate(&env);
         vault.deposit(&stranger_op, &user, &asset, &100);
     }
 
@@ -279,9 +274,9 @@ mod tests {
     fn invariant_V5_liq_threshold_bps_bounded() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
+        let admin = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
-        let vault = CollateralVaultClient::new(&env, &env.register_contract(None, CollateralVault {}));
+        let vault = CollateralVaultClient::new(&env, &env.register(CollateralVault {}, ()));
         vault.initialize(&admin);
         vault.set_liq_threshold(&asset, &10_001u32);
     }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Waypoints, Shield, Zap, Activity, GitBranch, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventFeedPreview } from "@/components/events/event-feed-preview";
 import { StatsOverview } from "@/components/dashboard/stats-overview";
 import { LiveTicker } from "@/components/events/live-ticker";
@@ -52,11 +52,12 @@ export default function Home() {
               Live on Stellar Testnet
             </div>
             <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-6xl lg:text-7xl">
-              Cross-chain lending,{" "}
-              <span className="text-gradient">settled on Stellar.</span>
+              Cross-chain lending, <span className="text-gradient">settled on Stellar.</span>
             </h1>
             <p className="mt-6 text-balance text-lg text-muted-foreground sm:text-xl">
-              OpenLend is a middleware that lets any token on any chain become a Stellar-native wrapped asset — and then lend, borrow, and earn against it with sub-cent fees and 5-second finality.
+              OpenLend is a middleware that lets any token on any chain become a Stellar-native
+              wrapped asset — and then lend, borrow, and earn against it with sub-cent fees and
+              5-second finality.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button asChild size="lg" className="group">
@@ -87,7 +88,8 @@ export default function Home() {
               Built for cross-chain capital
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Every primitive you'd expect from a modern lending protocol, plus the cross-chain layer.
+              Every primitive you'd expect from a modern lending protocol, plus the cross-chain
+              layer.
             </p>
           </div>
           <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -115,7 +117,8 @@ export default function Home() {
                 See every cross-chain mint, live.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                Powered by the Horizon streaming API and our own indexer. Watch tokens leave Ethereum and arrive on Stellar in real-time.
+                Powered by the Horizon streaming API and our own indexer. Watch tokens leave
+                Ethereum and arrive on Stellar in real-time.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button asChild>

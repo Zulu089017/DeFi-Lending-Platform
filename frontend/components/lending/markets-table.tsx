@@ -1,6 +1,5 @@
 "use client";
 import { useMarkets } from "@/lib/hooks/use-openlend";
-import { Badge } from "@/components/ui/badge";
 import { formatNumber } from "@/lib/utils";
 import { TrendingUp, TrendingDown } from "lucide-react";
 

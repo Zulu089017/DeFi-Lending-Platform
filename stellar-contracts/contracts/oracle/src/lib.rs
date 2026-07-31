@@ -9,7 +9,7 @@
 
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec};
+use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Symbol};
 
 /// Time after which a price is considered stale (default: 5 minutes).
 const DEFAULT_TTL: u64 = 300;
@@ -35,6 +35,23 @@ pub struct AssetConfig {
     pub heartbeat: u64,
 }
 
+// ──────────────────────── Events ────────────────────────
+//
+// `#[contractevent]` replaces the deprecated `env.events().publish(...)`
+// API (soroban-sdk >= 22). The topic symbol is the snake_case struct
+// name; `data_format = "vec"` keeps the previous Vec-shaped event data.
+
+#[contractevent(data_format = "vec")]
+pub struct AddPub {
+    publisher: Address,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct Price {
+    asset: Symbol,
+    price: i128,
+}
+
 #[contract]
 pub struct Oracle;
 
@@ -53,8 +70,7 @@ impl Oracle {
         env.storage()
             .persistent()
             .set(&DataKey::Publisher(publisher.clone()), &true);
-        env.events()
-            .publish((Symbol::new(&env, "add_pub"),), (publisher,));
+        AddPub { publisher }.publish(&env);
     }
 
     pub fn set_asset_config(env: Env, asset: Symbol, heartbeat: u64) {
@@ -86,12 +102,12 @@ impl Oracle {
         env.storage()
             .persistent()
             .set(&DataKey::Price(asset.clone()), &price);
+        let now: u64 = env.ledger().sequence().into();
         env.storage()
             .persistent()
-            .set(&DataKey::UpdatedAt(asset.clone()), &env.ledger().sequence());
+            .set(&DataKey::UpdatedAt(asset.clone()), &now);
 
-        env.events()
-            .publish((Symbol::new(&env, "price"),), (asset, price));
+        Price { asset, price }.publish(&env);
     }
 
     /// Return the latest price; panics if stale.
@@ -107,7 +123,7 @@ impl Oracle {
             .persistent()
             .get(&DataKey::UpdatedAt(asset.clone()))
             .unwrap_or(0);
-        let now = env.ledger().sequence();
+        let now: u64 = env.ledger().sequence().into();
         if now.saturating_sub(updated) > cfg.heartbeat.max(DEFAULT_TTL) {
             panic!("price stale");
         }
@@ -119,10 +135,13 @@ impl Oracle {
     }
 
     /// Return the latest price with no staleness check (best-effort).
-    pub fn try_get_price(env: Env, asset: Symbol) -> Option<i128> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Price(asset))
+    ///
+    /// NOTE: named `peek_price` rather than `try_get_price` because the
+    /// `#[contractimpl]` macro generates a `try_<fn>` client companion for
+    /// every public function, so a literal `try_get_price` collides with
+    /// the generated `try_get_price` method (E0592).
+    pub fn peek_price(env: Env, asset: Symbol) -> Option<i128> {
+        env.storage().persistent().get(&DataKey::Price(asset))
     }
 
     /// Returns the USD value (with 14 decimals) of `amount` units of `asset`.
@@ -151,16 +170,18 @@ impl Oracle {
 
 #[cfg(test)]
 mod tests {
+    #![allow(non_snake_case)] // invariant tests are named after doc IDs (O-*)
     use super::*;
     use soroban_sdk::testutils::Address as _;
+    use soroban_sdk::testutils::Ledger;
 
     #[test]
     fn test_publish_and_read() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let pub_ = Address::random(&env);
-        let oracle = OracleClient::new(&env, &env.register_contract(None, Oracle {}));
+        let admin = Address::generate(&env);
+        let pub_ = Address::generate(&env);
+        let oracle = OracleClient::new(&env, &env.register(Oracle {}, ()));
         oracle.initialize(&admin);
         oracle.add_publisher(&pub_);
 
@@ -174,19 +195,18 @@ mod tests {
     fn test_value_of() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let pub_ = Address::random(&env);
-        let oracle = OracleClient::new(&env, &env.register_contract(None, Oracle {}));
+        let admin = Address::generate(&env);
+        let pub_ = Address::generate(&env);
+        let oracle = OracleClient::new(&env, &env.register(Oracle {}, ()));
         oracle.initialize(&admin);
         oracle.add_publisher(&pub_);
-
         let asset = Symbol::new(&env, "XLM");
         oracle.set_asset_config(&asset, &300u64);
-        oracle.set_price(&pub_, &asset, &2_500_000_000_000i128); // $2.50
-        // 100 XLM (in 7 dec) = 10_000_000_000 units
+        oracle.set_price(&pub_, &asset, &2_500_000_000_000i128); // $0.025 (14 dec)
+                                                                 // 1_000 XLM (in 7 dec) = 10_000_000_000 units
         let v = oracle.value_of(&asset, &10_000_000_000i128);
-        // value = 10_000_000_000 * 2.5 = 25_000_000_000 in 14 dec = $2,500.00
-        assert_eq!(v, 25_000_000_000i128);
+        // value = 10^10 * 2.5e12 / 10^7 = 2.5e15 in 14 dec = $25.00
+        assert_eq!(v, 2_500_000_000_000_000i128);
     }
 
     // ──────────────────────── INVARIANT TESTS (O-*) ────────────────────────
@@ -201,9 +221,9 @@ mod tests {
     fn invariant_O1_only_publishers_set_price() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let stranger = Address::random(&env);
-        let oracle = OracleClient::new(&env, &env.register_contract(None, Oracle {}));
+        let admin = Address::generate(&env);
+        let stranger = Address::generate(&env);
+        let oracle = OracleClient::new(&env, &env.register(Oracle {}, ()));
         oracle.initialize(&admin);
         // Note: do NOT call add_publisher for `stranger`.
         let asset = Symbol::new(&env, "XLM");
@@ -217,9 +237,9 @@ mod tests {
     fn invariant_O3_price_must_be_positive() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let pub_ = Address::random(&env);
-        let oracle = OracleClient::new(&env, &env.register_contract(None, Oracle {}));
+        let admin = Address::generate(&env);
+        let pub_ = Address::generate(&env);
+        let oracle = OracleClient::new(&env, &env.register(Oracle {}, ()));
         oracle.initialize(&admin);
         oracle.add_publisher(&pub_);
         let asset = Symbol::new(&env, "XLM");
@@ -234,16 +254,19 @@ mod tests {
     fn invariant_O2_stale_price_reverts() {
         let env = Env::default();
         env.mock_all_auths();
-        let admin = Address::random(&env);
-        let pub_ = Address::random(&env);
-        let oracle = OracleClient::new(&env, &env.register_contract(None, Oracle {}));
+        let admin = Address::generate(&env);
+        let pub_ = Address::generate(&env);
+        let oracle = OracleClient::new(&env, &env.register(Oracle {}, ()));
         oracle.initialize(&admin);
         oracle.add_publisher(&pub_);
         let asset = Symbol::new(&env, "XLM");
         oracle.set_asset_config(&asset, &10u64);
         oracle.set_price(&pub_, &asset, &1_000_000_000_000i128);
-        // Advance the ledger by more than the heartbeat.
-        env.ledger().set_sequence_number(env.ledger().sequence() + 11);
+        // Advance the ledger past max(heartbeat, DEFAULT_TTL). With
+        // heartbeat=10 and DEFAULT_TTL=300 the effective staleness bound is
+        // 300 ledgers, so jump 301.
+        env.ledger()
+            .set_sequence_number(env.ledger().sequence() + 301);
         oracle.get_price(&asset);
     }
 }
