@@ -1,0 +1,67 @@
+# OpenLend stellar.toml — SEP-0001 compliant
+# See https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0001.md
+
+# Version of stellar.toml specification. Currently 2.0.0.
+VERSION = "2.0.0"
+
+# ─────────────────────── Network/signing keys ───────────────────────
+NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+
+# The public key that signs the project transactions. This is the lending
+# controller admin for testnet.
+SIGNING_KEY = "GC6HVHA4G...REPLACE_WITH_ACTUAL_ADMIN_KEY..."
+
+# ─────────────────────── Organization ──────────────────────────────
+[DOCUMENTATION]
+ORG_NAME = "OpenLend"
+ORG_DBA = "OpenLend"
+ORG_URL = "https://openlend.xyz"
+ORG_GITHUB = "https://github.com/openlend"
+ORG_DESCRIPTION = "Cross-chain lending protocol settled on Stellar with automated liquidation."
+ORG_OFFICIAL_EMAIL = "hello@openlend.xyz"
+ORG_TWITTER = "openlend_xyz"
+
+# ─────────────────────── Currencies ────────────────────────────────
+# Issued tokens on Stellar testnet
+[[CURRENCIES]]
+code = "wETH"
+issuer = "GA6HVHA4G...REPLACE..."
+name = "Wrapped Ether (OpenLend)"
+desc = "Wrapped ETH bridged from Ethereum mainnet via the OpenLend bridge."
+display_decimals = 18
+
+[[CURRENCIES]]
+code = "wUSDC"
+issuer = "GA6HVHA4G...REPLACE..."
+name = "Wrapped USDC (OpenLend)"
+desc = "Wrapped USDC bridged via the OpenLend bridge."
+display_decimals = 6
+
+[[CURRENCIES]]
+code = "lETH"
+issuer = "GA6HVHA4G...REPLACE..."
+name = "OpenLend ETH Deposit Token"
+desc = "Interest-bearing deposit token received when supplying wETH to the OpenLend lending pool."
+display_decimals = 18
+
+# ─────────────────────── Validators (future) ───────────────────────
+# OpenLend doesn't run a Stellar validator, but attesters sign bridge
+# messages. Their keys are published here for transparency.
+# [[VALIDATORS]] — not applicable (we are a protocol, not a validator)
+
+# ─────────────────────── Principals ─────────────────────────────────
+# Attester public keys (ed25519) used for the bridge quorum
+[[PRINCIPALS]]
+name = "OpenLend Attester A (hot)"
+public_key = "GC...REPLACE..."
+roles = ["bridge_attester", "signer"]
+
+[[PRINCIPALS]]
+name = "OpenLend Attester B (warm)"
+public_key = "GC...REPLACE..."
+roles = ["bridge_attester", "signer"]
+
+[[PRINCIPALS]]
+name = "OpenLend Attester C (cold)"
+public_key = "GC...REPLACE..."
+roles = ["bridge_attester", "signer"]
