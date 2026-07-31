@@ -7,6 +7,14 @@ echo "🔍 Running typechecks and tests before push..."
 # TypeScript services typecheck
 for dir in bridge relayer indexer api sdk frontend; do
   if [ -f "$dir/tsconfig.json" ]; then
+    # bridge/relayer/indexer/api all resolve @prisma/client to a single
+    # shared generated client in the pnpm store, so `prisma generate` must
+    # run per service immediately before that service's typecheck (mirroring
+    # the CI ts-services matrix). Otherwise the last service to generate
+    # wins and every other service's types are wrong.
+    if [ -f "$dir/prisma/schema.prisma" ]; then
+      (cd "$dir" && npx prisma generate >/dev/null 2>&1)
+    fi
     echo "  → typechecking $dir..."
     (cd "$dir" && npx tsc --noEmit) || {
       echo "❌ Typecheck failed in $dir"
