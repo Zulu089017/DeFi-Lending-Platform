@@ -1113,4 +1113,111 @@ mod tests {
         // 1 XLM collateral ($0.10) vs $100M debt, far exceeds 75% LTV.
         ctrl.borrow(&user, &collat_asset, &1i128, &debt_asset, &100_000_000i128);
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // C-6: CROSS-LANGUAGE PAYLOAD DIGEST (DRIFT CANARY)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// Decode a 64-hex-char string into a 32-byte array (no std dependency).
+    fn hex_decode(hex: &str) -> [u8; 32] {
+        let bytes = hex.as_bytes();
+        let mut out = [0u8; 32];
+        for i in 0..32 {
+            let hi = (bytes[2 * i] as char)
+                .to_digit(16)
+                .expect("invalid hex char in pinned digest")
+                as u8;
+            let lo = (bytes[2 * i + 1] as char)
+                .to_digit(16)
+                .expect("invalid hex char in pinned digest")
+                as u8;
+            out[i] = (hi << 4) | lo;
+        }
+        out
+    }
+
+    /// **C-6 (drift canary):** `build_canonical_payload` + sha256 must produce
+    /// the exact digest pinned by the TypeScript signer test
+    /// (`CANONICAL_DIGEST` in `services/payment/tests/signer.test.ts`). Any
+    /// drift between the Rust and TS payload constructions surfaces here.
+    #[test]
+    fn invariant_C6_payload_digest_matches_ts() {
+        let env = Env::default();
+        let chain_id = 1u32;
+        let source_addr = BytesN::from_array(&env, &[0x11u8; 32]);
+        let amount = 1_000_000i128;
+        let to = Address::from_str(
+            &env,
+            "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H",
+        );
+        let salt = BytesN::from_array(&env, &[0x22u8; 32]);
+        let nonce = 42u64;
+
+        let payload = LendingController::build_canonical_payload(
+            &env,
+            chain_id,
+            source_addr,
+            amount,
+            &to,
+            &salt,
+            nonce,
+        );
+        let hash = env.crypto().sha256(&payload);
+        let expected = hex_decode(
+            "fd426f52b5772d98e1ae591139e3935b5c56671f2b1b7d2e1adb7460dffcffcc",
+        );
+        assert_eq!(hash.to_array(), expected);
+    }
+
+    /// **C-6 (sensitivity):** changing any single field must change the digest.
+    #[test]
+    fn invariant_C6_payload_digest_changes_on_field_mutation() {
+        let env = Env::default();
+        let base_chain = 1u32;
+        let base_src = BytesN::from_array(&env, &[0x11u8; 32]);
+        let base_amount = 1_000_000i128;
+        let base_to = Address::from_str(
+            &env,
+            "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H",
+        );
+        let base_salt = BytesN::from_array(&env, &[0x22u8; 32]);
+        let base_nonce = 42u64;
+
+        let digest = |chain: u32,
+                      src: &BytesN<32>,
+                      amount: i128,
+                      to: &Address,
+                      salt: &BytesN<32>,
+                      nonce: u64|
+         -> [u8; 32] {
+            let payload = LendingController::build_canonical_payload(
+                &env,
+                chain,
+                src.clone(),
+                amount,
+                to,
+                salt,
+                nonce,
+            );
+            env.crypto().sha256(&payload).to_array()
+        };
+
+        let h0 = digest(base_chain, &base_src, base_amount, &base_to, &base_salt, base_nonce);
+        // chain_id
+        assert_ne!(digest(2, &base_src, base_amount, &base_to, &base_salt, base_nonce), h0);
+        // source_addr
+        assert_ne!(
+            digest(base_chain, &BytesN::from_array(&env, &[0x33u8; 32]), base_amount, &base_to, &base_salt, base_nonce),
+            h0
+        );
+        // amount
+        assert_ne!(digest(base_chain, &base_src, 1_000_001, &base_to, &base_salt, base_nonce), h0);
+        // salt
+        assert_ne!(
+            digest(base_chain, &base_src, base_amount, &base_to, &BytesN::from_array(&env, &[0x44u8; 32]), base_nonce),
+            h0
+        );
+        // nonce
+        assert_ne!(digest(base_chain, &base_src, base_amount, &base_to, &base_salt, 43), h0);
+    }
 }

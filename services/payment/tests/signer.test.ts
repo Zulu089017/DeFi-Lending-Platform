@@ -39,14 +39,15 @@ describe("payloadHash", () => {
    *      below. Copy the 64-hex-char value into CANONICAL_DIGEST.
    *   3. Re-run the test — it should pass.
    *   4. Commit the updated value. The Rust test in
-   *      stellar-contracts/contracts/lending_controller/src/lib.rs
-   *      should also pin the same bytes (or its sha256) so a
-   *      cross-language drift surfaces immediately.
+   *      contracts/lending/controller/src/lib.rs
+   *      (invariant_C6_payload_digest_matches_ts) pins the same bytes so
+   *      a cross-language drift surfaces immediately.
    */
   // Pinned on 2026-07-31 against @stellar/stellar-sdk 12.x. Regenerate
   // only after a verified intentional change to the payload layout, then
-  // update the matching Rust test in
-  // stellar-contracts/contracts/lending_controller/src/lib.rs.
+  // update the matching Rust test
+  // (invariant_C6_payload_digest_matches_ts) in
+  // contracts/lending/controller/src/lib.rs.
   const CANONICAL_DIGEST = "fd426f52b5772d98e1ae591139e3935b5c56671f2b1b7d2e1adb7460dffcffcc";
   it("matches the pinned canonical sha256 digest (drift canary)", () => {
     const args = {
