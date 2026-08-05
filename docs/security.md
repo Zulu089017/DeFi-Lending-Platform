@@ -54,6 +54,10 @@ listed here so they cannot be forgotten:
       on a hot server).
 - [ ] The `oracle` should aggregate from at least two independent publishers and
       use a **median** rather than accepting the first reported value.
+- [x] The `lending_pool` emergency pause mechanism has been wired into all
+      state-changing entry points (supply, withdraw, supply_collateral,
+      withdraw_collateral, borrow, repay). Admin-only `set_paused` and
+      public `is_paused` views are exposed. **Closed (2026-08)**.
 - [ ] The `lending_controller` admin functions should be guarded by a
       **timelock + multisig**, not a single EOA.
 

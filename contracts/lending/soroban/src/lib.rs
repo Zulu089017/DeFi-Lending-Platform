@@ -10,6 +10,9 @@
 
 #![no_std]
 
+mod pause;
+use pause::{is_paused, require_not_paused, set_paused};
+
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol};
 
 #[contracttype]
@@ -89,8 +92,20 @@ impl LendingPool {
 
     // ──────────────────────── SUPPLY / WITHDRAW ────────────────────────
 
+    /// Set the pause state. Admin-only.
+    pub fn set_paused(env: Env, paused: bool) {
+        Self::require_admin(&env);
+        set_paused(&env, paused);
+    }
+
+    /// Check whether the pool is currently paused.
+    pub fn is_paused(env: Env) -> bool {
+        is_paused(&env)
+    }
+
     pub fn supply(env: Env, user: Address, asset: Symbol, amount: i128) -> i128 {
         user.require_auth();
+        require_not_paused(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -127,6 +142,7 @@ impl LendingPool {
 
     pub fn withdraw(env: Env, user: Address, asset: Symbol, shares: i128) -> i128 {
         user.require_auth();
+        require_not_paused(&env);
         if shares <= 0 {
             panic!("shares must be positive");
         }
@@ -155,6 +171,7 @@ impl LendingPool {
     /// The caller must have already approved the vault to spend their tokens.
     pub fn supply_collateral(env: Env, user: Address, asset: Symbol, amount: i128) {
         user.require_auth();
+        require_not_paused(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -175,6 +192,7 @@ impl LendingPool {
     /// Withdraw collateral (only if health factor remains safe).
     pub fn withdraw_collateral(env: Env, user: Address, asset: Symbol, amount: i128) -> i128 {
         user.require_auth();
+        require_not_paused(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -203,6 +221,7 @@ impl LendingPool {
 
     pub fn borrow(env: Env, user: Address, asset: Symbol, amount: i128) {
         user.require_auth();
+        require_not_paused(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -248,6 +267,7 @@ impl LendingPool {
 
     pub fn repay(env: Env, user: Address, asset: Symbol, amount: i128) -> i128 {
         user.require_auth();
+        require_not_paused(&env);
         if amount <= 0 {
             panic!("amount must be positive");
         }
@@ -1034,5 +1054,126 @@ mod tests {
         // Fully repay
         pool.repay(&user, &asset, &1_000_000i128);
         assert_eq!(pool.health_factor(&user, &asset), 0, "HF must return to 0 after full repay");
+    }
+
+    // ──────────────────────── PAUSE TESTS ────────────────────────
+
+    #[test]
+    fn test_pause_blocks_state_changes() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+
+        // Supply before pause works
+        pool.supply(&user, &asset, &1_000_000);
+        assert_eq!(pool.deposit_shares_of(&user, &asset), 1_000_000);
+
+        // Pause
+        pool.set_paused(&true);
+        assert!(pool.is_paused());
+    }
+
+    #[test]
+    #[should_panic(expected = "contract is paused")]
+    fn test_paused_supply_reverts() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.set_paused(&true);
+        pool.supply(&user, &asset, &1_000_000);
+    }
+
+    #[test]
+    #[should_panic(expected = "contract is paused")]
+    fn test_paused_borrow_reverts() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.supply_collateral(&user, &asset, &10_000i128);
+        pool.supply(&user, &asset, &10_000i128);
+        pool.set_paused(&true);
+        pool.borrow(&user, &asset, &1_000);
+    }
+
+    #[test]
+    fn test_unpause_restores_operations() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.set_paused(&true);
+        assert!(pool.is_paused());
+        pool.set_paused(&false);
+        assert!(!pool.is_paused());
+        // Operations resume
+        pool.supply(&user, &asset, &1_000_000);
+        assert_eq!(pool.deposit_shares_of(&user, &asset), 1_000_000);
     }
 }
