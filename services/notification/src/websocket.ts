@@ -4,6 +4,8 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
 
+const LOG_PREFIX = "[NotificationService]";
+
 export interface Notification {
   type: "event" | "price" | "alert" | "liquidation";
   channel: string;
@@ -34,7 +36,7 @@ export class NotificationService {
     });
 
     server.listen(this.port, () => {
-      console.log(`Notification WS server on :${this.port}`);
+      console.info(`${LOG_PREFIX} WebSocket server listening on :${this.port}`);
     });
   }
 

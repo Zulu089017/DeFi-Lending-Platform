@@ -84,7 +84,7 @@ const isEntrypoint =
   process.argv[1] === fileURLToPath(import.meta.url);
 if (isEntrypoint) {
   main().catch((err) => {
-    console.error(err);
+    app.log.error(err);
     process.exit(1);
   });
 }
