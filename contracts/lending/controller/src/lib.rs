@@ -1255,6 +1255,52 @@ mod tests {
         ctrl.borrow(&user, &collat_asset, &100_000_000i128, &debt_asset, &16_000_000i128);
     }
 
+    /// **C-8 (existing collateral counts):** collateral deposited in a
+    /// *previous* transaction is summed via `vault.position` before the
+    /// oracle LTV check, so it contributes to borrow capacity. Here the
+    /// borrow posts only 1 unit of new XLM yet succeeds because 200M XLM of
+    /// existing collateral already covers the debt. Under the old
+    /// marginal-only semantics (valuing just `collateral_amount`) this call
+    /// would have reverted.
+    #[test]
+    fn test_C8_existing_collateral_counts_toward_borrow_capacity() {
+        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let user = Address::generate(&env);
+        let collat_asset = Symbol::new(&env, "XLM");
+        let debt_asset = Symbol::new(&env, "USDC");
+
+        let pool_client = lending_pool::LendingPoolClient::new(&env, &pool);
+        // XLM must be configured in the pool for the `ltv_bps` read.
+        pool_client.add_asset(&lending_pool::AssetConfig {
+            asset: collat_asset.clone(),
+            collateral_vault: vault.clone(),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 200,
+            slope1_bps: 1_000,
+            slope2_bps: 13_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool_client.add_operator(&ctrl.contract_id);
+
+        // Previous transaction: deposit 200M XLM collateral ($20M at the
+        // XLM:USDC relative price).
+        ctrl.supply_collateral(&user, &collat_asset, &200_000_000i128);
+
+        // New transaction: borrow 5M USDC ($5M = 25% LTV against the
+        // existing $20M) while posting just 1 XLM of new collateral.
+        ctrl.borrow(&user, &collat_asset, &1i128, &debt_asset, &5_000_000i128);
+
+        let debt = pool_client.debt_of(&user, &debt_asset);
+        assert!(debt >= 5_000_000i128, "existing collateral must cover the borrow");
+
+        // The vault position now includes the 1 unit posted in the borrow.
+        let vault_client = collateral_vault::CollateralVaultClient::new(&env, &vault);
+        assert_eq!(vault_client.position(&user, &collat_asset), 200_000_001i128);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // C-6: CROSS-LANGUAGE PAYLOAD DIGEST (DRIFT CANARY)
     // ═══════════════════════════════════════════════════════════════════════
