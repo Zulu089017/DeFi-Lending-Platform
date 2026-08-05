@@ -87,36 +87,102 @@ StellarPay/
 
 ---
 
-## 🚀 Quick Start (local dev)
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** ≥ 22.5 (required by testcontainers/undici 8)
+- **pnpm** ≥ 10 (install: `corepack enable && corepack prepare pnpm@10 --activate`)
+- **Rust** ≥ 1.91 (Soroban SDK 27 MSRV, with `wasm32v1-none` target)
+- **Docker** ≥ 24 (for Postgres, Redis, and integration tests)
+- **Foundry** or **Hardhat** (for EVM contract compilation)
+
+### 1. Clone & Install
 
 ```bash
-# 1. Spin up infra (Postgres, Redis, Horizon testnet stub)
-cd infra/docker && docker compose up -d
-
-# 2. Build & deploy Soroban contracts
-cd contracts && cargo test && bash scripts/deploy-testnet.sh
-
-# 3. Deploy EVM contracts (Sepolia)
-cd contracts && npm install && npx hardhat deploy --network sepolia
-
-# 4. Start the bridge
-cd services/payment && pnpm install && pnpm dev
-
-# 5. Start the indexer
-cd services/indexer && pnpm install && pnpm dev
-
-# 6. Start the API
-cd apps/api && pnpm install && pnpm dev
-
-# 7. Start the dashboard
-cd apps/web && pnpm install && pnpm dev
+git clone https://github.com/stellar-payment-gateway/stellar-payment-gateway-sdk-main
+cd stellar-payment-gateway-sdk-main
+pnpm install
 ```
 
-Visit:
+### 2. Start Infrastructure
 
-- Dashboard → http://localhost:3000
-- API → http://localhost:4000
-- Horizon testnet → https://horizon-testnet.stellar.org
+```bash
+cd infra/docker
+docker compose up -d
+# Starts Postgres 16, Redis 7 on localhost:5432, :6379
+```
+
+### 3. Set Up Environment Variables
+
+```bash
+cp apps/api/.env.example apps/api/.env
+cp services/payment/.env.example services/payment/.env
+cp services/indexer/.env.example services/indexer/.env
+cp services/cron/.env.example services/cron/.env
+# Edit each .env file with your RPC URLs and keys
+```
+
+### 4. Build & Deploy Smart Contracts
+
+```bash
+# Soroban contracts (build + test)
+cd contracts
+cargo test --workspace
+bash scripts/deploy-testnet.sh
+
+# EVM contracts (compile + test)
+npm install
+npx hardhat compile
+npx hardhat test
+```
+
+### 5. Generate Prisma Clients & Run Migrations
+
+```bash
+cd services/payment && pnpm prisma generate && pnpm prisma db push
+cd services/indexer && pnpm prisma generate && pnpm prisma db push
+cd services/cron && pnpm prisma generate && pnpm prisma db push
+cd apps/api && pnpm prisma generate && pnpm prisma db push
+```
+
+### 6. Start Services
+
+```bash
+# Terminal 1: Bridge middleware
+cd services/payment && pnpm dev
+
+# Terminal 2: Indexer
+cd services/indexer && pnpm dev
+
+# Terminal 3: Relayer
+cd services/cron && pnpm dev
+
+# Terminal 4: API server
+cd apps/api && pnpm dev
+
+# Terminal 5: Web dashboard
+cd apps/web && pnpm dev
+```
+
+### 7. Verify
+
+| Service | URL | Health Check |
+|---------|-----|-------------|
+| Dashboard | http://localhost:3000 | Browser |
+| API | http://localhost:4000 | `GET /health` |
+| Bridge | http://localhost:4100 | `GET /health` |
+| Indexer | http://localhost:4200 | `GET /health` |
+
+### Using Turborepo
+
+```bash
+pnpm build        # Build all packages
+pnpm test         # Run all tests
+pnpm lint         # Lint all packages
+pnpm typecheck    # Type-check all packages
+pnpm dev          # Start all dev servers
+```
 
 ---
 

@@ -1,88 +1,128 @@
 # StellarPay Architecture
 
-This document is the canonical reference for how the StellarPay protocol is
-designed and how its components talk to each other.
+## System Overview
 
-## 1. Goals
-
-1. **Cross-chain wrapping** — let any token on Ethereum / Solana / Polygon exist
-   as a Stellar-native wrapped asset (`wTKN`) without bespoke contracts per
-   token.
-2. **Lending on Stellar** — supply, borrow, repay, withdraw, and liquidate
-   against the wrapped assets, with ultra-low fees and ~5-second finality.
-3. **Automated liquidation** — no human in the loop. Any position whose health
-   factor drops below 1.0 is liquidatable permissionlessly.
-4. **Real-time transparency** — every cross-chain mint, supply, borrow, and
-   liquidation is observable live via Horizon streaming and pushed to the
-   dashboard over WebSockets.
-
-## 2. Component Map
-
-| Component         | Language             | Lives where          | Responsibility                                                                 |
-| ----------------- | -------------------- | -------------------- | ------------------------------------------------------------------------------ |
-| Stellar contracts | Rust (Soroban)       | `contracts/` | Wrapped asset, lending pool, collateral vault, oracle, liquidation             |
-| EVM bridge        | Solidity             | `contracts/`     | Lock/burn canonical token, emit cross-chain events                             |
-| Solana bridge     | Rust (Anchor)        | (future)             | Lock/burn SPL token, emit events                                               |
-| Bridge middleware | TypeScript           | `services/payment/`            | Watches source-chain events, signs & submits mint/burn attestations to Stellar |
-| Relayer           | TypeScript           | `services/cron/`           | Submits signed transactions to all chains with retries & gas bumps             |
-| Indexer           | TypeScript           | `services/services/indexer/`           | Subscribes to Horizon + EVM RPC, persists to Postgres                          |
-| API               | TypeScript (Fastify) | `api/`               | Public REST + WebSocket API for SDK & dashboard                                |
-| SDK               | TypeScript           | `packages/packages/sdk/`               | Client library: `spg.wrap(...)`, `spg.lend(...)`, etc.               |
-| Frontend          | TypeScript (Next.js) | `apps/web/`          | Dashboard, bridge UI, lending UI, liquidation monitor                          |
-
-## 3. Token Lifecycle
-
-### Wrap (inbound to Stellar)
-
-1. User calls `Bridge.lock(amount, stellarDest, salt)` on the source chain.
-2. `Bridge` locks the canonical tokens in its contract and emits
-   `Locked(sender, amount, dest, salt, nonce)`.
-3. Bridge middleware catches the event, validates it, and signs an attestation.
-4. Relayer submits a Soroban transaction calling `lending_controller.wrap(...)`.
-5. Soroban contract mints `wTKN` to the user's Stellar account.
-6. Horizon emits the mint; indexer stores it; WebSocket pushes it to the
-   dashboard.
-
-### Unwrap (outbound from Stellar)
-
-1. User calls `lending_controller.unwrap(amount, sourceChain, sourceAddr)` on
-   Stellar.
-2. Soroban contract burns `wTKN` and emits
-   `UnwrapInitiated(user, amount, chain, addr, nonce)`.
-3. Bridge middleware catches the event and signs a release attestation.
-4. Relayer submits a tx on the source chain calling
-   `Bridge.release(addr, amount, sig)`.
-5. Source chain sends canonical tokens to the user.
-
-## 4. Lending Lifecycle
-
-- **Supply** — user deposits `wTKN` (or any supported asset) into
-  `lending_pool`. They receive `lTKN` shares (interest-bearing).
-- **Borrow** — user supplies collateral (≥ 150% LTV by default), then borrows
-  other assets. A `Loan` record is created.
-- **Accrue** — interest accrues per block on borrows using a linear/kinked rate
-  model.
-- **Health factor** — `HF = (collateral_value * liq_threshold) / debt_value`. If
-  `HF < 1.0`, the position is liquidatable.
-- **Liquidate** — anyone calls `liquidation.liquidate(loanId, repayAmount)`. The
-  liquidator repays debt, receives discounted collateral, and a 5% protocol fee
-  is taken.
-
-## 5. Security Model
-
-- Bridge contracts are upgradeable via a 24h timelock + multisig.
-- Bridge attesters are an off-chain quorum (2-of-3) of independent relayers.
-- All Soroban admin functions are gated by the `lending_controller` with
-  role-based access.
-- A circuit-breaker pauses minting if the rate of mints exceeds `MAX_MINT_RATE`
-  per hour.
-- See [`security.md`](./security.md) for the full threat model.
-
-## 6. Data Flow
+StellarPay is a cross-chain lending protocol built on Stellar's Soroban smart contract platform. The system consists of **on-chain contracts** (Soroban + EVM), **off-chain services** (bridge, relayer, indexer, API), an **SDK**, and a **Next.js dashboard**.
 
 ```
-Source chain ──events──▶ Bridge ──attest──▶ Relayer ──tx──▶ Soroban
-   ▲                                                  │
-   │                                                  ▼
-   └────release tx ◀── attest ◀── Relayer ◀── events Horizon
+┌─────────────────────────────────────────────────────────────────┐
+│                        USER INTERFACES                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │ Web App  │  │  SDK     │  │  API     │  │  CLI / Scripts │  │
+│  │ (Next.js)│  │ (TS)     │  │ (Fastify)│  │               │  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └───────┬───────┘  │
+└───────┼─────────────┼─────────────┼─────────────────┼──────────┘
+        │             │             │                 │
+┌───────┴─────────────┴─────────────┴─────────────────┴──────────┐
+│                      OFF-CHAIN SERVICES                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │ Bridge   │  │ Relayer  │  │ Indexer  │  │ Notifications │  │
+│  │ (payment)│  │ (cron)   │  │          │  │               │  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └───────┬───────┘  │
+└───────┼─────────────┼─────────────┼─────────────────┼──────────┘
+        │             │             │                 │
+┌───────┴─────────────┴─────────────┴─────────────────┴──────────┐
+│                       DATA LAYER                                │
+│  ┌──────────────────┐  ┌──────────┐  ┌──────────────────────┐  │
+│  │    Postgres      │  │  Redis   │  │  Horizon / EVM RPC   │  │
+│  └──────────────────┘  └──────────┘  └──────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+        │
+┌───────┴─────────────────────────────────────────────────────────┐
+│                    ON-CHAIN CONTRACTS                            │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
+│  │ Lending  │ │Collateral│ │ Oracle   │ │ Liquidation      │   │
+│  │ Pool     │ │ Vault    │ │          │ │ Engine           │   │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
+│  │Governance│ │ Rewards  │ │ Treasury │ │EVM Bridge (Sol)  │   │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+## Cross-Chain Flow
+
+### Wrap (EVM → Stellar)
+
+```
+1. User locks tokens on EVM chain (Bridge.sol)
+2. Bridge.sol emits Locked(token, amount, stellarDest, salt)
+3. Bridge middleware watches Locked events
+4. Attesters sign the canonical payload (sha256 → ed25519)
+5. Relayer submits mint tx to Soroban lending_controller
+6. Controller verifies attestations → mints wrapped asset
+7. Indexer picks up Horizon event → API pushes via WebSocket
+```
+
+### Unwrap (Stellar → EVM)
+
+```
+1. User calls lending_controller.unwrap()
+2. Controller burns wrapped asset, emits Unwrapped event
+3. Bridge middleware watches Unwrapped events
+4. Attesters sign EIP-712 Release typed data
+5. Relayer submits Bridge.release() on EVM chain
+6. EVM chain releases original tokens to user
+```
+
+## Contract Architecture
+
+### Lending Pool (contracts/lending/soroban)
+
+- **supply(asset, amount)** → mints lToken shares
+- **withdraw(asset, shares)** → burns shares, returns assets
+- **borrow(asset, amount)** → draws against collateral (HF ≥ 1.0 enforced)
+- **repay(asset, amount)** → reduces debt (capped at outstanding)
+- **supply_collateral(asset, amount)** → locks collateral in vault
+- **withdraw_collateral(asset, amount)** → releases collateral
+
+Interest rate model: kinked linear curve
+```
+if utilization ≤ kink (80%):
+  rate = base + slope1 × utilization / kink
+else:
+  rate = base + slope1 + slope2 × (utilization - kink) / (100% - kink)
+```
+
+### Liquidation Engine (contracts/liquidation/soroban)
+
+```
+liquidator repays borrower's debt → receives collateral + bonus - fee
+bonus = 5% (configurable)
+fee = 20% of bonus (configurable)
+close_factor = 50% max per tx
+```
+
+## Service Architecture
+
+### Bridge Middleware (services/payment)
+
+Event-driven poller that:
+1. Watches EVM/Solana Locked/Burned events
+2. Collects Ed25519 attestation signatures
+3. Submits mint/burn transactions to Soroban
+4. Exposes `/health` endpoint for K8s probes
+
+### Indexer (services/indexer)
+
+Streams Horizon ledgers + EVM logs → Postgres:
+1. Subscribes to Horizon `ledgers` stream
+2. Parses Soroban contract events
+3. Upserts into normalized Postgres tables
+4. Serves queryable API for dashboard/SDK
+
+### Relayer (services/cron)
+
+Transaction relayer with retry + gas bumping:
+1. Picks up signed transactions from queue
+2. Submits to target chain (Stellar/EVM/Solana)
+3. Retries with exponential backoff
+4. Bumps gas on EVM transactions when needed
+
+## Security Model
+
+- **Multi-sig attestation**: n-of-m attesters required for bridge operations
+- **Health factor enforcement**: borrow only when HF ≥ 1.0
+- **Emergency pause**: admin can pause all state-changing operations
+- **Timelock**: governance proposals have mandatory delay before execution
+- **Close factor**: max 50% liquidation per tx prevents flash-loan attacks
