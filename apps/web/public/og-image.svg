@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0C1222"/>
+      <stop offset="50%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0C1222"/>
+    </linearGradient>
+    <linearGradient id="brand-grad" x1="200" y1="250" x2="1000" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#08B5E5"/>
+      <stop offset="50%" stop-color="#14F195"/>
+      <stop offset="100%" stop-color="#8247E5"/>
+    </linearGradient>
+    <radialGradient id="glow-top" cx="600" cy="0" r="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#08B5E5" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#08B5E5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-bottom" cx="600" cy="630" r="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8247E5" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#8247E5" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0V64M0 64H64" stroke="#08B5E5" stroke-width="0.5" stroke-opacity="0.06"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg-grad)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#glow-top)"/>
+  <rect width="1200" height="630" fill="url(#glow-bottom)"/>
+
+  <!-- Logo mark -->
+  <g transform="translate(540, 100)">
+    <rect x="0" y="0" width="120" height="120" rx="28" stroke="url(#brand-grad)" stroke-width="6" fill="none"/>
+    <path d="M60 24L72 60L60 84L48 60Z" fill="url(#brand-grad)" opacity="0.9"/>
+    <path d="M88 60L100 60M80 42L100 60L80 78" stroke="#14F195" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20 76L20 60M38 84L20 60L38 36" stroke="#08B5E5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="60" cy="60" r="6" fill="#14F195"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="310" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="88" font-weight="800" letter-spacing="-0.04em" fill="url(#brand-grad)">
+    StellarPay
+  </text>
+
+  <!-- Tagline -->
+  <text x="600" y="385" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="36" font-weight="400" fill="#94A3B8" letter-spacing="-0.01em">
+    Cross-chain lending, settled on Stellar.
+  </text>
+
+  <!-- Feature pills -->
+  <g transform="translate(600, 460)">
+    <rect x="-380" y="-18" width="160" height="36" rx="18" fill="#08B5E5" fill-opacity="0.12" stroke="#08B5E5" stroke-width="1" stroke-opacity="0.3"/>
+    <text x="-300" y="7" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="500" fill="#08B5E5">Sub-5s Finality</text>
+
+    <rect x="-190" y="-18" width="140" height="36" rx="18" fill="#14F195" fill-opacity="0.12" stroke="#14F195" stroke-width="1" stroke-opacity="0.3"/>
+    <text x="-120" y="7" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="500" fill="#14F195">Sub-Cent Fees</text>
+
+    <rect x="-30" y="-18" width="160" height="36" rx="18" fill="#8247E5" fill-opacity="0.12" stroke="#8247E5" stroke-width="1" stroke-opacity="0.3"/>
+    <text x="50" y="7" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="500" fill="#8247E5">100% On-Chain</text>
+
+    <rect x="160" y="-18" width="180" height="36" rx="18" fill="#627EEA" fill-opacity="0.12" stroke="#627EEA" stroke-width="1" stroke-opacity="0.3"/>
+    <text x="250" y="7" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="500" fill="#627EEA">Cross-Chain</text>
+  </g>
+
+  <!-- Bottom URL -->
+  <text x="600" y="580" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="20" fill="#475569" letter-spacing="0.02em">
+    stellar-payment-gateway.xyz
+  </text>
+</svg>

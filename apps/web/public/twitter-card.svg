@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" fill="none">
+  <defs>
+    <linearGradient id="tc-bg" x1="0" y1="0" x2="1200" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0C1222"/>
+      <stop offset="100%" stop-color="#1A1040"/>
+    </linearGradient>
+    <linearGradient id="tc-brand" x1="200" y1="30" x2="1000" y2="570" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#08B5E5"/>
+      <stop offset="50%" stop-color="#14F195"/>
+      <stop offset="100%" stop-color="#8247E5"/>
+    </linearGradient>
+    <pattern id="tc-grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0V64M0 64H64" stroke="#08B5E5" stroke-width="0.5" stroke-opacity="0.05"/>
+    </pattern>
+    <radialGradient id="tc-glow" cx="600" cy="300" r="350" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#08B5E5" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#08B5E5" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#tc-bg)"/>
+  <rect width="1200" height="600" fill="url(#tc-grid)"/>
+  <rect width="1200" height="600" fill="url(#tc-glow)"/>
+
+  <!-- Logo centered -->
+  <g transform="translate(540, 60)">
+    <rect x="0" y="0" width="120" height="120" rx="28" stroke="url(#tc-brand)" stroke-width="6" fill="none"/>
+    <path d="M60 24L72 60L60 84L48 60Z" fill="url(#tc-brand)" opacity="0.9"/>
+    <circle cx="60" cy="60" r="6" fill="#14F195"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="260" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="96" font-weight="800" letter-spacing="-0.04em" fill="url(#tc-brand)">
+    StellarPay
+  </text>
+
+  <!-- Subtitle -->
+  <text x="600" y="340" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="400" fill="#94A3B8" letter-spacing="-0.01em">
+    The fastest way to lend and borrow across chains.
+  </text>
+
+  <!-- Divider -->
+  <line x1="450" y1="390" x2="750" y2="390" stroke="url(#tc-brand)" stroke-width="2" stroke-opacity="0.3"/>
+
+  <!-- Stats -->
+  <g transform="translate(600, 440)">
+    <text x="-200" y="0" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="700" fill="url(#tc-brand)">$12.4M</text>
+    <text x="-200" y="28" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16" fill="#64748B">Total Value Locked</text>
+
+    <text x="0" y="0" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="700" fill="url(#tc-brand)">47K+</text>
+    <text x="0" y="28" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16" fill="#64748B">Users</text>
+
+    <text x="200" y="0" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="700" fill="url(#tc-brand)">8</text>
+    <text x="200" y="28" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="16" fill="#64748B">Chains</text>
+  </g>
+
+  <!-- Domain -->
+  <text x="600" y="560" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="18" fill="#475569">
+    stellar-payment-gateway.xyz
+  </text>
+</svg>

@@ -9,13 +9,41 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "StellarPay — Cross-Chain Lending on Stellar",
-  description: "Wrap tokens from any chain and lend on Stellar. Real-time cross-chain settlement, automated liquidations.",
+  metadataBase: new URL("https://stellar-payment-gateway.xyz"),
+  title: {
+    default: "StellarPay — Cross-Chain Lending on Stellar",
+    template: "%s | StellarPay",
+  },
+  description:
+    "Wrap tokens from any chain and lend on Stellar. Real-time cross-chain settlement, automated liquidations, sub-cent fees, 5-second finality.",
   icons: { icon: "/favicon.svg" },
   openGraph: {
-    title: "StellarPay",
-    description: "Decentralized cross-chain lending protocol on Stellar",
     type: "website",
+    locale: "en_US",
+    siteName: "StellarPay",
+    title: "StellarPay — Cross-Chain Lending on Stellar",
+    description:
+      "The fastest way to lend and borrow across chains. Sub-5-second finality on Stellar. Wrap, supply, borrow, earn.",
+    images: [
+      {
+        url: "/og-image.svg",
+        width: 1200,
+        height: 630,
+        alt: "StellarPay — Cross-chain lending settled on Stellar",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "StellarPay — Cross-Chain Lending on Stellar",
+    description:
+      "Wrap tokens from any chain and lend on Stellar. Sub-5s finality, sub-cent fees.",
+    images: ["/twitter-card.svg"],
+    creator: "@stellar_pay",
+  },
+  other: {
+    "fc:frame": "vNext",
+    "fc:frame:image": "/og-image.svg",
   },
 };
 
