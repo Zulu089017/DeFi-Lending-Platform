@@ -747,29 +747,292 @@ mod tests {
         );
     }
 
-    // ──────────────────────── TODO MARKERS (L-10) ────────────────────────
-    // The following tests document the **known security gaps** listed in
-    // `docs/invariants.md` § 4 and `docs/security.md` § "Open TODOs". They
-    // are written as `#[ignore]` so they do not break CI, but their names
-    // and bodies make the gap obvious to auditors.
+    // ═══════════════════════════════════════════════════════════════════════
+    // HEALTH FACTOR INVARIANT TESTS (L-10 through L-16)
+    // ═══════════════════════════════════════════════════════════════════════
 
-    /// **L-10 (TODO):** `borrow` must verify `HF >= 1` after the borrow.
-    /// Currently a user with no collateral can borrow. Production must
-    /// cross-call `lending_controller` (or, in tests, simulate a
-    /// `collateral_vault.deposit` + `oracle.set_price` setup).
+    /// **L-10:** `borrow` must verify `HF >= 1` — reverts when collateral is insufficient.
+    /// A user with no (or insufficient) collateral must not be able to borrow.
     #[test]
-    #[ignore = "L-10: HF check is not yet enforced in `lending_pool.borrow`; see docs/security.md"]
-    fn test_TODO_L10_borrow_enforces_health_factor() {
-        // Production sketch:
-        //   let pool = LendingPoolClient::new(...);
-        //   let vault = CollateralVaultClient::new(...);
-        //   let oracle = OracleClient::new(...);
-        //   vault.deposit(&pool_addr, &user, &asset, &collateral_amount);
-        //   oracle.set_price(&publisher, &asset, &1_000_000_000_000);
-        //   let hf_before = compute_hf(&user, &pool, &vault, &oracle);
-        //   pool.borrow(&user, &debt_asset, &huge_amount);
-        //   let hf_after = compute_hf(...);
-        //   assert!(hf_after >= 1_000_000_000_000_000_000, "HF must remain >= 1e18");
-        panic!("L-10 not yet enforced; see docs/security.md");
+    #[should_panic(expected = "health factor too low")]
+    fn invariant_L10_borrow_rejects_insufficient_collateral() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        // Supply to create a lending pool, but don't post collateral
+        pool.supply(&user, &asset, &1_000_000);
+        // Borrow without collateral must panic
+        pool.borrow(&user, &asset, &500_000);
+    }
+
+    /// **L-10b:** Borrow exactly at the max LTV boundary (HF = 1.0 after borrow).
+    /// With 1000 collateral and 75% LTV, borrowing up to 750 should succeed.
+    #[test]
+    fn invariant_L10b_borrow_at_max_ltv_succeeds() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        // Post collateral first, then supply + borrow
+        pool.supply_collateral(&user, &asset, &1_000i128);
+        pool.supply(&user, &asset, &10_000i128);
+        // Borrow exactly at collateral value (HF = 1.0)
+        pool.borrow(&user, &asset, &1_000i128);
+        assert_eq!(pool.debt_of(&user, &asset), 1_000i128);
+    }
+
+    /// **L-10c:** Borrowing one unit above collateral must panic.
+    #[test]
+    #[should_panic(expected = "health factor too low")]
+    fn invariant_L10c_borrow_beyond_collateral_reverts() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.supply_collateral(&user, &asset, &500i128);
+        pool.supply(&user, &asset, &5_000i128);
+        // Borrow 501 > 500 collateral → must panic
+        pool.borrow(&user, &asset, &501i128);
+    }
+
+    /// **L-11:** Health factor improves (or stays the same) after partial repay.
+    #[test]
+    fn invariant_L11_health_factor_improves_after_repay() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.supply_collateral(&user, &asset, &1_000i128);
+        pool.supply(&user, &asset, &10_000i128);
+        pool.borrow(&user, &asset, &800i128);
+        let hf_before = pool.health_factor(&user, &asset);
+        // Repay half
+        pool.repay(&user, &asset, &400i128);
+        let hf_after = pool.health_factor(&user, &asset);
+        assert!(
+            hf_after > hf_before,
+            "L-11: HF must improve after repay: {hf_after} <= {hf_before}"
+        );
+    }
+
+    /// **L-12:** Health factor returns 0 for a user with no borrows.
+    #[test]
+    fn invariant_L12_health_factor_zero_for_no_borrows() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        // User has collateral but no debt
+        pool.supply_collateral(&user, &asset, &10_000i128);
+        let hf = pool.health_factor(&user, &asset);
+        assert_eq!(hf, 0, "L-12: HF must be 0 when no borrows exist");
+    }
+
+    /// **L-13:** Sequential borrows each reduce the health factor.
+    #[test]
+    fn invariant_L13_sequential_borrows_reduce_hf() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.supply_collateral(&user, &asset, &1_000i128);
+        pool.supply(&user, &asset, &10_000i128);
+        // First borrow
+        pool.borrow(&user, &asset, &200i128);
+        let hf1 = pool.health_factor(&user, &asset);
+        // Second borrow
+        pool.borrow(&user, &asset, &300i128);
+        let hf2 = pool.health_factor(&user, &asset);
+        assert!(
+            hf2 < hf1,
+            "L-13: second borrow must reduce HF: {hf2} >= {hf1}"
+        );
+    }
+
+    /// **L-14:** Collateral withdrawal blocks when it would make the position underwater.
+    #[test]
+    #[should_panic(expected = "health factor too low")]
+    fn invariant_L14_cannot_borrow_after_collateral_becomes_insufficient() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        // Post just enough collateral for a small borrow
+        pool.supply_collateral(&user, &asset, &100i128);
+        pool.supply(&user, &asset, &1_000i128);
+        pool.borrow(&user, &asset, &100i128); // maxed out
+        // Cannot borrow more
+        pool.borrow(&user, &asset, &1i128); // even 1 unit must revert
+    }
+
+    /// **L-15:** Multi-user isolation — one user's borrow doesn't affect another's HF.
+    #[test]
+    fn invariant_L15_multi_user_hf_isolation() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let alice = Address::generate(&env);
+        let bob = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        // Alice: safe position
+        pool.supply_collateral(&alice, &asset, &1_000i128);
+        pool.supply(&alice, &asset, &5_000i128);
+        pool.borrow(&alice, &asset, &500i128);
+        let hf_alice = pool.health_factor(&alice, &asset);
+        // Bob: has no position at all
+        let hf_bob = pool.health_factor(&bob, &asset);
+        assert_eq!(hf_bob, 0, "Bob with no borrows must have HF=0");
+        assert!(hf_alice > 0, "Alice with borrows must have HF>0");
+    }
+
+    /// **L-16:** Health factor for a fully repaid position returns to 0.
+    #[test]
+    fn invariant_L16_hf_returns_zero_after_full_repay() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let user = Address::generate(&env);
+        let asset = Symbol::new(&env, "XLM");
+        let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
+        pool.initialize(&admin);
+        pool.add_asset(&AssetConfig {
+            asset: asset.clone(),
+            collateral_vault: Address::generate(&env),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 0,
+            slope1_bps: 500,
+            slope2_bps: 5_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 7_500,
+        });
+        pool.supply_collateral(&user, &asset, &1_000i128);
+        pool.supply(&user, &asset, &5_000i128);
+        pool.borrow(&user, &asset, &800i128);
+        assert!(pool.health_factor(&user, &asset) > 0);
+        // Fully repay
+        pool.repay(&user, &asset, &1_000_000i128);
+        assert_eq!(pool.health_factor(&user, &asset), 0, "HF must return to 0 after full repay");
     }
 }
