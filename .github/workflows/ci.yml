@@ -31,7 +31,7 @@ jobs:
       - run: pnpm exec prettier --check "**/*.{json,md,yml,yaml}" "!**/node_modules/**" "!**/dist/**" "!**/target/**"
 
   # ─── Soroban contracts ───
-  contracts:
+  soroban-contracts:
     name: Soroban contracts
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: ./contracts } }
@@ -59,7 +59,7 @@ jobs:
       - run: cargo test --workspace --locked
 
   # ─── EVM contracts (standalone npm package, not in the pnpm workspace) ───
-  contracts:
+  evm-contracts:
     name: EVM contracts
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: ./contracts } }

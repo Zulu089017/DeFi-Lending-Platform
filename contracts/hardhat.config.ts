@@ -23,6 +23,12 @@ const MUMBAI_RPC = process.env.MUMBAI_RPC ?? "https://rpc-mumbai.maticvigil.com"
 const accounts = DEPLOYER_PK ? [DEPLOYER_PK] : undefined;
 
 const config: HardhatUserConfig = {
+  paths: {
+    sources: "./lending/evm",
+    tests: "./lending/evm/test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+  },
   solidity: {
     version: "0.8.24",
     settings: {

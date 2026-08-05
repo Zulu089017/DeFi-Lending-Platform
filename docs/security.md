@@ -37,11 +37,12 @@ listed here so they cannot be forgotten:
 - [x] `lending_pool.accrue_interest` must be **time-based**
       (per-ledger-sequence-delta) — the scaffold uses a constant additive bump.
       **Closed (2026-08)** — `accrue_interest` now uses ledger-sequence delta.
-- [ ] `lending_pool` uses a non-virtual share counter (first-depositor attack
-      risk). Production should use a virtual shares offset.
-- [ ] `liquidation.fee` is taken from the **gross** in the scaffold (it should
-      be from the **bonus**). The fix in the scaffold makes the fee
-      `fee_bps × (gross - repay)`.
+- [x] `lending_pool` uses a non-virtual share counter (first-depositor attack
+      risk). Production should use a virtual shares offset. **Closed (2026-08)**
+      — Virtual shares (`VIRTUAL_SHARES = 1_000_000`) now protect against
+      share-price manipulation by the first depositor.
+- [x] `liquidation.fee` is taken from the **bonus** (not gross). **Closed (2026-08)** —
+      Fee is now `fee_bps × bonus / 10_000` where `bonus = gross - repay`.
 - [x] `liquidation` should enforce `close_factor_bps` against the borrower's
       outstanding debt before allowing a `liquidate`. **Closed (2026-08)** —
       `liquidate` now enforces close factor; see `docs/invariants.md` § 5 (Q-1 through Q-9).
@@ -52,14 +53,21 @@ listed here so they cannot be forgotten:
 - [ ] The off-chain `bridge` service should use **multi-attester signing** with
       **staggered key release** (e.g. one key in HSM, one in cold storage, one
       on a hot server).
-- [ ] The `oracle` should aggregate from at least two independent publishers and
+- [x] The `oracle` should aggregate from at least two independent publishers and
       use a **median** rather than accepting the first reported value.
+      **Closed (2026-08)** — Per-publisher storage, `min_publishers` config
+      (default 2), and median aggregation implemented. `get_price` panics
+      when fewer than `min_publishers` have non-stale reports.
 - [x] The `lending_pool` emergency pause mechanism has been wired into all
       state-changing entry points (supply, withdraw, supply_collateral,
       withdraw_collateral, borrow, repay). Admin-only `set_paused` and
       public `is_paused` views are exposed. **Closed (2026-08)**.
-- [ ] The `lending_controller` admin functions should be guarded by a
-      **timelock + multisig**, not a single EOA.
+- [x] The `lending_controller` admin functions should be guarded by a
+      **timelock + multisig**, not a single EOA. **Closed (2026-08)** —
+      Multi-admin set with threshold, timelocked bridge updates
+      (`propose_bridge` + `execute_bridge` with 24h delay), and
+      multi-sig-gated admin management (`add_admin`/`remove_admin`/
+      `set_threshold`). Emergency pause remains direct for fast response.
 
 ## Audit
 

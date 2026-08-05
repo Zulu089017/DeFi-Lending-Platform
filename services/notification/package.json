@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "test": "echo 'no tests yet'"
+    "test": "echo 'no tests yet'",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@stellar-payment-gateway/tsconfig": "workspace:*",
+    "@types/ws": "^8.5.10",
     "typescript": "^5.5.3"
   }
 }

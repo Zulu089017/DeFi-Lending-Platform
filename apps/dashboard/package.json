@@ -7,6 +7,7 @@
     "test": "echo 'no tests yet'"
   },
   "devDependencies": {
+    "@stellar-payment-gateway/tsconfig": "workspace:*",
     "typescript": "^5.5.3"
   }
 }

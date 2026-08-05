@@ -15,10 +15,20 @@ use pause::{is_paused, require_not_paused, set_paused};
 
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol};
 
+/// Virtual shares offset to defeat the first-depositor share-inflation
+/// attack. Both VIRTUAL_SHARES and VIRTUAL_DEPOSIT are set to 1M (7-decimal
+/// units = 0.1 XLM) so the first real share price is always ~1.0.
+/// Without this offset, a first depositor could donate 1 unit and skew the
+/// share price, diluting later depositors.
+const VIRTUAL_SHARES: i128 = 1_000_000;
+const VIRTUAL_DEPOSIT: i128 = 1_000_000;
+
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
     Admin,
+    /// address authorized to operate on behalf (repay_on_behalf, etc.)
+    Operator(Address),
     /// asset => `AssetConfig`
     AssetConfig(Symbol),
     /// asset => total deposits
@@ -103,6 +113,15 @@ impl LendingPool {
         is_paused(&env)
     }
 
+    /// Authorize an operator (e.g. the liquidation contract) to call
+    /// gated functions like `repay` on behalf of other users.
+    pub fn add_operator(env: Env, op: Address) {
+        Self::require_admin(&env);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Operator(op), &true);
+    }
+
     pub fn supply(env: Env, user: Address, asset: Symbol, amount: i128) -> i128 {
         user.require_auth();
         require_not_paused(&env);
@@ -113,15 +132,14 @@ impl LendingPool {
 
         let total_d = Self::total_deposit(&env, &asset);
         let total_shares = Self::deposit_shares_total(&env, &asset);
-        // For the first supplier, mint shares 1:1. Subsequent suppliers
-        // receive shares proportional to their deposit / totalDeposit.
-        // (Virtual shares are recommended in production to defeat
-        // share-inflation via the first-depositor.)
-        let minted_shares = if total_shares == 0 || total_d == 0 {
-            amount
-        } else {
-            amount.checked_mul(total_shares).expect("overflow") / total_d
-        };
+
+        // Virtual-share math: every deposit mints proportional shares
+        // against a virtual offset that prevents share-price manipulation
+        // by the first depositor.  No special case for first supplier.
+        let minted_shares = amount
+            .checked_mul(total_shares.checked_add(VIRTUAL_SHARES).expect("overflow"))
+            .expect("overflow")
+            / total_d.checked_add(VIRTUAL_DEPOSIT).expect("overflow").max(1);
 
         let key = DataKey::DepositShares(user.clone(), asset.clone());
         let cur = env.storage().persistent().get(&key).unwrap_or(0i128);
@@ -156,7 +174,11 @@ impl LendingPool {
 
         let total_d = Self::total_deposit(&env, &asset);
         let total_shares = Self::deposit_shares_total(&env, &asset);
-        let amount = shares.checked_mul(total_d).expect("overflow") / total_shares;
+        // Virtual-share math for redemption.
+        let amount = shares
+            .checked_mul(total_d.checked_add(VIRTUAL_DEPOSIT).expect("overflow"))
+            .expect("overflow")
+            / total_shares.checked_add(VIRTUAL_SHARES).expect("overflow").max(1);
 
         env.storage().persistent().set(&key, &(cur - shares));
         env.storage()
@@ -221,95 +243,37 @@ impl LendingPool {
 
     pub fn borrow(env: Env, user: Address, asset: Symbol, amount: i128) {
         user.require_auth();
+        Self::borrow_internal(&env, &user, &asset, amount, true)
+    }
+
+    /// Record a borrow without the single-asset health-factor check.
+    /// Caller must be a registered operator (e.g. the lending controller,
+    /// which performs its own oracle-based multi-asset LTV enforcement).
+    pub fn borrow_raw(env: Env, operator: Address, user: Address, asset: Symbol, amount: i128) {
+        operator.require_auth();
+        Self::require_operator(&env, &operator);
         require_not_paused(&env);
-        if amount <= 0 {
-            panic!("amount must be positive");
-        }
-        Self::accrue_interest(&env, &asset);
-
-        // Health-factor check: compute total collateral value vs total debt
-        // across all assets. Reject if HF < 1.0 after the borrow.
-        let cfg = Self::asset_config(&env, &asset);
-        let collateral_value = Self::collateral_of(env.clone(), user.clone(), asset.clone());
-        // Simplified HF = collateral_value / (existing_debt + new_borrow)
-        let existing_debt = Self::debt_of(env.clone(), user.clone(), asset.clone());
-        let total_debt = existing_debt.checked_add(amount).expect("overflow");
-        if total_debt > 0 && collateral_value < total_debt {
-            panic!("health factor too low: collateral must exceed debt");
-        }
-        let _ = cfg;
-
-        let key = DataKey::Borrower(user.clone(), asset.clone());
-        let idx = Self::borrow_index(&env, &asset);
-        let snap: BorrowerSnapshot =
-            env.storage()
-                .persistent()
-                .get(&key)
-                .unwrap_or(BorrowerSnapshot {
-                    principal: 0,
-                    index: idx,
-                });
-        let new_principal = snap.principal.checked_add(amount).expect("overflow");
-        env.storage().persistent().set(
-            &key,
-            &BorrowerSnapshot {
-                principal: new_principal,
-                index: idx,
-            },
-        );
-
-        let total_b = Self::total_borrow(&env, &asset);
-        env.storage().persistent().set(
-            &DataKey::TotalBorrow(asset.clone()),
-            &total_b.checked_add(amount).expect("overflow"),
-        );
+        Self::borrow_internal(&env, &user, &asset, amount, false)
     }
 
     pub fn repay(env: Env, user: Address, asset: Symbol, amount: i128) -> i128 {
         user.require_auth();
-        require_not_paused(&env);
-        if amount <= 0 {
-            panic!("amount must be positive");
-        }
-        Self::accrue_interest(&env, &asset);
+        Self::repay_internal(&env, &user, &user, &asset, amount)
+    }
 
-        let key = DataKey::Borrower(user.clone(), asset.clone());
-        let idx = Self::borrow_index(&env, &asset);
-        let snap: BorrowerSnapshot =
-            env.storage()
-                .persistent()
-                .get(&key)
-                .unwrap_or(BorrowerSnapshot {
-                    principal: 0,
-                    index: 1_000_000_000_000_000_000i128,
-                });
-        // Total debt = principal * current_index / snap_index
-        let total_owed = if snap.principal == 0 {
-            0
-        } else {
-            snap.principal.checked_mul(idx).expect("overflow") / snap.index.max(1)
-        };
-        let repaid = if amount >= total_owed {
-            total_owed
-        } else {
-            amount
-        };
-        // Repay against the new principal: keep index in sync with current.
-        let new_principal = total_owed - repaid;
-
-        env.storage().persistent().set(
-            &key,
-            &BorrowerSnapshot {
-                principal: new_principal,
-                index: idx,
-            },
-        );
-
-        let total_b = Self::total_borrow(&env, &asset);
-        env.storage()
-            .persistent()
-            .set(&DataKey::TotalBorrow(asset.clone()), &(total_b - repaid));
-        repaid
+    /// Repay a borrower's debt on their behalf. Caller must be a registered
+    /// operator (e.g. the liquidation contract). The `payer` authorises the
+    /// call; the `borrower` is the user whose debt is being reduced.
+    pub fn repay_on_behalf(
+        env: Env,
+        payer: Address,
+        borrower: Address,
+        asset: Symbol,
+        amount: i128,
+    ) -> i128 {
+        payer.require_auth();
+        Self::require_operator(&env, &payer);
+        Self::repay_internal(&env, &payer, &borrower, &asset, amount)
     }
 
     // ──────────────────────── VIEWS ────────────────────────
@@ -398,6 +362,107 @@ impl LendingPool {
 
     // ──────────────────────── INTERNAL ────────────────────────
 
+    /// Shared borrow logic. When `check_hf` is true, the single-asset
+    /// health-factor check is enforced. Operators use `borrow_raw` with
+    /// `check_hf = false` after performing their own multi-asset LTV check.
+    fn borrow_internal(
+        env: &Env,
+        user: &Address,
+        asset: &Symbol,
+        amount: i128,
+        check_hf: bool,
+    ) {
+        require_not_paused(env);
+        if amount <= 0 {
+            panic!("amount must be positive");
+        }
+        Self::accrue_interest(env, asset);
+
+        if check_hf {
+            let collateral_value = Self::collateral_of(env.clone(), user.clone(), asset.clone());
+            let existing_debt = Self::debt_of(env.clone(), user.clone(), asset.clone());
+            let total_debt = existing_debt.checked_add(amount).expect("overflow");
+            if total_debt > 0 && collateral_value < total_debt {
+                panic!("health factor too low: collateral must exceed debt");
+            }
+        }
+
+        let key = DataKey::Borrower(user.clone(), asset.clone());
+        let idx = Self::borrow_index(env, asset);
+        let snap: BorrowerSnapshot =
+            env.storage()
+                .persistent()
+                .get(&key)
+                .unwrap_or(BorrowerSnapshot {
+                    principal: 0,
+                    index: idx,
+                });
+        let new_principal = snap.principal.checked_add(amount).expect("overflow");
+        env.storage().persistent().set(
+            &key,
+            &BorrowerSnapshot {
+                principal: new_principal,
+                index: idx,
+            },
+        );
+
+        let total_b = Self::total_borrow(env, asset);
+        env.storage().persistent().set(
+            &DataKey::TotalBorrow(asset.clone()),
+            &total_b.checked_add(amount).expect("overflow"),
+        );
+    }
+
+    fn repay_internal(
+        env: &Env,
+        _payer: &Address,
+        borrower: &Address,
+        asset: &Symbol,
+        amount: i128,
+    ) -> i128 {
+        require_not_paused(env);
+        if amount <= 0 {
+            panic!("amount must be positive");
+        }
+        Self::accrue_interest(env, asset);
+
+        let key = DataKey::Borrower(borrower.clone(), asset.clone());
+        let idx = Self::borrow_index(env, asset);
+        let snap: BorrowerSnapshot =
+            env.storage()
+                .persistent()
+                .get(&key)
+                .unwrap_or(BorrowerSnapshot {
+                    principal: 0,
+                    index: 1_000_000_000_000_000_000i128,
+                });
+        let total_owed = if snap.principal == 0 {
+            0
+        } else {
+            snap.principal.checked_mul(idx).expect("overflow") / snap.index.max(1)
+        };
+        let repaid = if amount >= total_owed {
+            total_owed
+        } else {
+            amount
+        };
+        let new_principal = total_owed - repaid;
+
+        env.storage().persistent().set(
+            &key,
+            &BorrowerSnapshot {
+                principal: new_principal,
+                index: idx,
+            },
+        );
+
+        let total_b = Self::total_borrow(env, asset);
+        env.storage()
+            .persistent()
+            .set(&DataKey::TotalBorrow(asset.clone()), &(total_b - repaid));
+        repaid
+    }
+
     fn accrue_interest(env: &Env, asset: &Symbol) {
         let total_b = Self::total_borrow(env, asset);
         if total_b == 0 {
@@ -452,6 +517,17 @@ impl LendingPool {
             .get(&DataKey::Admin)
             .expect("admin not set");
         admin.require_auth();
+    }
+
+    fn require_operator(env: &Env, op: &Address) {
+        let ok: bool = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Operator(op.clone()))
+            .unwrap_or(false);
+        if !ok {
+            panic!("not a pool operator");
+        }
     }
 
     fn deposit_shares_total(env: &Env, asset: &Symbol) -> i128 {

@@ -81,8 +81,8 @@
 | Q-2 | `liquidate` reverts if `repay_amount > close_factor_bps / 10_000 * debt_of(borrower, debt_asset)` | Close-factor | ✅ |
 | Q-3 | `liquidator_share = repay + bonus - fee`, where `fee = fee_bps * bonus / 10_000`                                                     | Algebraic                 |
 | Q-4 | The protocol never receives more than `fee_bps * bonus / 10_000` of seized collateral                                                | Fee bounded               |
-| Q-5 | **(TODO, production)** The on-chain engine must cross-call `lending_pool.repay` and `collateral_vault.seize` in a single transaction | Atomicity                 |
-| Q-6 | **(TODO, production)** `lending_pool.repay` must succeed before `collateral_vault.seize` runs                                        | Ordering                  |
+| Q-5 | **(Closed 2026-08)** The on-chain engine cross-calls `lending_pool.repay_on_behalf` and `collateral_vault.seize` in a single transaction | Atomicity                 |
+| Q-6 | **(Closed 2026-08)** `lending_pool.repay_on_behalf` succeeds before `collateral_vault.seize` runs                                          | Ordering                  |
 
 ## 6. Lending Controller (`lending_controller`)
 
@@ -108,11 +108,8 @@
 > `contracts/BUILD_ENV_NOTES.md`), so this is now a plain TODO: add a
 > Rust test that hashes `build_canonical_payload` with the same canonical inputs
 > and asserts the same 64-hex digest, so any drift between the two languages
-> surfaces immediately in CI. | C-7 | **(TODO, production)** `wrap` must
-> actually cross-call `wrapped_asset.mint(to, amount)` | Cross-contract
-> integration | | C-8 | **(TODO, production)** `supply_collateral` and `borrow`
-> must cross-call the lending pool and collateral vault | Cross-contract
-> integration |
+> surfaces immediately in CI. | C-7 | **(Closed 2026-08)** `wrap` cross-calls `wrapped_asset.mint(to, amount)` and `unwrap` calls `wrapped_asset.burn(user, amount)` | Cross-contract integration |
+| C-8 | **(Closed 2026-08)** `supply_collateral` calls `lending_pool.supply` + `collateral_vault.deposit`; `borrow` calls `oracle.value_of` (LTV enforcement) + `vault.deposit` + `pool.borrow_raw` | Cross-contract integration |
 
 ## 7. Bridge (`Bridge.sol`)
 
@@ -159,8 +156,10 @@
 > **✅ Status of the invariant tests in this repo.** All 26 invariant tests
 > across lending pool (L-1 through L-16) and liquidation (Q-1 through Q-9)
 > **execute and pass** on the pinned toolchain (Rust 1.91.0, soroban-sdk 27.0.4,
-> `wasm32v1-none`). Zero failures. The cross-contract integration tests
-> (Q-5, Q-6, C-7, C-8) remain as TODO stubs awaiting full cross-contract
-> invocation support. C-1, C-2, B-7, L-10 through L-16, and Q-1 through Q-9
-> are all closed. Migration history:
+> `wasm32v1-none`). Zero failures. Cross-contract integration tests
+> (Q-5, Q-6, C-7, C-8) are now **closed (2026-08)** — the liquidation engine
+> calls `pool.repay_on_behalf` and `vault.seize` atomically, and the controller
+> cross-calls `wrapped_asset`, `lending_pool`, `collateral_vault`, and `oracle`.
+> C-1, C-2, B-7, L-10 through L-16, and Q-1 through Q-9 are all closed.
+> Migration history:
 > [`contracts/BUILD_ENV_NOTES.md`](../contracts/BUILD_ENV_NOTES.md).

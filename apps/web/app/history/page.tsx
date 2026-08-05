@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { ArrowUpRight, ArrowDownLeft, ExternalLink, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useWallet } from "@/components/wallet/wallet-reconnect";
 
 interface TxRecord {
   hash: string;

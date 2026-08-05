@@ -9,6 +9,7 @@ members = [
     "liquidation/soroban",
     "governance/soroban",
     "rewards/soroban",
+    "integration-tests",
 ]
 
 [workspace.package]

@@ -1,0 +1,30 @@
+[package]
+name = "integration_tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+# Tests live in src/; this crate is test-only and never deployed.
+crate-type = ["lib"]
+test = true
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+
+[dev-dependencies]
+wrapped_asset = { path = "../treasury/soroban" }
+oracle = { path = "../oracle/soroban" }
+collateral_vault = { path = "../collateral/soroban" }
+lending_pool = { path = "../lending/soroban" }
+lending_controller = { path = "../lending/controller" }
+liquidation = { path = "../liquidation/soroban" }
+governance = { path = "../governance/soroban" }
+rewards = { path = "../rewards/soroban" }
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+
+[features]
+# All tests run under `cargo test --workspace`; no feature gating needed.
