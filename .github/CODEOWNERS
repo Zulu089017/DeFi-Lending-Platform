@@ -13,30 +13,30 @@
 *       @stellar-payment-gateway/maintainers
 
 # Soroban smart contracts (Rust)
-stellar-contracts/contracts/wrapped_asset/        @stellar-payment-gateway/soroban-reviewers
-stellar-contracts/contracts/oracle/               @stellar-payment-gateway/soroban-reviewers
-stellar-contracts/contracts/collateral_vault/     @stellar-payment-gateway/soroban-reviewers
-stellar-contracts/contracts/lending_pool/         @stellar-payment-gateway/soroban-reviewers
-stellar-contracts/contracts/liquidation/          @stellar-payment-gateway/soroban-reviewers
-stellar-contracts/contracts/lending_controller/   @stellar-payment-gateway/soroban-reviewers
-stellar-contracts/Cargo.toml                     @stellar-payment-gateway/soroban-reviewers
-stellar-contracts/scripts/                       @stellar-payment-gateway/soroban-reviewers
+contracts/contracts/wrapped_asset/        @stellar-payment-gateway/soroban-reviewers
+contracts/contracts/oracle/               @stellar-payment-gateway/soroban-reviewers
+contracts/contracts/collateral_vault/     @stellar-payment-gateway/soroban-reviewers
+contracts/contracts/lending_pool/         @stellar-payment-gateway/soroban-reviewers
+contracts/contracts/liquidation/          @stellar-payment-gateway/soroban-reviewers
+contracts/contracts/lending_controller/   @stellar-payment-gateway/soroban-reviewers
+contracts/Cargo.toml                     @stellar-payment-gateway/soroban-reviewers
+contracts/scripts/                       @stellar-payment-gateway/soroban-reviewers
 
 # EVM contracts (Solidity)
-evm-contracts/contracts/                         @stellar-payment-gateway/evm-reviewers
-evm-contracts/test/                              @stellar-payment-gateway/evm-reviewers
-evm-contracts/scripts/                           @stellar-payment-gateway/evm-reviewers
-evm-contracts/hardhat.config.ts                  @stellar-payment-gateway/evm-reviewers
+contracts/contracts/                         @stellar-payment-gateway/evm-reviewers
+contracts/test/                              @stellar-payment-gateway/evm-reviewers
+contracts/scripts/                           @stellar-payment-gateway/evm-reviewers
+contracts/hardhat.config.ts                  @stellar-payment-gateway/evm-reviewers
 
 # Off-chain services (TypeScript)
-bridge/        @stellar-payment-gateway/offchain-reviewers
-relayer/       @stellar-payment-gateway/offchain-reviewers
-indexer/       @stellar-payment-gateway/offchain-reviewers
+services/payment/        @stellar-payment-gateway/offchain-reviewers
+services/cron/       @stellar-payment-gateway/offchain-reviewers
+services/indexer/       @stellar-payment-gateway/offchain-reviewers
 api/           @stellar-payment-gateway/offchain-reviewers
-sdk/           @stellar-payment-gateway/offchain-reviewers
+packages/sdk/           @stellar-payment-gateway/offchain-reviewers
 
 # Frontend
-frontend/      @stellar-payment-gateway/frontend-reviewers
+apps/web/      @stellar-payment-gateway/frontend-reviewers
 
 # Infrastructure & docs
 infra/         @stellar-payment-gateway/devops-reviewers

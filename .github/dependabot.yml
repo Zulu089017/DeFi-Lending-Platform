@@ -6,7 +6,7 @@ version: 2
 updates:
   # Soroban (Rust) workspace
   - package-ecosystem: "cargo"
-    directory: "/stellar-contracts"
+    directory: "/contracts"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -54,7 +54,7 @@ updates:
 
   # EVM contracts
   - package-ecosystem: "npm"
-    directory: "/evm-contracts"
+    directory: "/contracts"
     schedule: { interval: "weekly", day: "monday" }
     groups:
       openzeppelin:

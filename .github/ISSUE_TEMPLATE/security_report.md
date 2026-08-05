@@ -23,8 +23,8 @@ type: "Security"
 
 **Component**
 
-- [ ] stellar-contracts
-- [ ] evm-contracts
+- [ ] contracts
+- [ ] contracts
 - [ ] bridge
 - [ ] relayer
 - [ ] indexer

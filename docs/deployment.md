@@ -16,12 +16,12 @@ public mainnet-like cluster.
 
 ```bash
 # Stellar
-cd stellar-contracts
+cd contracts
 cargo build --workspace --target wasm32v1-none --release
 bash scripts/deploy-testnet.sh   # deploy to testnet (mainnet: edit .env / script)
 
 # EVM (Ethereum + Polygon)
-cd ../evm-contracts
+cd ../contracts
 npm install
 npx hardhat run scripts/deploy.ts --network mainnet
 npx hardhat run scripts/deploy.ts --network polygon
@@ -29,12 +29,12 @@ npx hardhat run scripts/deploy.ts --network polygon
 
 The Stellar deployer (`scripts/deploy-testnet.mjs`) handles friendbot funding,
 wasm upload, contract creation, initialization in dependency order, an on-chain
-read-back verification of every contract, and writes `sdk/src/manifest.json`,
+read-back verification of every contract, and writes `packages/packages/sdk/src/manifest.json`,
 `stellar.toml`, and the SEP-1 hosted copy at
-`frontend/public/.well-known/stellar.toml`. Contract IDs are deterministic (salt
+`apps/web/public/.well-known/stellar.toml`. Contract IDs are deterministic (salt
 = sha256(saltLabel)) so re-runs resume cleanly. Secrets live in
-`stellar-contracts/.env` (gitignored) and are auto-generated + funded on first
-run. Commit `sdk/src/manifest.json`, `stellar.toml`, and the frontend copy.
+`contracts/.env` (gitignored) and are auto-generated + funded on first
+run. Commit `packages/packages/sdk/src/manifest.json`, `stellar.toml`, and the frontend copy.
 
 > ⚠️ Redeploying after a **contract code change**: the salts do not depend on
 > wasm bytes, so a re-run hits "contract already exists" and resumes with the
@@ -44,7 +44,7 @@ run. Commit `sdk/src/manifest.json`, `stellar.toml`, and the frontend copy.
 ## 2. Build & push images
 
 ```bash
-REGISTRY=ghcr.io/stellar-payment-gateway TAG=0.1.0 bash infra/scripts/build-images.sh
+REGISTRY=ghcr.io/stellar-payment-gateway TAG=0.1.0 bash scripts/build-images.sh
 ```
 
 ## 3. Configure secrets
@@ -53,12 +53,12 @@ Replace the secrets in `infra/k8s/01-postgres.yaml`, `02-bridge.yaml`, etc. with
 real values, ideally sealed with
 [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) or an external
 secret manager. The Stellar bridge signers must match the attester keys written
-to `stellar-contracts/.env` by the deploy script (see `docs/security.md`).
+to `contracts/.env` by the deploy script (see `docs/security.md`).
 
 ## 4. Deploy the cluster
 
 ```bash
-bash infra/scripts/deploy-k8s.sh
+bash scripts/deploy-k8s.sh
 ```
 
 ## 5. Verify

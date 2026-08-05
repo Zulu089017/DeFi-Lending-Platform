@@ -5,10 +5,10 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-scaffold-yellow.svg)](docs/security.md)
-[![Soroban](https://img.shields.io/badge/Soroban-21-blueviolet.svg)](stellar-contracts/Cargo.toml)
-[![Solidity](https://img.shields.io/badge/Solidity-%5E0.8.24-363636.svg)](evm-contracts/hardhat.config.ts)
+[![Soroban](https://img.shields.io/badge/Soroban-27-blueviolet.svg)](contracts/Cargo.toml)
+[![Solidity](https://img.shields.io/badge/Solidity-%5E0.8.24-363636.svg)](contracts/hardhat.config.ts)
 [![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF.svg)](.github/workflows/ci.yml)
-[![Code style: rustfmt](https://img.shields.io/badge/code%20style-rustfmt-orange.svg)](stellar-contracts/rustfmt.toml)
+[![Code style: rustfmt](https://img.shields.io/badge/code%20style-rustfmt-orange.svg)](contracts/rustfmt.toml)
 
 **StellarPay** is a middleware that allows developers on other chains (Ethereum,
 Solana, Polygon) to instantly spin up wrapped versions of their tokens on
@@ -39,17 +39,46 @@ they form the protocol.
 ```
 StellarPay/
 │
-├── stellar-contracts/   # Soroban smart contracts (Rust) — the heart of the protocol
-├── evm-contracts/       # Solidity contracts — source-chain lock/burn entry points
-├── bridge/              # Cross-chain bridge middleware (TS) — event watcher + mint/burn signer
-├── relayer/             # Transaction relayer service (TS) — submits signed ops to all chains
-├── indexer/             # Off-chain indexer (TS) — streams Horizon + EVM logs into Postgres
-├── api/                 # Public REST + WebSocket API (TS) — serves the dashboard & SDK
-├── sdk/                 # TypeScript SDK — wrap, lend, borrow, liquidate, stream events
-├── frontend/            # Next.js dashboard — real-time cross-chain & lending UI
-├── infra/               # Docker Compose, K8s manifests, Terraform
-├── docs/                # Protocol documentation
-└── .github/             # CI workflows, issue & PR templates
+├── apps/
+│   ├── web/              # Next.js dashboard — real-time cross-chain & lending UI
+│   ├── api/              # Public REST + WebSocket API
+│   ├── dashboard/        # Standalone analytics dashboard
+│   ├── docs/             # Documentation site
+│   └── explorer/         # Block/transaction explorer
+│
+├── contracts/
+│   ├── lending/          # Lending pool + controller (Soroban + EVM)
+│   ├── collateral/       # Collateral vault (Soroban)
+│   ├── oracle/           # Price oracle (Soroban)
+│   ├── liquidation/      # Liquidation engine (Soroban)
+│   ├── treasury/         # Wrapped assets (Soroban + EVM)
+│   ├── governance/       # Governance contracts (Soroban)
+│   └── rewards/          # Rewards distribution (Soroban)
+│
+├── packages/
+│   ├── packages/sdk/              # TypeScript SDK
+│   ├── ui/               # Shared UI components
+│   ├── config/           # Shared configuration
+│   ├── types/            # Shared TypeScript types
+│   ├── utils/            # Shared utilities
+│   ├── eslint-config/    # Shared ESLint config
+│   └── tsconfig/         # Shared TypeScript config
+│
+├── services/
+│   ├── payment/          # Cross-chain bridge middleware
+│   ├── cron/             # Transaction relayer service
+│   ├── services/indexer/          # Off-chain indexer
+│   ├── notification/     # Notification service
+│   └── analytics/        # Analytics service
+│
+├── infra/
+│   ├── docker/           # Docker Compose files
+│   ├── kubernetes/       # K8s manifests
+│   └── terraform/        # Infrastructure as code
+│
+├── scripts/              # Build & deploy scripts
+├── docs/                 # Protocol documentation
+└── .github/              # CI workflows, issue & PR templates
 ```
 
 > **Note**: Each top-level directory is designed to live in its own git
@@ -62,25 +91,25 @@ StellarPay/
 
 ```bash
 # 1. Spin up infra (Postgres, Redis, Horizon testnet stub)
-cd infra && docker compose up -d
+cd infra/docker && docker compose up -d
 
 # 2. Build & deploy Soroban contracts
-cd stellar-contracts && cargo test && bash scripts/deploy-testnet.sh
+cd contracts && cargo test && bash scripts/deploy-testnet.sh
 
 # 3. Deploy EVM contracts (Sepolia)
-cd ../evm-contracts && npm install && npx hardhat deploy --network sepolia
+cd contracts && npm install && npx hardhat deploy --network sepolia
 
 # 4. Start the bridge
-cd ../bridge && pnpm install && pnpm dev
+cd services/payment && pnpm install && pnpm dev
 
 # 5. Start the indexer
-cd ../indexer && pnpm install && pnpm dev
+cd services/indexer && pnpm install && pnpm dev
 
 # 6. Start the API
-cd ../api && pnpm install && pnpm dev
+cd apps/api && pnpm install && pnpm dev
 
 # 7. Start the dashboard
-cd ../frontend && pnpm install && pnpm dev
+cd apps/web && pnpm install && pnpm dev
 ```
 
 Visit:

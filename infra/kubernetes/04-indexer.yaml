@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: indexer, namespace: spg }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: indexer } }
+  template:
+    metadata: { labels: { app: indexer } }
+    spec:
+      containers:
+        - name: indexer
+          image: spg/indexer:latest
+          # SECRETS: provision an `indexer-env` Secret out-of-band (see
+          # services/indexer/.env.example) containing DATABASE_URL, STELLAR_RPC,
+          # STELLAR_CONTROLLER, ETHEREUM_RPC, ETHEREUM_BRIDGE, etc.
+          envFrom: [{ secretRef: { name: indexer-env } }]
+          ports: [{ containerPort: 4200 }]
+          resources:
+            requests: { cpu: "300m", memory: "512Mi" }
+            limits: { cpu: "2", memory: "2Gi" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: indexer, namespace: spg }
+spec:
+  selector: { app: indexer }
+  ports: [{ port: 4200, targetPort: 4200 }]

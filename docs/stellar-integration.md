@@ -56,22 +56,22 @@ Deployment is fully scripted (no stellar CLI required):
 
 1. Build the WASMs for `wasm32v1-none`
    (`cargo build --workspace --target wasm32v1-none --release`).
-2. Run `bash stellar-contracts/scripts/deploy-testnet.sh` — the JS deployer
+2. Run `bash contracts/scripts/deploy-testnet.sh` — the JS deployer
    (`deploy-testnet.mjs`, stellar-sdk v16) funds the admin via friendbot,
    uploads the six WASMs, creates the seven contracts, initializes them in
    dependency order, and verifies each contract's on-chain instance storage.
 3. Contract IDs are deterministic
    (`sha256(HashIdPreimage::ContractId{ network_id, preimage})` with salt =
    `sha256(saltLabel)`), so re-runs are resumable and idempotent.
-4. Secrets (admin + 3 attester keypairs) live in `stellar-contracts/.env`
+4. Secrets (admin + 3 attester keypairs) live in `contracts/.env`
    (gitignored) and are auto-generated on first run.
 
-Contract addresses are published in `sdk/src/manifest.json`, the project's
+Contract addresses are published in `packages/packages/sdk/src/manifest.json`, the project's
 `stellar.toml`, and the SEP-1 hosted copy at
-`frontend/public/.well-known/stellar.toml` (served by the frontend at
+`apps/web/public/.well-known/stellar.toml` (served by the frontend at
 `/.well-known/stellar.toml` with `Access-Control-Allow-Origin: *` so wallets and
 explorers can fetch it cross-origin). Validate with
-`python3 stellar-contracts/scripts/validate-sep1.py stellar.toml`, which checks
+`python3 contracts/scripts/validate-sep1.py stellar.toml`, which checks
 TOML structure, StrKey checksums, and live on-chain existence of every listed
 contract.
 

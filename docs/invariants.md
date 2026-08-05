@@ -64,7 +64,7 @@
 
 > ⚠️ The scaffold does **not** enforce L-10. See `docs/security.md` § "Open
 > TODOs" and the `test_TODO_*` test stubs in
-> `stellar-contracts/contracts/*/src/lib.rs`.
+> `contracts/contracts/*/src/lib.rs`.
 
 ## 5. Liquidation Engine (`liquidation`)
 
@@ -95,10 +95,10 @@
 > `CHANGELOG.md`.
 
 > ⚠️ **C-6 cross-language drift canary.** The off-chain signer pins the
-> canonical payload digest in `bridge/tests/signer.test.ts`
+> canonical payload digest in `services/payment/tests/signer.test.ts`
 > (`CANONICAL_DIGEST`). The Rust side has **no** equivalent pinned-digest test
 > yet. The Rust build is unblocked (soroban-sdk 27.0.4, Rust 1.91.0 — see
-> `stellar-contracts/BUILD_ENV_NOTES.md`), so this is now a plain TODO: add a
+> `contracts/BUILD_ENV_NOTES.md`), so this is now a plain TODO: add a
 > Rust test that hashes `build_canonical_payload` with the same canonical inputs
 > and asserts the same 64-hex digest, so any drift between the two languages
 > surfaces immediately in CI. | C-7 | **(TODO, production)** `wrap` must
@@ -122,9 +122,9 @@
 > ✅ **Closed (2026-01).** `Bridge` now inherits `EIP712Upgradeable`, the
 > `RELEASE_TYPEHASH` is pinned in storage, and `_hashTypedDataV4` replaces the
 > raw `keccak256(abi.encodePacked("RELEASE", ...))` digest. Off-chain
-> counterpart: `bridge/src/attest/signer.ts` → `signEvmRelease`. A regression
+> counterpart: `services/payment/src/attest/signer.ts` → `signEvmRelease`. A regression
 > test (`release rejects signatures signed for a different domain (B-7)` in
-> `evm-contracts/test/Bridge.test.ts`) proves cross-contract replay protection.
+> `contracts/test/Bridge.test.ts`) proves cross-contract replay protection.
 > **Note:** `EIP712Upgradeable` is now in the inheritance chain. On any
 > pre-existing proxy deployment, this requires a storage-layout-compatible
 > upgrade path (or a redeploy). For new deployments the layout is finalised in
@@ -150,11 +150,11 @@
    auditors at the specific lines that still need human review.
 
 > **✅ Status of the invariant tests in this repo.** The `invariant_*` tests
-> across `stellar-contracts/contracts/*/src/lib.rs` now **execute and pass**. On
+> across `contracts/contracts/*/src/lib.rs` now **execute and pass**. On
 > the pinned toolchain (Rust 1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`),
 > `cargo test --workspace --locked` runs 17 `invariant_*` tests together with
 > the functional suites (30 passed, 0 failed). Only the `test_TODO_*` stubs for
 > the remaining open security gaps — L-10 and Q-1/Q-2 — stay `#[ignore]`d; they
 > still `panic!` if un-ignored until those gaps in `docs/security.md` § "Open
 > TODOs" are closed. C-1 and C-2 are closed. Migration history:
-> [`stellar-contracts/BUILD_ENV_NOTES.md`](../stellar-contracts/BUILD_ENV_NOTES.md).
+> [`contracts/BUILD_ENV_NOTES.md`](../contracts/BUILD_ENV_NOTES.md).

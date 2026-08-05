@@ -20,15 +20,15 @@ designed and how its components talk to each other.
 
 | Component         | Language             | Lives where          | Responsibility                                                                 |
 | ----------------- | -------------------- | -------------------- | ------------------------------------------------------------------------------ |
-| Stellar contracts | Rust (Soroban)       | `stellar-contracts/` | Wrapped asset, lending pool, collateral vault, oracle, liquidation             |
-| EVM bridge        | Solidity             | `evm-contracts/`     | Lock/burn canonical token, emit cross-chain events                             |
+| Stellar contracts | Rust (Soroban)       | `contracts/` | Wrapped asset, lending pool, collateral vault, oracle, liquidation             |
+| EVM bridge        | Solidity             | `contracts/`     | Lock/burn canonical token, emit cross-chain events                             |
 | Solana bridge     | Rust (Anchor)        | (future)             | Lock/burn SPL token, emit events                                               |
-| Bridge middleware | TypeScript           | `bridge/`            | Watches source-chain events, signs & submits mint/burn attestations to Stellar |
-| Relayer           | TypeScript           | `relayer/`           | Submits signed transactions to all chains with retries & gas bumps             |
-| Indexer           | TypeScript           | `indexer/`           | Subscribes to Horizon + EVM RPC, persists to Postgres                          |
+| Bridge middleware | TypeScript           | `services/payment/`            | Watches source-chain events, signs & submits mint/burn attestations to Stellar |
+| Relayer           | TypeScript           | `services/cron/`           | Submits signed transactions to all chains with retries & gas bumps             |
+| Indexer           | TypeScript           | `services/services/indexer/`           | Subscribes to Horizon + EVM RPC, persists to Postgres                          |
 | API               | TypeScript (Fastify) | `api/`               | Public REST + WebSocket API for SDK & dashboard                                |
-| SDK               | TypeScript           | `sdk/`               | Client library: `spg.wrap(...)`, `spg.lend(...)`, etc.               |
-| Frontend          | TypeScript (Next.js) | `frontend/`          | Dashboard, bridge UI, lending UI, liquidation monitor                          |
+| SDK               | TypeScript           | `packages/packages/sdk/`               | Client library: `spg.wrap(...)`, `spg.lend(...)`, etc.               |
+| Frontend          | TypeScript (Next.js) | `apps/web/`          | Dashboard, bridge UI, lending UI, liquidation monitor                          |
 
 ## 3. Token Lifecycle
 

@@ -1,0 +1,40 @@
+# Bridge middleware Deployment.
+#
+# SECRETS: this file must NOT contain credentials. The `payment-env` Secret is
+# referenced below via `envFrom` and must be provisioned out-of-band BEFORE
+# applying this manifest. Required keys (see services/payment/.env.example):
+#
+#   DATABASE_URL, ETHEREUM_RPC, POLYGON_RPC, SOLANA_RPC,
+#   ETHEREUM_BRIDGE, POLYGON_BRIDGE,
+#   STELLAR_RPC, STELLAR_NETWORK_PASSPHRASE, STELLAR_CONTROLLER,
+#   RELAYER_SECRET (Stellar secret key), ATTESTER_KEYS (comma-separated
+#   ed25519 secret keys), ATTESTER_THRESHOLD, LOG_LEVEL, POLL_INTERVAL_MS, PORT
+#
+# Provision with:
+#   kubectl create secret generic payment-env --namespace spg --from-env-file=services/payment/.env
+# In production use Sealed Secrets / External Secrets (never plaintext).
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: payment, namespace: spg }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: bridge } }
+  template:
+    metadata: { labels: { app: bridge } }
+    spec:
+      containers:
+        - name: payment
+          image: spg/payment:latest
+          envFrom: [{ secretRef: { name: payment-env } }]
+          ports: [{ containerPort: 4100 }]
+          resources:
+            requests: { cpu: "200m", memory: "256Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+          livenessProbe:
+            httpGet: { path: /health, port: 4100 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /health, port: 4100 }
+            initialDelaySeconds: 5
+            periodSeconds: 5

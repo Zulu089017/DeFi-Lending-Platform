@@ -1,8 +1,0 @@
-{
-  "_comment": "Slither configuration for StellarPay EVM contracts. Run: slither . --config-file .slither.config.json",
-  "detectors_to_exclude": "similar-names,solc-version,conformance-to-solidity-naming-conventions",
-  "filter_paths": "node_modules|openzeppelin|mocks",
-  "compile_force_framework": "hardhat",
-  "hardhat_artifacts_directory": "artifacts",
-  "hardhat_cache_directory": "cache"
-}

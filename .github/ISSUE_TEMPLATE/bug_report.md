@@ -14,7 +14,7 @@ assignees: ""
 
 **Environment**
 
-- Component: (stellar-contracts / evm-contracts / bridge / api / frontend / sdk
+- Component: (contracts / contracts / bridge / api / frontend / sdk
   / …)
 - Network: (testnet / mainnet / local)
 - Versions:

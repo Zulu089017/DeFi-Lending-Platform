@@ -1,19 +1,19 @@
 # Polyrepo Split Guide
 
 StellarPay is intentionally a **polyrepo** of independent services. The local
-monorepo layout (`/stellar-contracts`, `/bridge`, `/api`, etc.) is a development
+monorepo layout (`/contracts`, `/bridge`, `/api`, etc.) is a development
 convenience. In production each one should live in its own repository:
 
 | Path                 | Standalone repo              | Owner team |
 | -------------------- | ---------------------------- | ---------- |
-| `stellar-contracts/` | `spg/stellar-contracts` | Protocol   |
-| `evm-contracts/`     | `spg/evm-contracts`     | Protocol   |
-| `bridge/`            | `spg/bridge`            | Bridge     |
-| `relayer/`           | `spg/relayer`           | Bridge     |
-| `indexer/`           | `spg/indexer`           | Data       |
+| `contracts/` | `spg/contracts` | Protocol   |
+| `contracts/`     | `spg/contracts`     | Protocol   |
+| `services/payment/`            | `spg/bridge`            | Bridge     |
+| `services/cron/`           | `spg/relayer`           | Bridge     |
+| `services/services/indexer/`           | `spg/indexer`           | Data       |
 | `api/`               | `spg/api`               | Data       |
-| `sdk/`               | `spg/sdk`               | SDK        |
-| `frontend/`          | `spg/dashboard`         | Frontend   |
+| `packages/packages/sdk/`               | `spg/sdk`               | SDK        |
+| `apps/web/`          | `spg/dashboard`         | Frontend   |
 | `infra/`             | `spg/infra`             | DevOps     |
 | `docs/`              | `spg/docs`              | Docs       |
 
@@ -21,7 +21,7 @@ convenience. In production each one should live in its own repository:
 
 All packages use **Semantic Versioning** and are published with deterministic
 versions. The `sdk` consumes a **versioned manifest** (see
-`sdk/src/manifest.json`) so that a frontend can pin to a known-good set of
+`packages/packages/sdk/src/manifest.json`) so that a frontend can pin to a known-good set of
 contract addresses and ABIs.
 
 ## Inter-repo contracts

@@ -26,7 +26,7 @@
 
 - [x] Unit tests for each Soroban contract function
 - [x] Invariant tests (17 tests execute and pass on Rust 1.91.0 + soroban-sdk
-      27.0.4 — see `stellar-contracts/BUILD_ENV_NOTES.md`; `docs/invariants.md`
+      27.0.4 — see `contracts/BUILD_ENV_NOTES.md`; `docs/invariants.md`
       § 9)
 - [x] Bridge unit tests (Solidity, attest signing)
 - [ ] Fuzz tests for Soroban financial math
@@ -54,7 +54,7 @@
 
 ### Deployment configuration
 
-- [ ] All contract addresses pinned in `sdk/src/manifest.json`
+- [ ] All contract addresses pinned in `packages/packages/sdk/src/manifest.json`
 - [ ] `stellar.toml` published and verified
 - [ ] DNS + TLS for `spg.xyz` and `api.spg.xyz`
 - [ ] CORS origins restricted (not `*`)
@@ -78,7 +78,7 @@
   `slither-args` — the action appends its own `--fail-*` flag and the two
   conflict.
 
-### Rust / Soroban (`stellar-contracts/`)
+### Rust / Soroban (`contracts/`)
 
 - The Soroban job pins `dtolnay/rust-toolchain@1.91.0` (the soroban-sdk 27 MSRV)
   with `targets: wasm32v1-none, components: rustfmt, clippy`. Keep the
@@ -94,7 +94,7 @@
   a crates.io drift cannot silently change the resolved dependency graph.
 - `clippy.toml` contains only valid settings (`msrv`, thresholds); lint levels
   are enforced with `-D warnings`, not `clippy.toml` keys.
-- Full history and migration notes: `stellar-contracts/BUILD_ENV_NOTES.md`.
+- Full history and migration notes: `contracts/BUILD_ENV_NOTES.md`.
 
 ### GitHub Actions (`actions/*`, `pnpm/action-setup`)
 
@@ -114,10 +114,10 @@
 
 | Component            | Lines of code | Language       | Auditor |
 | -------------------- | ------------- | -------------- | ------- |
-| `stellar-contracts/` | ~2,500        | Rust (Soroban) | TBD     |
-| `evm-contracts/`     | ~400          | Solidity       | TBD     |
-| `bridge/`            | ~800          | TypeScript     | TBD     |
-| `relayer/`           | ~200          | TypeScript     | TBD     |
+| `contracts/` | ~2,500        | Rust (Soroban) | TBD     |
+| `contracts/`     | ~400          | Solidity       | TBD     |
+| `services/payment/`            | ~800          | TypeScript     | TBD     |
+| `services/cron/`           | ~200          | TypeScript     | TBD     |
 
 ## Post-audit
 

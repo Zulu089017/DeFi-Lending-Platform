@@ -73,6 +73,6 @@ where $T_{year}$ = 31,536,000 seconds (365 days).
 ## Reference implementation
 
 The on-chain implementation is in
-`stellar-contracts/contracts/lending_pool/src/lib.rs` in the functions
+`contracts/contracts/lending_pool/src/lib.rs` in the functions
 `borrow_apy_bps` and `accrue_interest`. The SDK exposes these as read-only
 estimates via the `/v1/quote` API.

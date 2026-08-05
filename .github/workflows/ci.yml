@@ -31,16 +31,16 @@ jobs:
       - run: pnpm exec prettier --check "**/*.{json,md,yml,yaml}" "!**/node_modules/**" "!**/dist/**" "!**/target/**"
 
   # ─── Soroban contracts ───
-  stellar-contracts:
+  contracts:
     name: Soroban contracts
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: ./stellar-contracts } }
+    defaults: { run: { working-directory: ./contracts } }
     steps:
       - uses: actions/checkout@v5
       # soroban-sdk 27 has MSRV 1.91 and its build.rs rejects the
       # `wasm32-unknown-unknown` target on Rust 1.82+ (reference-types /
       # multi-value features), requiring `wasm32v1-none` instead.
-      # See `stellar-contracts/BUILD_ENV_NOTES.md`. Pinned to the MSRV for
+      # See `contracts/BUILD_ENV_NOTES.md`. Pinned to the MSRV for
       # deterministic builds (matches clippy.toml msrv).
       - uses: dtolnay/rust-toolchain@1.91.0
         with:
@@ -51,7 +51,7 @@ jobs:
           # separate input key, so the clippy component was never installed.
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: "./stellar-contracts" }
+        with: { workspaces: "./contracts" }
       - run: cargo fmt --all -- --check
       - run: cargo check --workspace --locked --target wasm32v1-none --release
       - name: Lint
@@ -59,10 +59,10 @@ jobs:
       - run: cargo test --workspace --locked
 
   # ─── EVM contracts (standalone npm package, not in the pnpm workspace) ───
-  evm-contracts:
+  contracts:
     name: EVM contracts
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: ./evm-contracts } }
+    defaults: { run: { working-directory: ./contracts } }
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -70,20 +70,15 @@ jobs:
           {
             node-version: "${{ env.NODE_VERSION }}",
             cache: npm,
-            cache-dependency-path: evm-contracts/package-lock.json,
+            cache-dependency-path: contracts/package-lock.json,
           }
       - run: npm ci
       - run: npx hardhat compile
       - run: npx hardhat test
-      # slither-action v0.4.0 runs from the repo root (GITHUB_WORKSPACE),
-      # not the job's `working-directory`, and its only path input is
-      # `target`. The previous `contract_dir` / snake_case inputs are not
-      # accepted by this action version. `target` points at the Hardhat
-      # project so `@openzeppelin` resolves via evm-contracts/node_modules.
       - name: Slither static analysis
         uses: crytic/slither-action@v0.4.0
         with:
-          target: evm-contracts
+          target: contracts
           solc-version: 0.8.24
           # Pin Slither for deterministic runs: when `slither-version` is
           # unset the action installs `slither-analyzer` at the latest PyPI
@@ -108,15 +103,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [bridge, relayer, indexer, api, sdk]
+        service: [payment, cron, indexer, api, sdk]
         include:
-          # bridge and relayer import @prisma/client (bridge/src/store/db.ts,
-          # relayer/src/queue.ts); pnpm skips prisma's postinstall build
-          # script, so a fresh checkout needs an explicit `prisma generate`
-          # for their typechecks to resolve.
-          - service: bridge
+          - service: payment
             prisma: true
-          - service: relayer
+          - service: cron
             prisma: true
           - service: indexer
             prisma: true

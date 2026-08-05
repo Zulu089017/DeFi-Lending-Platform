@@ -22,35 +22,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `OpenZeppelin`'s `EIP712Upgradeable` and a pinned
   `RELEASE_TYPEHASH = keccak256("Release(address token,address recipient,uint256 amount,bytes32 stellarTxHash,uint256 nonce)")`.
   This prevents cross-chain and cross-contract replay attacks. Off-chain
-  counterpart: `bridge/src/attest/signer.ts` → `signEvmRelease()`. A
+  counterpart: `services/payment/src/attest/signer.ts` → `signEvmRelease()`. A
   regression test (`release rejects signatures signed for a different
-  domain (B-7)`) in `evm-contracts/test/Bridge.test.ts` proves the
+  domain (B-7)`) in `contracts/test/Bridge.test.ts` proves the
   domain binding works.
 
 ### Added
 - `SECURITY.md` and `CHANGELOG.md` at the repository root.
 - `.github/CODEOWNERS` for default reviewers.
 - `.github/dependabot.yml` for npm, cargo, and GitHub Actions ecosystems.
-- `stellar-contracts/rustfmt.toml` and `clippy.toml` for consistent Rust style.
-- `stellar-contracts/rust-toolchain.toml` pinning the Soroban workspace
+- `contracts/rustfmt.toml` and `clippy.toml` for consistent Rust style.
+- `contracts/rust-toolchain.toml` pinning the Soroban workspace
   to Rust 1.81.0 (avoids the `zeroize 1.9.0` `edition2024` requirement
   that forces Rust >= 1.85). **Removed in the sdk-27 migration** — the
   toolchain is now pinned by CI (`dtolnay/rust-toolchain@1.91.0`, the
   soroban-sdk 27 MSRV); `rust-toolchain.toml` no longer exists in the
-  repo. See `stellar-contracts/BUILD_ENV_NOTES.md`.
+  repo. See `contracts/BUILD_ENV_NOTES.md`.
 - `docs/invariants.md` documenting protocol invariants for auditors.
-- `stellar-contracts/BUILD_ENV_NOTES.md` documenting the known
+- `contracts/BUILD_ENV_NOTES.md` documenting the known
   `cargo test --workspace` dep-resolution blocker and the two real
   paths forward (bump `soroban-sdk` to 22+, or use Docker with a
   pre-baked `Cargo.lock`).
-- 17 `invariant_*` tests in `stellar-contracts/contracts/*/src/lib.rs`
+- 17 `invariant_*` tests in `contracts/contracts/*/src/lib.rs`
   (V-1/V-2/V-3/V-5, C-2/C-4, L-1..L-6/L-9, O-1/O-2/O-3, Q-3/Q-4) and
   `test_TODO_*` stubs (C-1, L-10, Q-1/Q-2) for the documented security
   gaps. The suite executes and passes on the migrated toolchain (Rust
   1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`): 30 passed, 0 failed,
   with only the `test_TODO_*` stubs for the still-open gaps — L-10 and
   Q-1/Q-2 — `#[ignore]`d (C-1 and C-2 are now implemented and tested); see
-  `stellar-contracts/BUILD_ENV_NOTES.md`.
+  `contracts/BUILD_ENV_NOTES.md`.
 - Expanded EVM `Bridge.test.ts` with release, threshold, and pause tests.
 - Expanded `sdk` tests with config, supply, and chain-id coverage.
 - **API integration test suite** (`api/`): vitest + testcontainers
@@ -70,31 +70,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `stellar-contracts` job (was `@stable`, which would also fail
   on 1.97+; the earlier `@1.81.0` pin was superseded as part of the
   soroban-sdk 27 migration).
-- `evm-contracts/contracts/Bridge.sol` now uses `OpenZeppelin`'s `ECDSA` and
+- `contracts/contracts/Bridge.sol` now uses `OpenZeppelin`'s `ECDSA` and
   `MessageHashUtils` libraries instead of a custom signature-recovery
   implementation.
-- `sdk/src/client.ts` adds the missing `supplyCollateral` method so it
-  matches the documented API and `sdk/README.md`.
-- `bridge/src/attest/signer.ts` adds `STELLARPAY_EIP712_DOMAIN`,
+- `packages/sdk/src/client.ts` adds the missing `supplyCollateral` method so it
+  matches the documented API and `packages/sdk/README.md`.
+- `services/payment/src/attest/signer.ts` adds `STELLARPAY_EIP712_DOMAIN`,
   `RELEASE_EIP712_TYPES`, and `signEvmRelease()` (uses
   `ethers.Wallet.signTypedData`) to produce the matching secp256k1
   signatures consumed by `Bridge.release`.
 - `@openzeppelin/hardhat-upgrades@^3.9.0` dev dep + `evmVersion: "cancun"`
   in `hardhat.config.ts` (OZ 5.x's `Bytes.sol` uses the `mcopy` opcode,
   EIP-5656 in the Cancun upgrade).
-- `evm-contracts/contracts/Bridge.sol` now inherits OZ 5.x's
+- `contracts/contracts/Bridge.sol` now inherits OZ 5.x's
   `ReentrancyGuard` (ERC-7201 namespaced storage) in place of the
   removed `ReentrancyGuardUpgradeable`. The new guard is
   `@custom:stateless` and does not shift the contract's linear storage
   layout, so this change is storage-layout-safe for new deployments.
-- `evm-contracts/scripts/deploy.ts` now uses `upgrades.deployProxy`
+- `contracts/scripts/deploy.ts` now uses `upgrades.deployProxy`
   (previously called `initialize()` directly on the implementation,
   which fails with `InvalidInitialization()` in OZ 5.x). New env vars
   `PROXY_ADMIN_ADDRESS` and `OWNER_ADDRESS` let production deploys
   point the ERC-1967 admin and the `Ownable` owner at a multisig; the
   script transfers both ownerships post-deploy and prints a warning if
   either is left as the deployer EOA on a non-hardhat network.
-- `evm-contracts/test/Bridge.test.ts` `deploy()` helper now uses
+- `contracts/test/Bridge.test.ts` `deploy()` helper now uses
   `upgrades.deployProxy` for the same reason; added a B-7 cross-domain
   replay test that forges sigs against a fake bridge address and
   confirms the on-chain EIP-712 wrapping reverts with
