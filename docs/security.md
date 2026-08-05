@@ -68,6 +68,13 @@ listed here so they cannot be forgotten:
       (`propose_bridge` + `execute_bridge` with 24h delay), and
       multi-sig-gated admin management (`add_admin`/`remove_admin`/
       `set_threshold`). Emergency pause remains direct for fast response.
+- [x] `lending_controller.borrow` must enforce a **per-asset LTV** read from
+      the pool's `AssetConfig` rather than a single global constant.
+      **Closed (2026-08)** — `borrow` reads `pool.ltv_bps(collateral_asset)`,
+      caps it at the 75% protocol-wide ceiling (`min(asset_ltv, MAX_LTV_BPS)`
+      as defense-in-depth against misconfiguration), and enforces LTV against
+      cumulative collateral (`vault.position` + newly posted) and cumulative
+      debt (`pool.debt_of` + new amount), priced via the oracle median.
 
 ## Audit
 

@@ -340,6 +340,14 @@ impl LendingPool {
             / debt
     }
 
+    /// Returns the configured max LTV (basis points) for `asset` when used
+    /// as collateral, from the asset's `AssetConfig`. Cross-contract
+    /// callable by the lending controller, which enforces per-asset LTV on
+    /// borrows (`effective = min(asset_ltv_bps, MAX_LTV_BPS)`).
+    pub fn ltv_bps(env: Env, asset: Symbol) -> u32 {
+        Self::asset_config(&env, &asset).ltv_bps
+    }
+
     /// Returns the current borrow APY for `asset` in basis points.
     pub fn borrow_apy_bps(env: Env, asset: Symbol) -> u32 {
         let cfg = Self::asset_config(&env, &asset);

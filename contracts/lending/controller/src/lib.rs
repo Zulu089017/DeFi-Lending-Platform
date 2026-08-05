@@ -14,10 +14,11 @@ use soroban_sdk::{
 /// Default timelock delay in ledgers (~24h with 5s ledger times).
 const TIMELOCK_LEDGERS: u64 = 17_280;
 
-/// Maximum loan-to-value ratio in basis points (75%). When the oracle is
-/// not yet wired per-asset LTV, this global cap is enforced on every
-/// borrow. Production should read per-asset LTV from the pool's
-/// `AssetConfig` and use the minimum of the two.
+/// Protocol-wide ceiling on the loan-to-value ratio in basis points (75%).
+/// The per-asset LTV enforced on every borrow is read from the pool's
+/// `AssetConfig.ltv_bps` for the collateral asset; the effective LTV is
+/// `min(asset_ltv_bps, MAX_LTV_BPS)` so a misconfigured asset can never
+/// exceed this absolute cap.
 const MAX_LTV_BPS: u32 = 7_500;
 
 #[contracttype]
@@ -285,14 +286,21 @@ impl LendingController {
     /// User-facing entry point: borrow against deposited collateral.
     ///
     /// Cross-contract flow:
-    ///   1. `oracle.value_of(collateral_asset, collateral_amount)` — USD value of collateral
-    ///   2. `oracle.value_of(debt_asset, borrow_amount)` — USD value of debt
-    ///   3. Enforce LTV: `debt_value * 10_000 <= collateral_value * MAX_LTV_BPS`
-    ///   4. `vault.deposit(controller, user, collateral_asset, collateral_amount)`
-    ///   5. `pool.borrow(user, debt_asset, borrow_amount)`
+    ///   1. `vault.position(user, collateral_asset)` — existing collateral
+    ///   2. `pool.debt_of(user, debt_asset)` — existing debt
+    ///   3. `oracle.value_of(...)` — USD value of the cumulative collateral
+    ///      (existing position + newly posted amount) and the cumulative
+    ///      debt (existing debt + new amount)
+    ///   4. `pool.ltv_bps(collateral_asset)` — per-asset max LTV from the
+    ///      pool's `AssetConfig`, capped by the protocol-wide `MAX_LTV_BPS`
+    ///   5. Enforce LTV: `debt_value * 10_000 <= collateral_value * ltv_bps`
+    ///   6. `vault.deposit(controller, user, collateral_asset, collateral_amount)`
+    ///   7. `pool.borrow_raw(controller, user, debt_asset, borrow_amount)`
     ///
     /// # Panics
     /// - `"amount must be positive"` if either amount ≤ 0
+    /// - `"asset not configured"` if the collateral asset has no
+    ///   `AssetConfig` in the lending pool (no LTV to enforce)
     /// - `"health factor too low"` if the LTV check fails
     pub fn borrow(
         env: Env,
@@ -308,30 +316,62 @@ impl LendingController {
         }
         Self::require_not_paused(&env);
 
-        // ── Oracle-based LTV enforcement ──
         let oracle_addr = Self::oracle(&env);
+        let pool = Self::lending_pool(&env);
+        let vault = Self::collateral_vault(&env);
+        let controller_addr = env.current_contract_address();
+
+        // ── Per-asset LTV enforcement (oracle-priced, cumulative) ──
+
+        // Cumulative collateral: existing vault position + the amount posted
+        // in this call. Valuing only the marginal `collateral_amount` would
+        // let a user stack borrows that each pass individually while the
+        // aggregate position breaches the LTV.
+        let fn_position = Symbol::new(&env, "position");
+        let position_args: Vec<Val> = soroban_sdk::vec![
+            &env,
+            user.into_val(&env),
+            collateral_asset.into_val(&env),
+        ];
+        let existing_collateral: i128 =
+            env.invoke_contract(&vault, &fn_position, position_args);
+        let total_collateral = existing_collateral
+            .checked_add(collateral_amount)
+            .expect("overflow");
         let collat_value = Self::oracle_value_of(
-            &env, &oracle_addr, &collateral_asset, &collateral_amount,
+            &env, &oracle_addr, &collateral_asset, &total_collateral,
         );
-        let debt_value = Self::oracle_value_of(
-            &env, &oracle_addr, &debt_asset, &borrow_amount,
-        );
-        // require: debt_value * 10_000 <= collat_value * MAX_LTV_BPS
-        // → debt_value * 10_000 <= collat_value * 7_500
-        // → debt_value * 4 <= collat_value * 3 (dividing by 2500)
+
+        // Cumulative debt: existing borrows + the new amount.
+        let fn_debt = Symbol::new(&env, "debt_of");
+        let debt_args: Vec<Val> = soroban_sdk::vec![
+            &env,
+            user.into_val(&env),
+            debt_asset.into_val(&env),
+        ];
+        let existing_debt: i128 = env.invoke_contract(&pool, &fn_debt, debt_args);
+        let total_debt = existing_debt.checked_add(borrow_amount).expect("overflow");
+        let debt_value =
+            Self::oracle_value_of(&env, &oracle_addr, &debt_asset, &total_debt);
+
+        // Per-asset max LTV (bps) read from the pool's `AssetConfig` for the
+        // collateral asset, capped by the protocol-wide ceiling as
+        // defense-in-depth against a misconfigured asset.
+        let fn_ltv = Symbol::new(&env, "ltv_bps");
+        let ltv_args: Vec<Val> = soroban_sdk::vec![&env, collateral_asset.into_val(&env)];
+        let asset_ltv_bps: u32 = env.invoke_contract(&pool, &fn_ltv, ltv_args);
+        let effective_ltv_bps = asset_ltv_bps.min(MAX_LTV_BPS);
+
+        // require: debt_value * 10_000 <= collat_value * effective_ltv_bps
         if debt_value
             .checked_mul(10_000i128)
             .expect("overflow")
             > collat_value
-                .checked_mul(MAX_LTV_BPS as i128)
+                .checked_mul(effective_ltv_bps as i128)
                 .expect("overflow")
         {
             panic!("health factor too low");
         }
-
-        let pool = Self::lending_pool(&env);
-        let vault = Self::collateral_vault(&env);
-        let controller_addr = env.current_contract_address();
 
         // (1) Deposit collateral into the vault on behalf of user.
         let fn_deposit = Symbol::new(&env, "deposit");
@@ -1065,8 +1105,9 @@ mod tests {
         // Register controller as pool operator so borrow_raw works.
         pool_client.add_operator(&ctrl.contract_id);
 
-        // Borrow 5M USDC ($5M at $1.00 → $5M debt, 50% LTV, within 75% max).
-        // collateral_amount=50M XLM adds $5M more to vault.
+        // Borrow 5M USDC: cumulative collateral = 100M (supplied) + 50M
+        // (posted here) = 150M XLM → $15M; debt = $5M → 33% LTV, within the
+        // 75% cap from the pool's AssetConfig.
         ctrl.borrow(&user, &collat_asset, &50_000_000i128, &debt_asset, &5_000_000i128);
 
         // Verify the vault recorded the initial supply + borrow collateral.
@@ -1112,6 +1153,106 @@ mod tests {
         // Try to borrow 100M USDC ($100M) with only 1 additional XLM —
         // 1 XLM collateral ($0.10) vs $100M debt, far exceeds 75% LTV.
         ctrl.borrow(&user, &collat_asset, &1i128, &debt_asset, &100_000_000i128);
+    }
+
+    /// **C-8 (per-asset LTV):** the controller reads `ltv_bps` from the
+    /// pool's `AssetConfig` for the *collateral* asset instead of a global
+    /// constant. Here XLM is configured at a strict 40% — a 30% borrow passes.
+    #[test]
+    fn test_C8_per_asset_ltv_from_pool_config() {
+        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let user = Address::generate(&env);
+        let collat_asset = Symbol::new(&env, "XLM");
+        let debt_asset = Symbol::new(&env, "USDC");
+
+        let pool_client = lending_pool::LendingPoolClient::new(&env, &pool);
+        // Reconfigure XLM (the collateral asset) with a STRICT 40% LTV.
+        pool_client.add_asset(&lending_pool::AssetConfig {
+            asset: collat_asset.clone(),
+            collateral_vault: vault.clone(),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 200,
+            slope1_bps: 1_000,
+            slope2_bps: 13_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 4_000,
+        });
+        pool_client.add_operator(&ctrl.contract_id);
+
+        // Post 100M XLM ($10M) collateral, then borrow while posting 100M
+        // more XLM ($10M) → $20M cumulative collateral.
+        ctrl.supply_collateral(&user, &collat_asset, &100_000_000i128);
+        // Borrow 6M USDC ($6M) = 30% LTV → within the 40% per-asset cap.
+        ctrl.borrow(&user, &collat_asset, &100_000_000i128, &debt_asset, &6_000_000i128);
+
+        let debt = pool_client.debt_of(&user, &debt_asset);
+        assert!(debt >= 6_000_000i128, "borrow at 30% LTV must succeed");
+    }
+
+    /// **C-8 (per-asset LTV negative):** 45% LTV breaches XLM's 40% per-asset
+    /// cap even though it is below the 75% global ceiling — proving the
+    /// per-asset `AssetConfig` value, not the constant, binds.
+    #[test]
+    #[should_panic(expected = "health factor too low")]
+    fn test_C8_per_asset_ltv_exceeded_reverts() {
+        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let user = Address::generate(&env);
+        let collat_asset = Symbol::new(&env, "XLM");
+        let debt_asset = Symbol::new(&env, "USDC");
+
+        let pool_client = lending_pool::LendingPoolClient::new(&env, &pool);
+        pool_client.add_asset(&lending_pool::AssetConfig {
+            asset: collat_asset.clone(),
+            collateral_vault: vault.clone(),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 200,
+            slope1_bps: 1_000,
+            slope2_bps: 13_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 4_000,
+        });
+        pool_client.add_operator(&ctrl.contract_id);
+
+        ctrl.supply_collateral(&user, &collat_asset, &100_000_000i128);
+        // 100M XLM posted → $20M cumulative collateral; borrowing 9M USDC
+        // ($9M) = 45% LTV > 40% per-asset cap → must revert.
+        ctrl.borrow(&user, &collat_asset, &100_000_000i128, &debt_asset, &9_000_000i128);
+    }
+
+    /// **C-8 (protocol ceiling):** an asset configured with `ltv_bps` ABOVE
+    /// the 75% protocol-wide ceiling is clamped to `MAX_LTV_BPS`. Here XLM is
+    /// configured at 90% but an 80% borrow must still revert.
+    #[test]
+    #[should_panic(expected = "health factor too low")]
+    fn test_C8_ltv_capped_at_protocol_ceiling() {
+        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let user = Address::generate(&env);
+        let collat_asset = Symbol::new(&env, "XLM");
+        let debt_asset = Symbol::new(&env, "USDC");
+
+        let pool_client = lending_pool::LendingPoolClient::new(&env, &pool);
+        pool_client.add_asset(&lending_pool::AssetConfig {
+            asset: collat_asset.clone(),
+            collateral_vault: vault.clone(),
+            oracle: Address::generate(&env),
+            ltoken: Address::generate(&env),
+            base_rate_bps: 200,
+            slope1_bps: 1_000,
+            slope2_bps: 13_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 9_000, // 90% — above the 75% protocol-wide ceiling
+        });
+        pool_client.add_operator(&ctrl.contract_id);
+
+        ctrl.supply_collateral(&user, &collat_asset, &100_000_000i128);
+        // $20M cumulative collateral; borrow 16M USDC ($16M) = 80% LTV.
+        // 80% < 90% (asset config) but > 75% (ceiling) → must revert.
+        ctrl.borrow(&user, &collat_asset, &100_000_000i128, &debt_asset, &16_000_000i128);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

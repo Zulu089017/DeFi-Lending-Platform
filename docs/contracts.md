@@ -22,6 +22,7 @@ The core lending protocol contract.
 | `debt_of` | `user, asset` | `debt: i128` | — |
 | `collateral_of` | `user, asset` | `amount: i128` | — |
 | `borrow_apy_bps` | `asset` | `apy: u32` | — |
+| `ltv_bps` | `asset` | `ltv: u32` | — |
 
 **AssetConfig:**
 

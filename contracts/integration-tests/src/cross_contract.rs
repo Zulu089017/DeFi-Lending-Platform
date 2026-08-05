@@ -338,6 +338,53 @@ mod tests {
         assert_eq!(total_deposit, 8_000_000_000);
     }
 
+    /// Per-asset LTV: reconfigure XLM (the collateral asset) to a strict 40%
+    /// cap and verify the controller enforces it across contract boundaries.
+    /// A borrow at 30% LTV succeeds; stacking to 45% reverts even though that
+    /// is still below the 75% global ceiling.
+    #[test]
+    fn test_per_asset_ltv_across_contracts() {
+        let pe = deploy_protocol();
+        let user = Address::from_str(
+            &pe.env,
+            "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+        );
+        let xlm = Symbol::new(&pe.env, "XLM");
+        let usdc = Symbol::new(&pe.env, "USDC");
+
+        // Reconfigure XLM with a strict 40% LTV (overwrites the 75% default).
+        let p = lending_pool::LendingPoolClient::new(&pe.env, &pe.pool_id);
+        p.add_asset(&lending_pool::AssetConfig {
+            asset: xlm.clone(),
+            collateral_vault: pe.vault_id.clone(),
+            oracle: pe.oracle_id.clone(),
+            ltoken: Address::generate(&pe.env),
+            base_rate_bps: 200,
+            slope1_bps: 1_000,
+            slope2_bps: 13_000,
+            kink_bps: 8_000,
+            reserve_factor_bps: 1_000,
+            ltv_bps: 4_000,
+        });
+
+        let c = lending_controller::LendingControllerClient::new(&pe.env, &pe.ctrl_id);
+        do_wrap(&pe, &user, 400_000_000_000i128, 1);
+        c.supply_collateral(&user, &xlm, &100_000_000_000i128);
+
+        // Borrow 6B USDC while posting 100B more XLM: cumulative collateral
+        // 200B XLM vs 6B USDC debt = 30% LTV ≤ 40% → succeeds.
+        c.borrow(&user, &xlm, &100_000_000_000i128, &usdc, &6_000_000_000i128);
+        let debt = p.debt_of(&user, &usdc);
+        assert!(debt >= 6_000_000_000, "30% LTV borrow must succeed");
+
+        // Stack another 3B USDC: cumulative debt 9B / 20B collateral = 45%
+        // LTV > 40% per-asset cap → must revert.
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            c.borrow(&user, &xlm, &1i128, &usdc, &3_000_000_000i128);
+        }));
+        assert!(result.is_err(), "45% LTV must revert under per-asset 40% cap");
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // FUZZ: LENDING POOL MATH (random amounts)
     // ═══════════════════════════════════════════════════════════════════════
