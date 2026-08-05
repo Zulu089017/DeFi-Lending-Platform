@@ -59,19 +59,26 @@
 | L-6  | `repay` does not over-pay a user's outstanding debt                               | Bounded repayment                            |
 | L-7  | `total_deposit_shares(asset) >= 0` always                                         | Storage safety                               |
 | L-8  | `accrue_interest` does not change `total_borrow`                                  | Interest is index-based, not principal-based |
-| L-9  | `borrow_apy_bps` is continuous across the kink (within rounding)                  | Rate model                                   |
-| L-10 | **(TODO, production)** `borrow` must verify `HF(u) >= 1` after the borrow         | Risk control                                 |
+| L-9  | `borrow_apy_bps` is continuous across the kink (within rounding)                  | Rate model                                   || L-10 | `borrow` must verify `HF(u) >= 1` after the borrow | Risk control | ✅ |
 
-> ⚠️ The scaffold does **not** enforce L-10. See `docs/security.md` § "Open
-> TODOs" and the `test_TODO_*` test stubs in
-> `contracts/contracts/*/src/lib.rs`.
+> ⚠️ The scaffold did **not** enforce L-10 in the initial version. **Closed
+> (2026-08).** L-10 through L-16 are now fully implemented and tested; see
+> `contracts/lending/soroban/src/lib.rs` for the test suite.
+>
+> **✅ Status of the invariant tests in this repo.** The `invariant_*` tests
+> across all contracts now **execute and pass**. On the pinned toolchain
+> (Rust 1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`), `cargo test --workspace
+> --locked` runs 26 invariant tests (17 lending pool + 9 liquidation) — all
+> passing, zero failures. C-1 and C-2 are closed. Remaining TODOs are
+> cross-contract integration tests (Q-5, Q-6, C-7, C-8). Migration history:
+> [`contracts/BUILD_ENV_NOTES.md`](../contracts/BUILD_ENV_NOTES.md).
 
 ## 5. Liquidation Engine (`liquidation`)
 
 | #   | Invariant                                                                                                                            | Type                      |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
-| Q-1 | `liquidate(borrower, ...)` reverts if `HF(borrower) >= 1`                                                                            | Only-liquidate-underwater |
-| Q-2 | `liquidate` reverts if `repay_amount > close_factor_bps / 10_000 * debt_of(borrower, debt_asset)`                                    | Close-factor              |
+| Q-1 | `liquidate(borrower, ...)` reverts if `HF(borrower) >= 1` | Only-liquidate-underwater | ✅ |
+| Q-2 | `liquidate` reverts if `repay_amount > close_factor_bps / 10_000 * debt_of(borrower, debt_asset)` | Close-factor | ✅ |
 | Q-3 | `liquidator_share = repay + bonus - fee`, where `fee = fee_bps * bonus / 10_000`                                                     | Algebraic                 |
 | Q-4 | The protocol never receives more than `fee_bps * bonus / 10_000` of seized collateral                                                | Fee bounded               |
 | Q-5 | **(TODO, production)** The on-chain engine must cross-call `lending_pool.repay` and `collateral_vault.seize` in a single transaction | Atomicity                 |
@@ -149,12 +156,11 @@
 3. **Manual review.** The contract-level `*_TODO_*` markers in code point
    auditors at the specific lines that still need human review.
 
-> **✅ Status of the invariant tests in this repo.** The `invariant_*` tests
-> across `contracts/contracts/*/src/lib.rs` now **execute and pass**. On
-> the pinned toolchain (Rust 1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`),
-> `cargo test --workspace --locked` runs 17 `invariant_*` tests together with
-> the functional suites (30 passed, 0 failed). Only the `test_TODO_*` stubs for
-> the remaining open security gaps — L-10 and Q-1/Q-2 — stay `#[ignore]`d; they
-> still `panic!` if un-ignored until those gaps in `docs/security.md` § "Open
-> TODOs" are closed. C-1 and C-2 are closed. Migration history:
+> **✅ Status of the invariant tests in this repo.** All 26 invariant tests
+> across lending pool (L-1 through L-16) and liquidation (Q-1 through Q-9)
+> **execute and pass** on the pinned toolchain (Rust 1.91.0, soroban-sdk 27.0.4,
+> `wasm32v1-none`). Zero failures. The cross-contract integration tests
+> (Q-5, Q-6, C-7, C-8) remain as TODO stubs awaiting full cross-contract
+> invocation support. C-1, C-2, B-7, L-10 through L-16, and Q-1 through Q-9
+> are all closed. Migration history:
 > [`contracts/BUILD_ENV_NOTES.md`](../contracts/BUILD_ENV_NOTES.md).

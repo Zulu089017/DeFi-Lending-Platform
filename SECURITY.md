@@ -13,8 +13,8 @@ Email **security@spg.xyz** with:
 - A clear description of the issue and impact (e.g. loss of funds, DoS, key
   compromise).
 - A reproducible proof-of-concept, test case, or set of steps.
-- The affected subproject and version (`stellar-contracts`, `evm-contracts`,
-  `bridge`, `relayer`, `indexer`, `api`, `sdk`, `frontend`).
+- The affected subproject and version (`contracts`,
+  `services/payment`, `services/cron`, `services/indexer`, `apps/api`, `packages/sdk`, `apps/web`).
 - Your name / handle if you'd like to be credited in the disclosure timeline.
 
 We aim to acknowledge within **3 business days** and to issue a fix or
@@ -24,9 +24,9 @@ mitigation within **30 days** for critical-severity issues.
 
 | Subproject                                               | Audited      | Maintained    |
 | -------------------------------------------------------- | ------------ | ------------- |
-| `stellar-contracts`                                      | ❌ (planned) | ✅ latest tag |
-| `evm-contracts`                                          | ❌ (planned) | ✅ latest tag |
-| `bridge`, `relayer`, `indexer`, `api`, `sdk`, `frontend` | ❌ (planned) | ✅ latest tag |
+| `contracts/` (Soroban)                                   | ❌ (planned) | ✅ latest tag |
+| `contracts/` (EVM)                                       | ❌ (planned) | ✅ latest tag |
+| `services/payment`, `services/cron`, `services/indexer`, `apps/api`, `packages/sdk`, `apps/web` | ❌ (planned) | ✅ latest tag |
 
 Only the latest tagged release of each subproject receives security fixes.
 

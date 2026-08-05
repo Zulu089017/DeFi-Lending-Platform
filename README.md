@@ -9,6 +9,10 @@
 [![Solidity](https://img.shields.io/badge/Solidity-%5E0.8.24-363636.svg)](contracts/hardhat.config.ts)
 [![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF.svg)](.github/workflows/ci.yml)
 [![Code style: rustfmt](https://img.shields.io/badge/code%20style-rustfmt-orange.svg)](contracts/rustfmt.toml)
+[![Turborepo](https://img.shields.io/badge/build-Turborepo-EF4444.svg)](turbo.json)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6.svg)](packages/tsconfig/base.json)
+[![Rust](https://img.shields.io/badge/Rust-1.91-000000.svg)](contracts/rust-toolchain)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
 
 **StellarPay** is a middleware that allows developers on other chains (Ethereum,
 Solana, Polygon) to instantly spin up wrapped versions of their tokens on
@@ -67,7 +71,7 @@ StellarPay/
 ├── services/
 │   ├── payment/          # Cross-chain bridge middleware
 │   ├── cron/             # Transaction relayer service
-│   ├── services/indexer/          # Off-chain indexer
+│   ├── indexer/           # Off-chain indexer
 │   ├── notification/     # Notification service
 │   └── analytics/        # Analytics service
 │
@@ -253,7 +257,9 @@ Apache 2.0 — see [LICENSE](LICENSE).
 ## ⚠️ Status
 
 This repository is a **scaffold / reference implementation**. The smart
-contracts have not been audited and the documented security TODOs in
-[`docs/security.md`](docs/security.md) are still open. **Do not deposit real
-assets.** A formal audit, bug-bounty program, and coordinated disclosure policy
-are tracked in [`SECURITY.md`](SECURITY.md).
+contracts have not been audited. Health factor checks, collateral validation,
+and liquidation invariants are implemented and tested (26 invariant tests pass),
+but several cross-contract integration TODOs remain — see
+[`docs/security.md`](docs/security.md). **Do not deposit real assets.** A
+formal audit, bug-bounty program, and coordinated disclosure policy are tracked
+in [`SECURITY.md`](SECURITY.md).

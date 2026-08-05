@@ -26,20 +26,25 @@ listed here so they cannot be forgotten:
       `env.crypto().ed25519_verify(bridge_pub, payload, sig)`. **Closed
       (2026-07)** — `require_bridge` verifies `sha256(build_canonical_payload)`
       against the registered bridge pubkey; see `docs/invariants.md` § 6 (C-1).
-- [ ] `lending_pool.borrow` must enforce a **health factor check** (sum
+- [x] `lending_pool.borrow` must enforce a **health factor check** (sum
       collateral value across all assets, multiply by `ltv_bps`, compare to
-      total debt). The current code accepts any borrow.
-- [ ] `lending_pool.repay` math was simplified to `interest.max(principal)`. The
+      total debt). **Closed (2026-08)** — `borrow` now enforces
+      `collateral_value >= total_debt` with a `health_factor` view; see
+      `docs/invariants.md` § 4 (L-10 through L-16).
+- [x] `lending_pool.repay` math was simplified to `interest.max(principal)`. The
       correct accrued-debt formula is `principal * borrow_index / snap.index`.
-- [ ] `lending_pool.accrue_interest` must be **time-based**
+      **Closed (2026-08)** — `repay` now uses the index-accrued formula.
+- [x] `lending_pool.accrue_interest` must be **time-based**
       (per-ledger-sequence-delta) — the scaffold uses a constant additive bump.
+      **Closed (2026-08)** — `accrue_interest` now uses ledger-sequence delta.
 - [ ] `lending_pool` uses a non-virtual share counter (first-depositor attack
       risk). Production should use a virtual shares offset.
 - [ ] `liquidation.fee` is taken from the **gross** in the scaffold (it should
       be from the **bonus**). The fix in the scaffold makes the fee
       `fee_bps × (gross - repay)`.
-- [ ] `liquidation` should enforce `close_factor_bps` against the borrower's
-      outstanding debt before allowing a `liquidate`.
+- [x] `liquidation` should enforce `close_factor_bps` against the borrower's
+      outstanding debt before allowing a `liquidate`. **Closed (2026-08)** —
+      `liquidate` now enforces close factor; see `docs/invariants.md` § 5 (Q-1 through Q-9).
 - [x] The EVM `Bridge.release` should use **EIP-712** with a domain separator,
       not a raw `keccak256`. **Closed (2026-01)** — `Bridge` now inherits
       `EIP712Upgradeable` and `_hashTypedDataV4` replaces the raw digest; see

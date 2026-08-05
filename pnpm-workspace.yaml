@@ -4,6 +4,7 @@ packages:
   - "apps/dashboard"
   - "apps/docs"
   - "apps/explorer"
+  - "apps/treasury"
   - "packages/sdk"
   - "packages/ui"
   - "packages/config"
