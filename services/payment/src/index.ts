@@ -6,6 +6,7 @@ import { PolygonWatcher } from "./chains/polygon.js";
 import { SolanaWatcher } from "./chains/solana.js";
 import { StellarWatcher } from "./chains/stellar.js";
 import { StellarMinter } from "./mint/stellarMinter.js";
+import { stellarPayment } from "./stellarPayment.js";
 import { prisma } from "./store/db.js";
 
 let running = true;
