@@ -6,7 +6,7 @@ import { ethers, upgrades } from "hardhat";
 //   keccak256("Release(address token,address recipient,uint256 amount,bytes32 stellarTxHash,uint256 nonce)")
 // EIP-712 canonical type-string rules: no spaces, fields in declaration
 // order, `uint256` not `uint`, `bytes32` not `bytes`.
-const EIP712_DOMAIN = { name: "OpenLend Bridge", version: "1" };
+const EIP712_DOMAIN = { name: "StellarPay Bridge", version: "1" };
 const EIP712_TYPES = {
   Release: [
     { name: "token", type: "address" },

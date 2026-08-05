@@ -117,7 +117,7 @@
 | B-4 | `release` rejects duplicate signatures from the same attester                                                                                                             | Uniqueness        |
 | B-5 | The `attester` set cannot be `threshold == length` (must be strict-less)                                                                                                  | Quorum sanity     |
 | B-6 | `setPaused(true)` halts all `lock`/`burn`/`release` calls                                                                                                                 | Pause surface     |
-| B-7 | `release` uses **EIP-712** (domain `OpenLend Bridge` / `1`, type `Release(address,address,uint256,bytes32,uint256)`); replays across chains / contracts / versions revert | Domain separation |
+| B-7 | `release` uses **EIP-712** (domain `StellarPay Bridge` / `1`, type `Release(address,address,uint256,bytes32,uint256)`); replays across chains / contracts / versions revert | Domain separation |
 
 > ✅ **Closed (2026-01).** `Bridge` now inherits `EIP712Upgradeable`, the
 > `RELEASE_TYPEHASH` is pinned in storage, and `_hashTypedDataV4` replaces the

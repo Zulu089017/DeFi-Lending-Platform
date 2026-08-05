@@ -1,6 +1,6 @@
 # Disaster Recovery Runbook
 
-> How to recover OpenLend services from common failure scenarios.
+> How to recover StellarPay services from common failure scenarios.
 
 ## Severity classification
 
@@ -12,11 +12,11 @@
 
 ## Scenario 1: Bridge pod crashloop
 
-**Symptoms**: `kubectl get pods -n openlend` shows bridge pod restarting.
+**Symptoms**: `kubectl get pods -n spg` shows bridge pod restarting.
 
 **Recovery**:
 
-1. Check logs: `kubectl logs -n openlend deploy/bridge --tail=100`
+1. Check logs: `kubectl logs -n spg deploy/bridge --tail=100`
 2. Common causes: RPC endpoint unreachable, invalid env var, DB connection
    refused.
 3. If RPC is down: switch to backup RPC by updating the ConfigMap and rolling
@@ -24,7 +24,7 @@
 4. If DB is down: follow Postgres recovery (Scenario 4).
 5. If the pod still won't start after fixing the root cause, scale down and back
    up: \
-   `kubectl scale deploy/bridge -n openlend --replicas=0 && sleep 5 && kubectl scale deploy/bridge -n openlend --replicas=1`
+   `kubectl scale deploy/bridge -n spg --replicas=0 && sleep 5 && kubectl scale deploy/bridge -n spg --replicas=1`
 
 ## Scenario 2: Source-chain reorg
 
@@ -65,7 +65,7 @@
    `patronictl switchover <cluster>` (if using Patroni).
 3. If using managed Postgres (RDS, Cloud SQL), failover is automatic.
 4. After recovery, restart all dependent pods: \
-   `kubectl rollout restart deploy -n openlend`
+   `kubectl rollout restart deploy -n spg`
 
 ## Scenario 5: Oracle stale
 
@@ -94,7 +94,7 @@ upgrade.
 
 | Role                       | Name | Contact                    |
 | -------------------------- | ---- | -------------------------- |
-| On-call engineer (primary) | —    | @openlend-oncall on Signal |
+| On-call engineer (primary) | —    | @spg-oncall on Signal |
 | Protocol lead              | —    | —                          |
 | Security lead              | —    | —                          |
 

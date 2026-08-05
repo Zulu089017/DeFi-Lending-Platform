@@ -1,4 +1,4 @@
-# OpenLend — API
+# StellarPay — API
 
 Public REST + WebSocket API that fronts the protocol. The dashboard and the SDK
 both talk to this service. It also streams real-time updates from the indexer DB

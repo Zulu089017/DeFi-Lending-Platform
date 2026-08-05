@@ -1,7 +1,7 @@
 {
-  "name": "@openlend/sdk",
+  "name": "@stellar-payment-gateway/sdk",
   "version": "0.1.0",
-  "description": "OpenLend TypeScript SDK",
+  "description": "StellarPay TypeScript SDK",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",

@@ -1,7 +1,7 @@
 {
-  "name": "@openlend/evm-contracts",
+  "name": "@stellar-payment-gateway/evm-contracts",
   "version": "0.1.0",
-  "description": "OpenLend EVM bridge contracts (Solidity)",
+  "description": "StellarPay EVM bridge contracts (Solidity)",
   "license": "Apache-2.0",
   "scripts": {
     "compile": "hardhat compile",

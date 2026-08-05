@@ -12,4 +12,4 @@ kubectl apply -f k8s/05-api.yaml
 kubectl apply -f k8s/06-frontend.yaml
 kubectl apply -f k8s/07-ingress.yaml
 echo "✔ Stack applied."
-kubectl -n openlend get pods
+kubectl -n spg get pods

@@ -66,9 +66,9 @@ deployed. Recommended firms:
 
 A bug bounty program is planned for after the audit. Bounties will be paid in
 wTKN. Scope, rules, and reward tiers will be published at
-`openlend.xyz/security`.
+`spg.xyz/security`.
 
 ## Disclosure
 
-Please email `security@openlend.xyz` for responsible disclosure. **Do not** open
+Please email `security@spg.xyz` for responsible disclosure. **Do not** open
 public issues for security vulnerabilities.

@@ -1,7 +1,7 @@
 {
-  "name": "@openlend/bridge",
+  "name": "@stellar-payment-gateway/bridge",
   "version": "0.1.0",
-  "description": "OpenLend cross-chain bridge middleware",
+  "description": "StellarPay cross-chain bridge middleware",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",

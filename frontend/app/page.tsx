@@ -30,7 +30,7 @@ const features = [
   {
     icon: Layers,
     title: "Composable SDK",
-    desc: "TypeScript SDK + REST/WS API. Build lending products on top of OpenLend in an afternoon.",
+    desc: "TypeScript SDK + REST/WS API. Build lending products on top of StellarPay in an afternoon.",
   },
   {
     icon: GitBranch,
@@ -55,7 +55,7 @@ export default function Home() {
               Cross-chain lending, <span className="text-gradient">settled on Stellar.</span>
             </h1>
             <p className="mt-6 text-balance text-lg text-muted-foreground sm:text-xl">
-              OpenLend is a middleware that lets any token on any chain become a Stellar-native
+              StellarPay is a middleware that lets any token on any chain become a Stellar-native
               wrapped asset — and then lend, borrow, and earn against it with sub-cent fees and
               5-second finality.
             </p>

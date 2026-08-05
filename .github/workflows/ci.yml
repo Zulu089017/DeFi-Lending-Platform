@@ -132,9 +132,9 @@ jobs:
         with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - if: matrix.prisma
-        run: pnpm --filter "@openlend/${{ matrix.service }}" exec prisma generate
-      - run: pnpm --filter "@openlend/${{ matrix.service }}" exec tsc --noEmit
-      - run: pnpm --filter "@openlend/${{ matrix.service }}" test
+        run: pnpm --filter "@stellar-payment-gateway/${{ matrix.service }}" exec prisma generate
+      - run: pnpm --filter "@stellar-payment-gateway/${{ matrix.service }}" exec tsc --noEmit
+      - run: pnpm --filter "@stellar-payment-gateway/${{ matrix.service }}" test
       - name: Audit (non-blocking, workspace-wide)
         # pnpm audit does not support --filter; run it once at the workspace
         # root and treat as advisory. The api package still reports
@@ -154,15 +154,15 @@ jobs:
       - uses: actions/setup-node@v5
         with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      # @openlend/dashboard depends on @openlend/sdk via `workspace:*`;
+      # @stellar-payment-gateway/dashboard depends on @stellar-payment-gateway/sdk via `workspace:*`;
       # the SDK's `main` points at `dist/index.js`, so it must be built
       # before the frontend can resolve/transpile it.
-      - run: pnpm --filter "@openlend/sdk" build
-      - run: pnpm --filter "@openlend/dashboard" exec tsc --noEmit
-      - run: pnpm --filter "@openlend/dashboard" test
-      - run: pnpm --filter "@openlend/dashboard" exec next lint
+      - run: pnpm --filter "@stellar-payment-gateway/sdk" build
+      - run: pnpm --filter "@stellar-payment-gateway/dashboard" exec tsc --noEmit
+      - run: pnpm --filter "@stellar-payment-gateway/dashboard" test
+      - run: pnpm --filter "@stellar-payment-gateway/dashboard" exec next lint
       - name: Build
-        run: pnpm --filter "@openlend/dashboard" build
+        run: pnpm --filter "@stellar-payment-gateway/dashboard" build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:4000
           NEXT_PUBLIC_STELLAR_CONTROLLER: "CABC"

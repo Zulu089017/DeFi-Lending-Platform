@@ -1,19 +1,19 @@
 # SDK Reference
 
-`@openlend/sdk` is the official TypeScript client.
+`@stellar-payment-gateway/sdk` is the official TypeScript client.
 
 ## Install
 
 ```bash
-pnpm add @openlend/sdk @stellar/stellar-sdk ethers
+pnpm add @stellar-payment-gateway/sdk @stellar/stellar-sdk ethers
 ```
 
 ## Initialize
 
 ```ts
-import { OpenLend } from "@openlend/sdk";
+import { StellarPay } from "@stellar-payment-gateway/sdk";
 
-const openlend = new OpenLend({
+const spg = new StellarPay({
   stellar: {
     rpc: "https://horizon-testnet.stellar.org",
     networkPassphrase: "Test SDF Network ; September 2015",
@@ -30,18 +30,18 @@ const openlend = new OpenLend({
       bridgeAddress: process.env.POLY_BRIDGE!,
     },
   },
-  api: "https://api.openlend.xyz",
+  api: "https://api.spg.xyz",
 });
 ```
 
 ## Wrap
 
 ```ts
-const { sourceTx, stellarTx } = await openlend.wrap({
+const { sourceTx, stellarTx } = await spg.wrap({
   sourceChain: "ethereum",
   token: "0xA0b8...", // USDC
   amount: "100000000", // 100 USDC (6 decimals)
-  stellarDest: openlend.stellar.publicKey,
+  stellarDest: spg.stellar.publicKey,
 });
 const stellarHash = await stellarTx; // resolves when the wrap is observed
 ```
@@ -49,7 +49,7 @@ const stellarHash = await stellarTx; // resolves when the wrap is observed
 ## Unwrap
 
 ```ts
-const { stellarTx } = await openlend.unwrap({
+const { stellarTx } = await spg.unwrap({
   amount: "100000000",
   sourceChain: "ethereum",
   sourceAddr: "0xA0b8...",
@@ -59,20 +59,20 @@ const { stellarTx } = await openlend.unwrap({
 ## Lend / Borrow
 
 ```ts
-await openlend.supply("XLM", "1000000000");
-await openlend.borrow({
+await spg.supply("XLM", "1000000000");
+await spg.borrow({
   collateralAsset: "XLM",
   collateralAmount: "1000000000",
   debtAsset: "USDC",
   borrowAmount: "50000000",
 });
-await openlend.repay("USDC", "50000000");
+await spg.repay("USDC", "50000000");
 ```
 
 ## Liquidate
 
 ```ts
-await openlend.liquidate({
+await spg.liquidate({
   borrower: "G...",
   debtAsset: "USDC",
   collateralAsset: "XLM",
@@ -83,15 +83,15 @@ await openlend.liquidate({
 ## Read API
 
 ```ts
-const markets = await openlend.markets();
-const positions = await openlend.positions("G...");
-const hf = await openlend.healthFactor("G...");
+const markets = await spg.markets();
+const positions = await spg.positions("G...");
+const hf = await spg.healthFactor("G...");
 ```
 
 ## Live stream
 
 ```ts
-const unsub = openlend.stream((evt) => {
+const unsub = spg.stream((evt) => {
   if (evt.type === "lending" && evt.data.type === "liquidate") {
     console.log("💥 liquidation!", evt.data);
   }

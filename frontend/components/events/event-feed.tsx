@@ -1,11 +1,11 @@
 "use client";
-import { useOpenLendStream } from "@/lib/hooks/use-openlend";
+import { useStellarPayStream } from "@/lib/hooks/use-spg";
 import { Badge } from "@/components/ui/badge";
 import { Activity, ArrowDown, ArrowUp, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function EventFeed({ limit = 50, compact = false }: { limit?: number; compact?: boolean }) {
-  const events = useOpenLendStream();
+  const events = useStellarPayStream();
   const items = events.slice(0, limit);
   if (items.length === 0) {
     return (

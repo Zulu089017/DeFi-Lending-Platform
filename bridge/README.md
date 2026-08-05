@@ -1,4 +1,4 @@
-# OpenLend — Bridge Middleware
+# StellarPay — Bridge Middleware
 
 Off-chain TypeScript service that watches `Locked` / `Burned` events on source
 chains (Ethereum, Polygon, Solana) and submits mint transactions to the Soroban

@@ -1,4 +1,4 @@
-# Stale issue / PR management for OpenLend
+# Stale issue / PR management for StellarPay
 # https://github.com/actions/staler
 
 name: "Stale issue handler"

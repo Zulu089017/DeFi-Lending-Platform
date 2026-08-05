@@ -1,6 +1,6 @@
 # Security Policy
 
-> **OpenLend is currently in a scaffold stage and has not been audited.** The
+> **StellarPay is currently in a scaffold stage and has not been audited.** The
 > contracts and off-chain services in this monorepo are reference
 > implementations intended for testnet usage. Do not deposit real assets.
 
@@ -8,7 +8,7 @@
 
 Please **do not** file public issues for security bugs.
 
-Email **security@openlend.xyz** with:
+Email **security@spg.xyz** with:
 
 - A clear description of the issue and impact (e.g. loss of funds, DoS, key
   compromise).
@@ -40,7 +40,7 @@ invariants an audit will check.
 ## Bug bounty
 
 A bug bounty program is planned for after the first independent audit. Scope,
-rules, and reward tiers will be published at `openlend.xyz/security`.
+rules, and reward tiers will be published at `spg.xyz/security`.
 
 ## Disclosure timeline
 

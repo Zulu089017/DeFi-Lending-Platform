@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Husky pre-push hook for OpenLend
+# Husky pre-push hook for StellarPay
 # Runs typecheck and tests before pushing.
 
 echo "🔍 Running typechecks and tests before push..."

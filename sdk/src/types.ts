@@ -18,7 +18,7 @@ export interface Manifest {
   api: string;
 }
 
-export interface OpenLendConfig {
+export interface StellarPayConfig {
   stellar: {
     rpc: string;
     networkPassphrase: string;

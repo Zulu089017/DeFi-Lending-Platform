@@ -1,4 +1,4 @@
-# OpenLend — Relayer
+# StellarPay — Relayer
 
 A small service that takes signed transactions from the bridge or off-chain
 users and submits them to the appropriate chain with retry, gas-bump, and

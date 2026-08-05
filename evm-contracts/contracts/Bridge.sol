@@ -39,9 +39,9 @@ interface IBurnable {
 // upgrade to OZ v6, switch to `ReentrancyGuardTransient` to remove
 // the SSTORE/SLOAD cost on every guarded call.
 
-/// @title OpenLend EVM Bridge
+/// @title StellarPay EVM Bridge
 /// @notice Locks (or burns) canonical ERC-20 tokens on the source chain and emits
-///         events that the off-chain OpenLend bridge middleware watches to
+///         events that the off-chain StellarPay bridge middleware watches to
 ///         mint wrapped tokens on Stellar.
 /// @custom:oz-upgrades Not yet deployed. On a first deployment this layout is
 ///        final; for any pre-existing proxy deployment, upgrading to this
@@ -168,7 +168,7 @@ contract Bridge is
         address[] calldata _attesters,
         uint256 _threshold
     ) external initializer {
-        __EIP712_init("OpenLend Bridge", "1");
+        __EIP712_init("StellarPay Bridge", "1");
         __Ownable_init(msg.sender);
         __Pausable_init();
         // OZ 5.x `ReentrancyGuard` is `@custom:stateless` and uses ERC-7201
@@ -251,7 +251,7 @@ contract Bridge is
     /// @notice Release locked tokens to `recipient` on the source chain, after the
     ///         off-chain bridge has verified a `Unwrap` event on Stellar.
     /// @dev    Only callable when attesters have signed the EIP-712 typed
-    ///         digest. The domain (`OpenLend Bridge` / `1`) is initialised
+    ///         digest. The domain (`StellarPay Bridge` / `1`) is initialised
     ///         in `initialize`; the `Release` type hash is pinned in
     ///         `RELEASE_TYPEHASH`. Closes invariant B-7. Off-chain
     ///         counterpart: `bridge/src/attest/signer.ts` → `signEvmRelease`.

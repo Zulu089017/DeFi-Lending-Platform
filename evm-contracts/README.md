@@ -1,4 +1,4 @@
-# OpenLend — EVM Contracts
+# StellarPay — EVM Contracts
 
 Solidity contracts deployed on source chains (Ethereum, Polygon, BSC, etc.) that
 lock/burn canonical tokens and emit events the off-chain bridge watches.

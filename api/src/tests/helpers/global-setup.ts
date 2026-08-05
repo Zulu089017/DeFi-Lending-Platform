@@ -33,7 +33,7 @@ export async function setup(): Promise<() => Promise<void>> {
   const container: StartedPostgreSqlContainer = await new PostgreSqlContainer(
     "postgres:16-alpine",
   )
-    .withDatabase("openlend_test")
+    .withDatabase("spg_test")
     .withUsername("test")
     .withPassword("test")
     .start();

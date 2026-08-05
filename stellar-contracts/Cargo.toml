@@ -13,7 +13,7 @@ members = [
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
-repository = "https://github.com/openlend/stellar-contracts"
+repository = "https://github.com/stellar-payment-gateway/stellar-payment-gateway-sdk-main/stellar-contracts"
 
 [workspace.dependencies]
 soroban-sdk = "27.0.4"

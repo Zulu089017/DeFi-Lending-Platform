@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide walks through deploying the OpenLend stack from a clean machine to a
+This guide walks through deploying the StellarPay stack from a clean machine to a
 public mainnet-like cluster.
 
 ## 0. Prerequisites
@@ -10,7 +10,7 @@ public mainnet-like cluster.
 - A Postgres database (managed or self-hosted)
 - A container registry (DockerHub, GHCR, ECR, etc.)
 - A Kubernetes cluster (EKS, GKE, DO, k3s, etc.)
-- DNS records for `openlend.xyz` and `api.openlend.xyz`
+- DNS records for `spg.xyz` and `api.spg.xyz`
 
 ## 1. Deploy contracts
 
@@ -44,7 +44,7 @@ run. Commit `sdk/src/manifest.json`, `stellar.toml`, and the frontend copy.
 ## 2. Build & push images
 
 ```bash
-REGISTRY=ghcr.io/openlend TAG=0.1.0 bash infra/scripts/build-images.sh
+REGISTRY=ghcr.io/stellar-payment-gateway TAG=0.1.0 bash infra/scripts/build-images.sh
 ```
 
 ## 3. Configure secrets
@@ -64,8 +64,8 @@ bash infra/scripts/deploy-k8s.sh
 ## 5. Verify
 
 ```bash
-kubectl -n openlend get pods
-kubectl -n openlend port-forward svc/api 4000:80
+kubectl -n spg get pods
+kubectl -n spg port-forward svc/api 4000:80
 curl localhost:4000/health
 ```
 

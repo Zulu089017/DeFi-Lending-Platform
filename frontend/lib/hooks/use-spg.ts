@@ -7,8 +7,8 @@ export interface StreamEvent {
   receivedAt: number;
 }
 
-/** Subscribes to the OpenLend WebSocket stream. Auto-reconnects with backoff. */
-export function useOpenLendStream() {
+/** Subscribes to the StellarPay WebSocket stream. Auto-reconnects with backoff. */
+export function useStellarPayStream() {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);

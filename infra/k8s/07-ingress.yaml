@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: openlend
-  namespace: openlend
+  name: spg
+  namespace: spg
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
@@ -10,16 +10,16 @@ metadata:
 spec:
   ingressClassName: nginx
   tls:
-    - hosts: [openlend.xyz, api.openlend.xyz]
-      secretName: openlend-tls
+    - hosts: [spg.xyz, api.spg.xyz]
+      secretName: spg-tls
   rules:
-    - host: openlend.xyz
+    - host: spg.xyz
       http:
         paths:
           - path: /
             pathType: Prefix
             backend: { service: { name: frontend, port: { number: 80 } } }
-    - host: api.openlend.xyz
+    - host: api.spg.xyz
       http:
         paths:
           - path: /

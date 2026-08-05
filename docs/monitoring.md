@@ -1,4 +1,4 @@
-# OpenLend Monitoring & Observability Guide
+# StellarPay Monitoring & Observability Guide
 
 ## Architecture overview
 
@@ -92,7 +92,7 @@ Every service exposes a `/health` endpoint:
 
 ```bash
 curl http://localhost:4000/health
-# {"ok":true,"service":"openlend-api","uptime":3600}
+# {"ok":true,"service":"spg-api","uptime":3600}
 ```
 
 Kubernetes liveness and readiness probes are configured in each pod's manifest.

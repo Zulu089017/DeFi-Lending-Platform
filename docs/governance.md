@@ -1,10 +1,10 @@
-# OpenLend Governance Model
+# StellarPay Governance Model
 
 > How protocol parameters are proposed, decided, and executed.
 
 ## Principles
 
-OpenLend governance is **minimally viable** at launch: a multisig of trusted
+StellarPay governance is **minimally viable** at launch: a multisig of trusted
 signers that can be replaced by a full DAO after the protocol matures and has
 been audited. The goal is safety-first: enable parameter updates and emergency
 intervention without creating a complex governance token that could be attacked

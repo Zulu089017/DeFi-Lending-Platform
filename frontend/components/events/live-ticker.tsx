@@ -1,8 +1,8 @@
 "use client";
-import { useOpenLendStream } from "@/lib/hooks/use-openlend";
+import { useStellarPayStream } from "@/lib/hooks/use-spg";
 
 export function LiveTicker() {
-  const events = useOpenLendStream();
+  const events = useStellarPayStream();
   if (events.length === 0) return null;
   const recent = events.slice(0, 12);
   return (

@@ -1,6 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: api, namespace: openlend }
+metadata: { name: api, namespace: spg }
 spec:
   replicas: 2
   selector: { matchLabels: { app: api } }
@@ -9,12 +9,12 @@ spec:
     spec:
       containers:
         - name: api
-          image: openlend/api:latest
+          image: spg/api:latest
           # SECRETS: provision an `api-env` Secret out-of-band (see
           # api/.env.example) containing DATABASE_URL, STELLAR_RPC,
           # STELLAR_NETWORK_PASSPHRASE, STELLAR_CONTROLLER, PORT, HOST,
           # LOG_LEVEL. NOTE: CORS_ORIGINS must be a comma-separated list of
-          # allowed origins (e.g. https://openlend.xyz), NEVER "*", in
+          # allowed origins (e.g. https://spg.xyz), NEVER "*", in
           # production.
           envFrom: [{ secretRef: { name: api-env } }]
           ports: [{ containerPort: 4000 }]
@@ -24,7 +24,7 @@ spec:
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: api, namespace: openlend }
+metadata: { name: api, namespace: spg }
 spec:
   selector: { app: api }
   ports: [{ port: 80, targetPort: 4000 }]

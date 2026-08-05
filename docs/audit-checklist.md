@@ -56,7 +56,7 @@
 
 - [ ] All contract addresses pinned in `sdk/src/manifest.json`
 - [ ] `stellar.toml` published and verified
-- [ ] DNS + TLS for `openlend.xyz` and `api.openlend.xyz`
+- [ ] DNS + TLS for `spg.xyz` and `api.spg.xyz`
 - [ ] CORS origins restricted (not `*`)
 - [ ] Rate limiting enabled on API
 - [ ] Monitoring dashboards deployed (Prometheus + Grafana)

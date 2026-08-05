@@ -11,11 +11,11 @@
 #   ed25519 secret keys), ATTESTER_THRESHOLD, LOG_LEVEL, POLL_INTERVAL_MS, PORT
 #
 # Provision with:
-#   kubectl create secret generic bridge-env --namespace openlend --from-env-file=bridge/.env
+#   kubectl create secret generic bridge-env --namespace spg --from-env-file=bridge/.env
 # In production use Sealed Secrets / External Secrets (never plaintext).
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: bridge, namespace: openlend }
+metadata: { name: bridge, namespace: spg }
 spec:
   replicas: 1
   selector: { matchLabels: { app: bridge } }
@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: bridge
-          image: openlend/bridge:latest
+          image: spg/bridge:latest
           envFrom: [{ secretRef: { name: bridge-env } }]
           ports: [{ containerPort: 4100 }]
           resources:

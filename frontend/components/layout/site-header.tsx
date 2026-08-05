@@ -22,11 +22,11 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
-            <span className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-stellar to-polygon text-background">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M12 2 2 22h20L12 2zm0 4.5 6.5 11.5h-13L12 6.5z" /></svg>
+          <Link href="/" className="flex items-center gap-2.5 text-lg font-semibold group">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-background/80 ring-1 ring-border/50 transition-shadow group-hover:shadow-lg group-hover:shadow-stellar/20">
+              <img src="/logo.svg" alt="StellarPay" className="h-5 w-5" />
             </span>
-            <span>OpenLend</span>
+            <span className="bg-gradient-to-r from-stellar to-polygon bg-clip-text text-transparent">StellarPay</span>
           </Link>
           <nav className="hidden gap-1 md:flex">
             {links.map((l) => (
@@ -47,7 +47,7 @@ export function SiteHeader() {
         <div className="hidden items-center gap-3 md:flex">
           <WalletConnect />
           <Button asChild size="sm" variant="outline">
-            <a href="https://github.com/openlend" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="https://github.com/stellar-payment-gateway/stellar-payment-gateway-sdk-main" target="_blank" rel="noreferrer">GitHub</a>
           </Button>
         </div>
 

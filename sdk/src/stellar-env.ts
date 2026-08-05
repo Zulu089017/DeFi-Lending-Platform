@@ -1,4 +1,4 @@
-// Stellar environment configurations for OpenLend.
+// Stellar environment configurations for StellarPay.
 // Import this file to get pre-configured network settings for testnet and mainnet.
 
 import { Networks } from "@stellar/stellar-sdk";

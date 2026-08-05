@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to OpenLend are documented in this file.
+All notable changes to StellarPay are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -75,7 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   implementation.
 - `sdk/src/client.ts` adds the missing `supplyCollateral` method so it
   matches the documented API and `sdk/README.md`.
-- `bridge/src/attest/signer.ts` adds `OPENLEND_EIP712_DOMAIN`,
+- `bridge/src/attest/signer.ts` adds `STELLARPAY_EIP712_DOMAIN`,
   `RELEASE_EIP712_TYPES`, and `signEvmRelease()` (uses
   `ethers.Wallet.signTypedData`) to produce the matching secp256k1
   signatures consumed by `Bridge.release`.
@@ -117,13 +117,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] — 2026-01-15
 
 ### Added
-- Initial scaffold of OpenLend.
+- Initial scaffold of StellarPay.
 - Soroban contracts: `wrapped_asset`, `oracle`, `collateral_vault`,
   `lending_pool`, `liquidation`, `lending_controller`.
 - EVM contracts: `Bridge.sol` (upgradeable, 2-of-N attester multisig),
   `WrappedToken.sol`, `MockERC20.sol`.
 - Off-chain services: `bridge`, `relayer`, `indexer`, `api`.
-- TypeScript SDK: `sdk` (`@openlend/sdk`).
+- TypeScript SDK: `sdk` (`@stellar-payment-gateway/sdk`).
 - Next.js 14 dashboard: landing, dashboard, bridge, lend, liquidations.
 - K8s manifests and Docker Compose for local development.
 - Documentation: architecture, security, deployment, polyrepo, API, SDK.

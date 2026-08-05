@@ -1,7 +1,7 @@
-# OpenLend — Indexer
+# StellarPay — Indexer
 
 Subscribes to **Horizon** (Stellar), **EVM RPC logs** (Ethereum/Polygon), and
-**Solana program logs** to build a queryable Postgres mirror of every OpenLend
+**Solana program logs** to build a queryable Postgres mirror of every StellarPay
 event.
 
 The indexer is read-only and idempotent — it can be safely re-run from any
@@ -26,5 +26,5 @@ pnpm prisma:generate
 pnpm dev
 ```
 
-The HTTP API is also exposed (see `src/api.ts`) — used by the OpenLend
+The HTTP API is also exposed (see `src/api.ts`) — used by the StellarPay
 dashboard.

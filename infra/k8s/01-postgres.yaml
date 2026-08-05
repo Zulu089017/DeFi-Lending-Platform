@@ -5,10 +5,10 @@
 # BEFORE applying this manifest, e.g.:
 #
 #   kubectl create secret generic postgres-credentials \
-#     --namespace openlend \
-#     --from-literal=POSTGRES_USER=openlend \
+#     --namespace spg \
+#     --from-literal=POSTGRES_USER=spg \
 #     --from-literal=POSTGRES_PASSWORD='<strong-password>' \
-#     --from-literal=POSTGRES_DB=openlend
+#     --from-literal=POSTGRES_DB=spg
 #
 # In production use Sealed Secrets (bitnami-labs/sealed-secrets) or an
 # external secrets manager (External Secrets Operator, Vault) so the plaintext
@@ -17,7 +17,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: openlend
+  namespace: spg
 spec:
   ports: [{ port: 5432, targetPort: 5432 }]
   selector: { app: postgres }
@@ -26,7 +26,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: openlend
+  namespace: spg
 spec:
   serviceName: postgres
   replicas: 1

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 
-/** Simple in-memory rate limiter for the OpenLend API.
+/** Simple in-memory rate limiter for the StellarPay API.
  *
  *  Production should use a shared Redis counter so that rate limits are
  *  enforced across all API pod replicas. This module provides a

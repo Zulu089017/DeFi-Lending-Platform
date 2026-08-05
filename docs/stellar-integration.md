@@ -1,6 +1,6 @@
-# OpenLend Stellar Integration Guide
+# StellarPay Stellar Integration Guide
 
-> How OpenLend follows Stellar Ecosystem Proposals (SEPs) and integrates with
+> How StellarPay follows Stellar Ecosystem Proposals (SEPs) and integrates with
 > the Stellar network.
 
 ## SEP Compliance
@@ -37,7 +37,7 @@
 
 ## Wallet Integration
 
-OpenLend supports the following Stellar wallets:
+StellarPay supports the following Stellar wallets:
 
 | Wallet                                  | Status       | Notes                      |
 | --------------------------------------- | ------------ | -------------------------- |
@@ -48,7 +48,7 @@ OpenLend supports the following Stellar wallets:
 
 ## Soroban Contract Deployment
 
-The OpenLend contracts are deployed as Soroban **WASM** contracts on the Stellar
+The StellarPay contracts are deployed as Soroban **WASM** contracts on the Stellar
 network. Each contract is independently upgradeable by the `lending_controller`
 admin (with timelock + multisig in production).
 
@@ -77,7 +77,7 @@ contract.
 
 ## Event Streaming
 
-OpenLend uses Stellar Horizon's **transaction streaming** to observe contract
+StellarPay uses Stellar Horizon's **transaction streaming** to observe contract
 events in near-real-time:
 
 1. The `indexer` service subscribes to Horizon's

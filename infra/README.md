@@ -1,6 +1,6 @@
-# OpenLend — Infrastructure
+# StellarPay — Infrastructure
 
-This directory contains everything you need to run the OpenLend stack locally
+This directory contains everything you need to run the StellarPay stack locally
 for development and to deploy it to a Kubernetes cluster for production.
 
 ## Layout

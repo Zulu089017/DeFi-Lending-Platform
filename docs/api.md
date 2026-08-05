@@ -1,10 +1,10 @@
 # API Reference
 
-The OpenLend API is a Fastify-based REST + WebSocket service.
+The StellarPay API is a Fastify-based REST + WebSocket service.
 
-- **Base URL:** `https://api.openlend.xyz` (production) /
+- **Base URL:** `https://api.spg.xyz` (production) /
   `http://localhost:4000` (local)
-- **WebSocket:** `wss://api.openlend.xyz/v1/stream`
+- **WebSocket:** `wss://api.spg.xyz/v1/stream`
 - **Content type:** `application/json`
 - **CORS:** open in dev, restricted in prod
 
@@ -12,7 +12,7 @@ The OpenLend API is a Fastify-based REST + WebSocket service.
 
 ### `GET /health`
 
-Returns `{ ok: true, service: "openlend-api" }`.
+Returns `{ ok: true, service: "spg-api" }`.
 
 ### `GET /v1/markets`
 
@@ -74,7 +74,7 @@ and `?asset=...`.
 
 ## WebSocket
 
-Connect to `wss://api.openlend.xyz/v1/stream`. The server pushes JSON frames:
+Connect to `wss://api.spg.xyz/v1/stream`. The server pushes JSON frames:
 
 ```json
 { "type": "wrap",    "data": { "id": "...", "txHash": "...", "amount": "1000000", ... } }

@@ -6,7 +6,7 @@ import { Wallet } from "lucide-react";
 type WalletKind = "none" | "stellar" | "ethereum";
 type Account = { kind: WalletKind; address: string };
 
-const STORAGE = "openlend:wallet";
+const STORAGE = "spg:wallet";
 
 export function WalletConnect() {
   const [account, setAccount] = useState<Account | null>(null);

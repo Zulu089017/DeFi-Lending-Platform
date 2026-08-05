@@ -4,7 +4,7 @@ const nextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
   },
-  transpilePackages: ["@openlend/sdk"],
+  transpilePackages: ["@stellar-payment-gateway/sdk"],
   async headers() {
     return [
       {

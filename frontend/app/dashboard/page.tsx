@@ -12,7 +12,7 @@ export default function DashboardPage() {
       <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Protocol Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Real-time overview of OpenLend markets and activity.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Real-time overview of StellarPay markets and activity.</p>
         </div>
       </div>
 

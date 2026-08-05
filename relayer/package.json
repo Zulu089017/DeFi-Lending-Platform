@@ -1,7 +1,7 @@
 {
-  "name": "@openlend/relayer",
+  "name": "@stellar-payment-gateway/relayer",
   "version": "0.1.0",
-  "description": "OpenLend cross-chain relayer service",
+  "description": "StellarPay cross-chain relayer service",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",

@@ -1,6 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata: { name: indexer, namespace: openlend }
+metadata: { name: indexer, namespace: spg }
 spec:
   replicas: 1
   selector: { matchLabels: { app: indexer } }
@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
         - name: indexer
-          image: openlend/indexer:latest
+          image: spg/indexer:latest
           # SECRETS: provision an `indexer-env` Secret out-of-band (see
           # indexer/.env.example) containing DATABASE_URL, STELLAR_RPC,
           # STELLAR_CONTROLLER, ETHEREUM_RPC, ETHEREUM_BRIDGE, etc.
@@ -21,7 +21,7 @@ spec:
 ---
 apiVersion: v1
 kind: Service
-metadata: { name: indexer, namespace: openlend }
+metadata: { name: indexer, namespace: spg }
 spec:
   selector: { app: indexer }
   ports: [{ port: 4200, targetPort: 4200 }]

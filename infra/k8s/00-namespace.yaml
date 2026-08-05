@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: openlend
+  name: spg
   labels:
-    name: openlend
-    app.kubernetes.io/part-of: openlend
+    name: spg
+    app.kubernetes.io/part-of: spg

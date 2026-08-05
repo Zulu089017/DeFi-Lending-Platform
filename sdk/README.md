@@ -1,21 +1,21 @@
-# @openlend/sdk
+# @stellar-payment-gateway/sdk
 
-A TypeScript SDK for the OpenLend protocol. Wrap tokens from any supported
+A TypeScript SDK for the StellarPay protocol. Wrap tokens from any supported
 source chain, supply/borrow/liquidate on Stellar, and stream real-time events
-from the OpenLend API.
+from the StellarPay API.
 
 ## Install
 
 ```bash
-pnpm add @openlend/sdk @stellar/stellar-sdk ethers
+pnpm add @stellar-payment-gateway/sdk @stellar/stellar-sdk ethers
 ```
 
 ## Quick start
 
 ```ts
-import { OpenLend } from "@openlend/sdk";
+import { StellarPay } from "@stellar-payment-gateway/sdk";
 
-const openlend = new OpenLend({
+const spg = new StellarPay({
   stellar: {
     rpc: "https://horizon-testnet.stellar.org",
     networkPassphrase: "Test SDF Network ; September 2015",
@@ -33,21 +33,21 @@ const openlend = new OpenLend({
       bridgeAddress: process.env.POLY_BRIDGE!,
     },
   },
-  api: "https://api.openlend.xyz",
+  api: "https://api.spg.xyz",
 });
 
 // Wrap: lock 100 USDC on Ethereum, receive 100 wUSDC on Stellar
-const wrap = await openlend.wrap({
+const wrap = await spg.wrap({
   sourceChain: "ethereum",
   token: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
   amount: "100000000", // 6 decimals
-  stellarDest: openlend.stellar.publicKey,
+  stellarDest: spg.stellar.publicKey,
 });
 console.log(wrap.sourceTx, "→", await wrap.stellarTx);
 
 // Lend: supply collateral, borrow
-await openlend.supplyCollateral("XLM", "1000000000"); // 100 XLM
-await openlend.borrow({
+await spg.supplyCollateral("XLM", "1000000000"); // 100 XLM
+await spg.borrow({
   collateralAsset: "XLM",
   collateralAmount: "1000000000",
   debtAsset: "USDC",
@@ -55,7 +55,7 @@ await openlend.borrow({
 });
 
 // Stream live events
-const unsub = openlend.stream((evt) => {
+const unsub = spg.stream((evt) => {
   if (evt.type === "wrap") console.log("🌉 new wrap", evt.data);
   if (evt.type === "unwrap") console.log("🌉 new unwrap", evt.data);
   if (evt.type === "lending" && evt.data.type === "liquidate")
@@ -65,17 +65,17 @@ const unsub = openlend.stream((evt) => {
 
 ## API
 
-- `openlend.wrap(...)`
-- `openlend.unwrap(...)`
-- `openlend.supply(...)`
-- `openlend.withdraw(...)`
-- `openlend.borrow(...)`
-- `openlend.repay(...)`
-- `openlend.liquidate(borrower, debtAsset, collateralAsset, repayAmount)`
-- `openlend.markets()` → market list
-- `openlend.positions(user)` → positions
-- `openlend.healthFactor(user)` → number
-- `openlend.stream(handler)` → unsubscribe function
+- `spg.wrap(...)`
+- `spg.unwrap(...)`
+- `spg.supply(...)`
+- `spg.withdraw(...)`
+- `spg.borrow(...)`
+- `spg.repay(...)`
+- `spg.liquidate(borrower, debtAsset, collateralAsset, repayAmount)`
+- `spg.markets()` → market list
+- `spg.positions(user)` → positions
+- `spg.healthFactor(user)` → number
+- `spg.stream(handler)` → unsubscribe function
 
 ## Manifest
 

@@ -42,7 +42,7 @@ export async function buildApp(opts: {
     app.addHook("preHandler", rateLimiter(limit, windowMs));
   }
 
-  app.get("/health", async () => ({ ok: true, service: "openlend-api", uptime: process.uptime() }));
+  app.get("/health", async () => ({ ok: true, service: "spg-api", uptime: process.uptime() }));
 
   await app.register(marketsRoutes);
   await app.register(positionsRoutes);
@@ -59,7 +59,7 @@ import { fileURLToPath } from "url";
 async function main() {
   const app = await buildApp();
   await app.listen({ port: config.PORT, host: config.HOST });
-  app.log.info(`🚀 OpenLend API listening on :${config.PORT}`);
+  app.log.info(`🚀 StellarPay API listening on :${config.PORT}`);
 
   // H9 FIX: Graceful shutdown on SIGTERM/SIGINT.
   const shutdown = async (signal: string) => {

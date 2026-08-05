@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 docker compose -f docker-compose.dev.yml up -d
 echo "Waiting for Postgres..."
 for i in {1..30}; do
-  docker compose -f docker-compose.dev.yml exec -T postgres pg_isready -U openlend && break
+  docker compose -f docker-compose.dev.yml exec -T postgres pg_isready -U spg && break
   sleep 1
 done
 
@@ -17,5 +17,5 @@ for d in ../bridge ../relayer ../indexer ../api; do
 done
 
 echo "✔ Dev stack is up."
-echo "  Postgres:  localhost:5432  (openlend / openlend)"
+echo "  Postgres:  localhost:5432  (spg / spg)"
 echo "  Redis:     localhost:6379"

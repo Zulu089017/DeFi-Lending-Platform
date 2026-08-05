@@ -1,5 +1,5 @@
 "use client";
-import { useMarkets } from "@/lib/hooks/use-openlend";
+import { useMarkets } from "@/lib/hooks/use-spg";
 import { formatNumber } from "@/lib/utils";
 import { TrendingUp, TrendingDown } from "lucide-react";
 

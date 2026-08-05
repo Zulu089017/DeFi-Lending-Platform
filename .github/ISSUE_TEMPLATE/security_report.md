@@ -9,7 +9,7 @@ type: "Security"
 
 <!--
   ⚠️ IMPORTANT: If this is a live vulnerability that could result in loss of
-  funds, please email security@openlend.xyz instead of filing this issue.
+  funds, please email security@spg.xyz instead of filing this issue.
   See SECURITY.md for the disclosure policy.
 -->
 

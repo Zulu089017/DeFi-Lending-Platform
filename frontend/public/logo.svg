@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="logo-grad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#08B5E5"/>
+      <stop offset="100%" stop-color="#14F195"/>
+    </linearGradient>
+    <linearGradient id="logo-grad-light" x1="44" y1="4" x2="4" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#14F195"/>
+      <stop offset="100%" stop-color="#08B5E5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer rounded square (payment gateway frame) -->
+  <rect x="4" y="4" width="40" height="40" rx="10" stroke="url(#logo-grad)" stroke-width="3" fill="none"/>
+
+  <!-- Stellar star / payment arrows -->
+  <path d="M24 10L28 20L24 28L20 20Z" fill="url(#logo-grad)" opacity="0.9"/>
+
+  <!-- Send arrow (right) -->
+  <path d="M32 24L36 24M30 18L36 24L30 30" stroke="url(#logo-grad-light)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Send arrow (left/down) -->
+  <path d="M12 28L12 24M18 30L12 24L18 18" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Center node -->
+  <circle cx="24" cy="24" r="2.5" fill="url(#logo-grad-light)"/>
+</svg>

@@ -4,9 +4,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: openlend
-      POSTGRES_PASSWORD: openlend
-      POSTGRES_DB: openlend
+      POSTGRES_USER: spg
+      POSTGRES_PASSWORD: spg
+      POSTGRES_DB: spg
     ports: ["5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data

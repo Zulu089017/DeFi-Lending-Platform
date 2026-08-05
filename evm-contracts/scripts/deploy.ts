@@ -22,7 +22,7 @@ async function main() {
 
   // 1. Wrapped token (canonical on this chain)
   const Token = await ethers.getContractFactory("WrappedToken");
-  const token = await Token.deploy("OpenLend Test", "oTST", ethers.parseEther("1000000"), owner);
+  const token = await Token.deploy("StellarPay Test", "oTST", ethers.parseEther("1000000"), owner);
   await token.waitForDeployment();
   console.log(`  WrappedToken: ${await token.getAddress()}`);
 

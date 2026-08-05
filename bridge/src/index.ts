@@ -18,7 +18,7 @@ function startHealthServer() {
   const server = createServer((req, res) => {
     if (req.url === "/health") {
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true, service: "openlend-bridge", uptime: process.uptime() }));
+      res.end(JSON.stringify({ ok: true, service: "spg-bridge", uptime: process.uptime() }));
       return;
     }
     res.writeHead(404);
@@ -31,7 +31,7 @@ function startHealthServer() {
 }
 
 async function main() {
-  logger.info("🚀 OpenLend bridge starting");
+  logger.info("🚀 StellarPay bridge starting");
 
   const eth = new EthereumWatcher();
   const poly = new PolygonWatcher();

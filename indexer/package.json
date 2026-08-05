@@ -1,7 +1,7 @@
 {
-  "name": "@openlend/indexer",
+  "name": "@stellar-payment-gateway/indexer",
   "version": "0.1.0",
-  "description": "OpenLend off-chain indexer (Horizon + EVM + Solana → Postgres)",
+  "description": "StellarPay off-chain indexer (Horizon + EVM + Solana → Postgres)",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",

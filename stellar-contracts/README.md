@@ -1,6 +1,6 @@
-# OpenLend — Stellar (Soroban) Contracts
+# StellarPay — Stellar (Soroban) Contracts
 
-The on-chain core of the OpenLend protocol, written in Rust for
+The on-chain core of the StellarPay protocol, written in Rust for
 [Soroban](https://soroban.stellar.org/) — Stellar's smart-contract runtime.
 
 ## Contracts

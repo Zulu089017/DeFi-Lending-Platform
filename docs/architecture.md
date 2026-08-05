@@ -1,6 +1,6 @@
-# OpenLend Architecture
+# StellarPay Architecture
 
-This document is the canonical reference for how the OpenLend protocol is
+This document is the canonical reference for how the StellarPay protocol is
 designed and how its components talk to each other.
 
 ## 1. Goals
@@ -27,7 +27,7 @@ designed and how its components talk to each other.
 | Relayer           | TypeScript           | `relayer/`           | Submits signed transactions to all chains with retries & gas bumps             |
 | Indexer           | TypeScript           | `indexer/`           | Subscribes to Horizon + EVM RPC, persists to Postgres                          |
 | API               | TypeScript (Fastify) | `api/`               | Public REST + WebSocket API for SDK & dashboard                                |
-| SDK               | TypeScript           | `sdk/`               | Client library: `openlend.wrap(...)`, `openlend.lend(...)`, etc.               |
+| SDK               | TypeScript           | `sdk/`               | Client library: `spg.wrap(...)`, `spg.lend(...)`, etc.               |
 | Frontend          | TypeScript (Next.js) | `frontend/`          | Dashboard, bridge UI, lending UI, liquidation monitor                          |
 
 ## 3. Token Lifecycle

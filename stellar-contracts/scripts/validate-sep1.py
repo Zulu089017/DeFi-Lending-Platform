@@ -104,7 +104,7 @@ def onchain_exists(contract_id: str) -> bool:
             "Content-Type": "application/json",
             # soroban-testnet.stellar.org returns 403 to urllib's default
             # "Python-urllib/3.x" User-Agent; identify explicitly.
-            "User-Agent": "openlend-sep1-validator/1.0",
+            "User-Agent": "spg-sep1-validator/1.0",
         },
     )
     try:

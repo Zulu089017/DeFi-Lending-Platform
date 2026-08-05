@@ -9,7 +9,7 @@ export function attachWebsocket(app: FastifyInstance) {
   const wss = new WebSocketServer({ server: app.server, path: "/v1/stream" });
 
   wss.on("connection", (ws) => {
-    ws.send(JSON.stringify({ type: "hello", message: "openlend-stream" }));
+    ws.send(JSON.stringify({ type: "hello", message: "spg-stream" }));
   });
 
   const seen = {

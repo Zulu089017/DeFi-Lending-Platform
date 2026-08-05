@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { OpenLend } from "../src/index.js";
+import { StellarPay } from "../src/index.js";
 import { Keypair } from "@stellar/stellar-sdk";
 
 const TEST_CONFIG = {
@@ -19,16 +19,16 @@ const TEST_CONFIG = {
   api: "http://localhost:4000",
 } as const;
 
-describe("OpenLend SDK", () => {
+describe("StellarPay SDK", () => {
   it("constructs with a valid config", () => {
-    const o = new OpenLend({ ...TEST_CONFIG });
+    const o = new StellarPay({ ...TEST_CONFIG });
     expect(o.stellar.publicKey).toMatch(/^G[A-Z2-7]+$/);
   });
 
   it("throws on an invalid Stellar secret key", () => {
     expect(
       () =>
-        new OpenLend({
+        new StellarPay({
           ...TEST_CONFIG,
           stellar: { ...TEST_CONFIG.stellar, secretKey: "not-a-secret" },
         }),
@@ -36,7 +36,7 @@ describe("OpenLend SDK", () => {
   });
 
   it("preserves the provided chain ids in the EVM map", () => {
-    const o = new OpenLend({
+    const o = new StellarPay({
       ...TEST_CONFIG,
       evm: {
         ethereum: TEST_CONFIG.evm.ethereum,
@@ -53,13 +53,13 @@ describe("OpenLend SDK", () => {
   });
 });
 
-describe("OpenLend.chainIdToU32 (private, tested via unwrap behaviour)", () => {
+describe("StellarPay.chainIdToU32 (private, tested via unwrap behaviour)", () => {
   // The chain-id mapping is private, so we exercise it through `unwrap`,
   // which throws a clear error if the chain is unsupported. We only assert
   // that known chains produce a *valid* Stellar transaction; the network
   // call itself is mocked by `fetch` interception in the indexer suite.
   it("rejects unsupported source chains with a clear message", async () => {
-    const o = new OpenLend({ ...TEST_CONFIG });
+    const o = new StellarPay({ ...TEST_CONFIG });
     // We don't have a server to talk to; this just checks the early reject
     // path. `await Promise.reject(...)` would swallow the throw, so we use
     // a sync try/catch.
@@ -79,9 +79,9 @@ describe("OpenLend.chainIdToU32 (private, tested via unwrap behaviour)", () => {
   });
 });
 
-describe("OpenLend.supplyCollateral (deprecated alias)", () => {
+describe("StellarPay.supplyCollateral (deprecated alias)", () => {
   it("forwards to supply without modification", async () => {
-    const o = new OpenLend({ ...TEST_CONFIG });
+    const o = new StellarPay({ ...TEST_CONFIG });
     const spy = vi.spyOn(o, "supply");
     spy.mockResolvedValue({ hash: "fake-hash" });
     const r = await o.supplyCollateral("XLM", "100");
@@ -92,7 +92,7 @@ describe("OpenLend.supplyCollateral (deprecated alias)", () => {
 
 describe("Keypair.fromSecret round-trip", () => {
   it("derives the same public key as the SDK", () => {
-    const o = new OpenLend({ ...TEST_CONFIG });
+    const o = new StellarPay({ ...TEST_CONFIG });
     const kp = Keypair.fromSecret(TEST_CONFIG.stellar.secretKey);
     expect(o.stellar.publicKey).toBe(kp.publicKey());
   });

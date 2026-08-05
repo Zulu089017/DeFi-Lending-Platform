@@ -1,6 +1,6 @@
-# CODEOWNERS — default reviewers for OpenLend
+# CODEOWNERS — default reviewers for StellarPay
 #
-# NOTE: This is a *template* file. The team handles below (`@openlend/*`)
+# NOTE: This is a *template* file. The team handles below (`@stellar-payment-gateway/*`)
 # are placeholders that **do not exist** in the current GitHub org, so
 # no review requests will fire until the teams are created and the
 # handles are updated. When the team is established, run a one-time
@@ -10,40 +10,40 @@
 # requested for review automatically on PRs that touch a matching path.
 
 # Default owner for everything in the repo
-*       @openlend/maintainers
+*       @stellar-payment-gateway/maintainers
 
 # Soroban smart contracts (Rust)
-stellar-contracts/contracts/wrapped_asset/        @openlend/soroban-reviewers
-stellar-contracts/contracts/oracle/               @openlend/soroban-reviewers
-stellar-contracts/contracts/collateral_vault/     @openlend/soroban-reviewers
-stellar-contracts/contracts/lending_pool/         @openlend/soroban-reviewers
-stellar-contracts/contracts/liquidation/          @openlend/soroban-reviewers
-stellar-contracts/contracts/lending_controller/   @openlend/soroban-reviewers
-stellar-contracts/Cargo.toml                     @openlend/soroban-reviewers
-stellar-contracts/scripts/                       @openlend/soroban-reviewers
+stellar-contracts/contracts/wrapped_asset/        @stellar-payment-gateway/soroban-reviewers
+stellar-contracts/contracts/oracle/               @stellar-payment-gateway/soroban-reviewers
+stellar-contracts/contracts/collateral_vault/     @stellar-payment-gateway/soroban-reviewers
+stellar-contracts/contracts/lending_pool/         @stellar-payment-gateway/soroban-reviewers
+stellar-contracts/contracts/liquidation/          @stellar-payment-gateway/soroban-reviewers
+stellar-contracts/contracts/lending_controller/   @stellar-payment-gateway/soroban-reviewers
+stellar-contracts/Cargo.toml                     @stellar-payment-gateway/soroban-reviewers
+stellar-contracts/scripts/                       @stellar-payment-gateway/soroban-reviewers
 
 # EVM contracts (Solidity)
-evm-contracts/contracts/                         @openlend/evm-reviewers
-evm-contracts/test/                              @openlend/evm-reviewers
-evm-contracts/scripts/                           @openlend/evm-reviewers
-evm-contracts/hardhat.config.ts                  @openlend/evm-reviewers
+evm-contracts/contracts/                         @stellar-payment-gateway/evm-reviewers
+evm-contracts/test/                              @stellar-payment-gateway/evm-reviewers
+evm-contracts/scripts/                           @stellar-payment-gateway/evm-reviewers
+evm-contracts/hardhat.config.ts                  @stellar-payment-gateway/evm-reviewers
 
 # Off-chain services (TypeScript)
-bridge/        @openlend/offchain-reviewers
-relayer/       @openlend/offchain-reviewers
-indexer/       @openlend/offchain-reviewers
-api/           @openlend/offchain-reviewers
-sdk/           @openlend/offchain-reviewers
+bridge/        @stellar-payment-gateway/offchain-reviewers
+relayer/       @stellar-payment-gateway/offchain-reviewers
+indexer/       @stellar-payment-gateway/offchain-reviewers
+api/           @stellar-payment-gateway/offchain-reviewers
+sdk/           @stellar-payment-gateway/offchain-reviewers
 
 # Frontend
-frontend/      @openlend/frontend-reviewers
+frontend/      @stellar-payment-gateway/frontend-reviewers
 
 # Infrastructure & docs
-infra/         @openlend/devops-reviewers
-docs/          @openlend/docs-reviewers
-.github/       @openlend/devops-reviewers
+infra/         @stellar-payment-gateway/devops-reviewers
+docs/          @stellar-payment-gateway/docs-reviewers
+.github/       @stellar-payment-gateway/devops-reviewers
 
 # Anything security-sensitive
-SECURITY.md    @openlend/security-reviewers
-docs/security.md  @openlend/security-reviewers
-docs/invariants.md @openlend/security-reviewers
+SECURITY.md    @stellar-payment-gateway/security-reviewers
+docs/security.md  @stellar-payment-gateway/security-reviewers
+docs/invariants.md @stellar-payment-gateway/security-reviewers

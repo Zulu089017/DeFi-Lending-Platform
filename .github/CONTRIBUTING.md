@@ -1,4 +1,4 @@
-# Contributing to OpenLend
+# Contributing to StellarPay
 
 Thanks for your interest in contributing! 🎉
 
@@ -44,7 +44,7 @@ to.
 ## Security
 
 If you discover a security vulnerability, please **do not** open a public issue.
-Email `security@openlend.xyz` with details. See
+Email `security@spg.xyz` with details. See
 [`docs/security.md`](../docs/security.md) for the threat model.
 
 ## Code of conduct

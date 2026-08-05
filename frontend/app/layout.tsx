@@ -9,10 +9,11 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "OpenLend — Cross-Chain Lending on Stellar",
+  title: "StellarPay — Cross-Chain Lending on Stellar",
   description: "Wrap tokens from any chain and lend on Stellar. Real-time cross-chain settlement, automated liquidations.",
+  icons: { icon: "/favicon.svg" },
   openGraph: {
-    title: "OpenLend",
+    title: "StellarPay",
     description: "Decentralized cross-chain lending protocol on Stellar",
     type: "website",
   },
@@ -28,10 +29,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <main className="flex-1">{children}</main>
             <footer className="border-t border-border/40 py-8 text-sm text-muted-foreground">
               <div className="container flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-                <p>© 2026 OpenLend. Built on Stellar.</p>
+                <p>© 2026 StellarPay. Built on Stellar.</p>
                 <p>
                   Powered by Soroban · Horizon ·{" "}
-                  <a className="hover:text-primary" href="https://github.com/openlend">GitHub</a>
+                  <a className="hover:text-primary" href="https://github.com/stellar-payment-gateway/stellar-payment-gateway-sdk-main">GitHub</a>
                 </p>
               </div>
             </footer>

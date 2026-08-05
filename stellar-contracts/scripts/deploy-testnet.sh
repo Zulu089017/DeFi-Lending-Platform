@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────────────
-# Deploy all OpenLend Soroban contracts to Stellar testnet.
+# Deploy all StellarPay Soroban contracts to Stellar testnet.
 #
 # Thin wrapper around deploy-testnet.mjs (stellar-sdk v16, no stellar CLI
 # required). Builds the WASMs for wasm32v1-none first, then runs the JS

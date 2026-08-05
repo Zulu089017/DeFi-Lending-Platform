@@ -1,5 +1,5 @@
 import manifest_ from "./manifest.json" with { type: "json" };
-import type { Manifest, OpenLendConfig, WrapRequest, WrapResult, UnwrapRequest, Market, Position, StreamEvent } from "./types.js";
+import type { Manifest, StellarPayConfig, WrapRequest, WrapResult, UnwrapRequest, Market, Position, StreamEvent } from "./types.js";
 import { ethers } from "ethers";
 import {
   Horizon,
@@ -18,13 +18,13 @@ const BRIDGE_ABI = [
   "function release(address token, address recipient, uint256 amount, bytes32 stellarTxHash, uint256 nonce, bytes[] calldata signatures) external",
 ];
 
-export class OpenLend {
-  readonly config: OpenLendConfig;
+export class StellarPay {
+  readonly config: StellarPayConfig;
   readonly manifest: Manifest = manifest_ as Manifest;
   readonly stellar: { keypair: Keypair; publicKey: string; server: Horizon.Server };
   readonly evm: Record<string, { provider: ethers.JsonRpcProvider; bridge: ethers.Contract }>;
 
-  constructor(config: OpenLendConfig) {
+  constructor(config: StellarPayConfig) {
     this.config = config;
     const kp = Keypair.fromSecret(config.stellar.secretKey);
     this.stellar = {

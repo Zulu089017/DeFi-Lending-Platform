@@ -1,6 +1,6 @@
 "use client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { useMarkets } from "@/lib/hooks/use-openlend";
+import { useMarkets } from "@/lib/hooks/use-spg";
 
 export function UtilizationChart() {
   const markets = useMarkets();

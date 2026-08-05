@@ -6,7 +6,7 @@ let running = true;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 async function main() {
-  logger.info("🚀 OpenLend relayer starting");
+  logger.info("🚀 StellarPay relayer starting");
   const r = new Relayer();
   const tick = async () => {
     if (!running) return;

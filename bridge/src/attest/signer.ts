@@ -115,7 +115,7 @@ export async function collectSignatures(payload: Uint8Array): Promise<string[]> 
 //
 //   domainSeparator = keccak256(abi.encode(
 //       keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-//       keccak256("OpenLend Bridge"),
+//       keccak256("StellarPay Bridge"),
 //       keccak256("1"),
 //       block.chainid,
 //       address(this)
@@ -133,10 +133,10 @@ export async function collectSignatures(payload: Uint8Array): Promise<string[]> 
 // (see evm-contracts/contracts/Bridge.sol). This function produces the
 // matching 65-byte secp256k1 signatures.
 
-/** EIP-712 domain for the OpenLend Bridge. Must match the values passed
+/** EIP-712 domain for the StellarPay Bridge. Must match the values passed
  *  to `__EIP712_init(name, version)` in `Bridge.initialize`. */
-export const OPENLEND_EIP712_DOMAIN = Object.freeze({
-  name: "OpenLend Bridge",
+export const STELLARPAY_EIP712_DOMAIN = Object.freeze({
+  name: "StellarPay Bridge",
   version: "1",
 });
 
@@ -181,7 +181,7 @@ export async function signEvmRelease(
   value: ReleaseTypedValue,
 ): Promise<string[]> {
   const domain = {
-    ...OPENLEND_EIP712_DOMAIN,
+    ...STELLARPAY_EIP712_DOMAIN,
     chainId,
     verifyingContract: bridgeAddress,
   };

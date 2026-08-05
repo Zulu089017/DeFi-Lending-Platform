@@ -1,4 +1,4 @@
-# OpenLend
+# StellarPay
 
 > A decentralized cross-chain lending protocol with automated liquidation, built
 > on Stellar's ultra-fast, low-fee network.
@@ -10,7 +10,7 @@
 [![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF.svg)](.github/workflows/ci.yml)
 [![Code style: rustfmt](https://img.shields.io/badge/code%20style-rustfmt-orange.svg)](stellar-contracts/rustfmt.toml)
 
-**OpenLend** is a middleware that allows developers on other chains (Ethereum,
+**StellarPay** is a middleware that allows developers on other chains (Ethereum,
 Solana, Polygon) to instantly spin up wrapped versions of their tokens on
 Stellar. These wrapped assets can then be used in a fully on-chain lending
 protocol featuring automated liquidation, powered by Stellar's near-instant
@@ -18,9 +18,9 @@ settlement.
 
 ---
 
-## 🌍 Why OpenLend?
+## 🌍 Why StellarPay?
 
-| Pain Point                       | OpenLend Solution                                  |
+| Pain Point                       | StellarPay Solution                                  |
 | -------------------------------- | -------------------------------------------------- |
 | High gas fees on Ethereum/Solana | Mint wrapped assets on Stellar for ~$0.000005 / tx |
 | Slow cross-chain bridging        | Near-instant settlement via Stellar's consensus    |
@@ -32,12 +32,12 @@ settlement.
 
 ## 🏗️ Polyrepo Layout
 
-OpenLend is composed of **independent, loosely-coupled subprojects**. Each one
+StellarPay is composed of **independent, loosely-coupled subprojects**. Each one
 is a self-contained unit with its own build, test, and deploy pipeline. Together
 they form the protocol.
 
 ```
-OpenLend/
+StellarPay/
 │
 ├── stellar-contracts/   # Soroban smart contracts (Rust) — the heart of the protocol
 ├── evm-contracts/       # Solidity contracts — source-chain lock/burn entry points

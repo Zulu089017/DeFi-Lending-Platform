@@ -1,6 +1,6 @@
 # Protocol Specification — Rate Model
 
-> This document is the formal specification of the OpenLend interest rate model.
+> This document is the formal specification of the StellarPay interest rate model.
 > It is the authoritative reference for implementers and auditors.
 
 ## Notation

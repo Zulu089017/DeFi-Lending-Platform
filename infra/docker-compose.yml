@@ -4,14 +4,14 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: openlend
-      POSTGRES_PASSWORD: openlend
-      POSTGRES_DB: openlend
+      POSTGRES_USER: spg
+      POSTGRES_PASSWORD: spg
+      POSTGRES_DB: spg
     ports: ["5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U openlend"]
+      test: ["CMD-SHELL", "pg_isready -U spg"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -29,7 +29,7 @@ services:
     build: ../bridge
     env_file: ../bridge/.env
     environment:
-      DATABASE_URL: postgresql://openlend:openlend@postgres:5432/bridge
+      DATABASE_URL: postgresql://spg:spg@postgres:5432/bridge
     depends_on:
       postgres: { condition: service_healthy }
     restart: unless-stopped
@@ -38,7 +38,7 @@ services:
     build: ../relayer
     env_file: ../relayer/.env
     environment:
-      DATABASE_URL: postgresql://openlend:openlend@postgres:5432/relayer
+      DATABASE_URL: postgresql://spg:spg@postgres:5432/relayer
     depends_on:
       postgres: { condition: service_healthy }
     restart: unless-stopped
@@ -47,7 +47,7 @@ services:
     build: ../indexer
     env_file: ../indexer/.env
     environment:
-      DATABASE_URL: postgresql://openlend:openlend@postgres:5432/openlend
+      DATABASE_URL: postgresql://spg:spg@postgres:5432/spg
     ports: ["4200:4200"]
     depends_on:
       postgres: { condition: service_healthy }
@@ -57,7 +57,7 @@ services:
     build: ../api
     env_file: ../api/.env
     environment:
-      DATABASE_URL: postgresql://openlend:openlend@postgres:5432/openlend
+      DATABASE_URL: postgresql://spg:spg@postgres:5432/spg
     ports: ["4000:4000"]
     depends_on:
       postgres: { condition: service_healthy }

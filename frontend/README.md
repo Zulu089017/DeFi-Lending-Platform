@@ -1,6 +1,6 @@
-# OpenLend — Dashboard
+# StellarPay — Dashboard
 
-A Next.js 14 dashboard for the OpenLend protocol. Real-time cross-chain bridge
+A Next.js 14 dashboard for the StellarPay protocol. Real-time cross-chain bridge
 activity, lending markets, positions, and liquidation monitor.
 
 ## Features
@@ -29,7 +29,7 @@ Then open http://localhost:3000.
 - **TailwindCSS** + **shadcn/ui**
 - **Zustand** for client state
 - **TanStack Query** for server state
-- **@stellar/stellar-sdk** + **@openlend/sdk** + **ethers**
+- **@stellar/stellar-sdk** + **@stellar-payment-gateway/sdk** + **ethers**
 - **Recharts** for charts
 - **Framer Motion** for animations
 

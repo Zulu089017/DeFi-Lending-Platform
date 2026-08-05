@@ -155,7 +155,7 @@ importers:
 
   frontend:
     dependencies:
-      '@openlend/sdk':
+      '@stellar-payment-gateway/sdk':
         specifier: workspace:*
         version: link:../sdk
       '@radix-ui/react-dialog':

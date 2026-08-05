@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Husky commit-msg hook for OpenLend
+# Husky commit-msg hook for StellarPay
 # Validates commit messages against conventional commits.
 
 npx --no -- commitlint --edit "$1"

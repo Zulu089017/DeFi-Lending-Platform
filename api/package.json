@@ -1,7 +1,7 @@
 {
-  "name": "@openlend/api",
+  "name": "@stellar-payment-gateway/api",
   "version": "0.1.0",
-  "description": "OpenLend public REST + WebSocket API",
+  "description": "StellarPay public REST + WebSocket API",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",

@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Husky pre-commit hook for OpenLend
+# Husky pre-commit hook for StellarPay
 # Runs lint-staged before every commit.
 
 # lint-staged runs `cargo fmt --` for .rs files. When rustup installed cargo

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="fav-grad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#08B5E5"/>
+      <stop offset="100%" stop-color="#14F195"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square -->
+  <rect x="3" y="3" width="26" height="26" rx="6" stroke="url(#fav-grad)" stroke-width="2.5" fill="none"/>
+  <!-- Star center -->
+  <path d="M16 8L20 16L16 22L12 16Z" fill="url(#fav-grad)"/>
+</svg>
