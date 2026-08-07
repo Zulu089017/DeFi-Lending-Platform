@@ -225,8 +225,8 @@ mod tests {
         let voter1 = Address::generate(&env);
         let voter2 = Address::generate(&env);
 
-        let id1 = propose(&env, &gov, &proposer, "Prop 1", "First");
-        let id2 = propose(&env, &gov, &proposer, "Prop 2", "Second");
+        let id1 = propose(&env, &gov, &proposer, "Prop_1", "First");
+        let id2 = propose(&env, &gov, &proposer, "Prop_2", "Second");
         assert_eq!(gov.proposal_count(), 2);
 
         // Vote for on prop1, against on prop2
@@ -277,7 +277,7 @@ mod tests {
 
         for round in 0..20 {
             let title = format!("Prop_{round}");
-            let id = propose(&env, &gov, &proposer, &title, "Fuzz proposal");
+            let id = propose(&env, &gov, &proposer, &title, "Fuzz_proposal");
 
             let mut for_votes: i128 = 0;
             let mut against_votes: i128 = 0;

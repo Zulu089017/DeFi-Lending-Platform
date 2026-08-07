@@ -300,6 +300,7 @@ impl Rewards {
 
     /// View accrued (but unclaimed) rewards for a user/asset.
     pub fn earned(env: Env, user: Address, asset: Symbol) -> i128 {
+        Self::update_reward(&env, &asset);
         let stake = env
             .storage()
             .persistent()
@@ -401,7 +402,7 @@ impl Rewards {
         let delta = ledgers
             .checked_mul(rate)
             .expect("overflow")
-            .checked_mul(SCALE)
+            .checked_div(total)
             .expect("overflow");
         let new_rpt = rpt.checked_add(delta).expect("overflow");
         env.storage()
