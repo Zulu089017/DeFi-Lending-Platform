@@ -40,10 +40,10 @@ the admin via friendbot, uploads the six WASMs, creates the seven contracts
 (deterministic IDs via
 `sha256(HashIdPreimage::ContractId{network_id, preimage})`, so re-runs are
 resumable), initializes them in dependency order, verifies each contract's
-on-chain instance storage, and writes `packages/sdk/src/manifest.json`, `stellar.toml`,
-and the SEP-1 hosted copy at `apps/web/public/.well-known/stellar.toml`. Secrets
-are stored in `contracts/.env` (gitignored). Validate the generated
-`stellar.toml` with:
+on-chain instance storage, and writes `packages/sdk/src/manifest.json`,
+`stellar.toml`, and the SEP-1 hosted copy at
+`apps/web/public/.well-known/stellar.toml`. Secrets are stored in
+`contracts/.env` (gitignored). Validate the generated `stellar.toml` with:
 
 ```bash
 python3 scripts/validate-sep1.py ../stellar.toml

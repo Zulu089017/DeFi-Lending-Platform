@@ -5,7 +5,7 @@
 
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
-    Address, Env, Symbol, Vec,
+    Address, Bytes, Env, Symbol,
 };
 
 #[cfg(test)]
@@ -14,10 +14,11 @@ mod tests {
     use super::*;
 
     /// Deploy a fresh governance contract.
-    fn deploy_gov(env: &Env) -> (governance::GovernanceClient, Address) {
+    fn deploy_gov(env: &Env) -> (governance::GovernanceClient<'_>, Address) {
         let admin = Address::generate(env);
         let token = Address::generate(env);
-        let gov = governance::GovernanceClient::new(env, &env.register(governance::Governance {}, ()));
+        let gov =
+            governance::GovernanceClient::new(env, &env.register(governance::Governance {}, ()));
         gov.initialize(&admin, &token);
         (gov, admin)
     }
@@ -31,7 +32,7 @@ mod tests {
         desc: &str,
     ) -> u64 {
         let target = Address::generate(env);
-        let calldata = Vec::new(env);
+        let calldata = Bytes::new(env);
         gov.propose(
             proposer,
             &Symbol::new(env, title),
@@ -270,7 +271,9 @@ mod tests {
 
         // Use a simple deterministic seed based on ledger sequence.
         let seed = env.ledger().sequence() as u64;
-        let mut state = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        let mut state = seed
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
 
         for round in 0..20 {
             let title = format!("Prop_{round}");
@@ -281,12 +284,16 @@ mod tests {
 
             // Random number of voters (1-10).
             let num_voters = ((state % 10) + 1) as usize;
-            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
 
             for _ in 0..num_voters {
                 let voter = Address::generate(&env);
                 let support = (state & 1) == 1;
-                state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                state = state
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407);
 
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     gov.vote(&voter, &id, &support);

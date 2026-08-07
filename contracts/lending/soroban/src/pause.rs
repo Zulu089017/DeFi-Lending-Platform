@@ -3,7 +3,8 @@
 // When paused, all state-changing operations (supply, borrow, withdraw, repay) are blocked.
 // View functions remain accessible.
 
-use soroban_sdk::{contracttype, Env, Symbol};
+use crate::PauseToggled;
+use soroban_sdk::{contracttype, Env};
 
 #[contracttype]
 #[derive(Clone)]
@@ -26,12 +27,7 @@ pub fn require_not_paused(env: &Env) {
 /// Set the pause state. Only callable by admin (enforced by caller).
 pub fn set_paused(env: &Env, paused: bool) {
     env.storage().instance().set(&PauseKey::Paused, &paused);
-    env.events().publish(
-        (
-            Symbol::new(env, if paused { "paused" } else { "unpaused" }),
-        ),
-        (),
-    );
+    PauseToggled { paused }.publish(env);
 }
 
 /// Check current pause state (view).

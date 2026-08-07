@@ -92,10 +92,10 @@ upgrade.
 
 ## Emergency contacts
 
-| Role                       | Name | Contact                    |
-| -------------------------- | ---- | -------------------------- |
+| Role                       | Name | Contact               |
+| -------------------------- | ---- | --------------------- |
 | On-call engineer (primary) | —    | @spg-oncall on Signal |
-| Protocol lead              | —    | —                          |
-| Security lead              | —    | —                          |
+| Protocol lead              | —    | —                     |
+| Security lead              | —    | —                     |
 
 > This runbook should be printed and accessible even if GitHub is unreachable.

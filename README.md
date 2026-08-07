@@ -24,7 +24,7 @@ settlement.
 
 ## 🌍 Why StellarPay?
 
-| Pain Point                       | StellarPay Solution                                  |
+| Pain Point                       | StellarPay Solution                                |
 | -------------------------------- | -------------------------------------------------- |
 | High gas fees on Ethereum/Solana | Mint wrapped assets on Stellar for ~$0.000005 / tx |
 | Slow cross-chain bridging        | Near-instant settlement via Stellar's consensus    |
@@ -96,7 +96,8 @@ StellarPay/
 ### Prerequisites
 
 - **Node.js** ≥ 22.5 (required by testcontainers/undici 8)
-- **pnpm** ≥ 10 (install: `corepack enable && corepack prepare pnpm@10 --activate`)
+- **pnpm** ≥ 10 (install:
+  `corepack enable && corepack prepare pnpm@10 --activate`)
 - **Rust** ≥ 1.91 (Soroban SDK 27 MSRV, with `wasm32v1-none` target)
 - **Docker** ≥ 24 (for Postgres, Redis, and integration tests)
 - **Foundry** or **Hardhat** (for EVM contract compilation)
@@ -171,12 +172,12 @@ cd apps/web && pnpm dev
 
 ### 7. Verify
 
-| Service | URL | Health Check |
-|---------|-----|-------------|
-| Dashboard | http://localhost:3000 | Browser |
-| API | http://localhost:4000 | `GET /health` |
-| Bridge | http://localhost:4100 | `GET /health` |
-| Indexer | http://localhost:4200 | `GET /health` |
+| Service   | URL                   | Health Check  |
+| --------- | --------------------- | ------------- |
+| Dashboard | http://localhost:3000 | Browser       |
+| API       | http://localhost:4000 | `GET /health` |
+| Bridge    | http://localhost:4100 | `GET /health` |
+| Indexer   | http://localhost:4200 | `GET /health` |
 
 ### Using Turborepo
 
@@ -260,6 +261,6 @@ This repository is a **scaffold / reference implementation**. The smart
 contracts have not been audited. Health factor checks, collateral validation,
 and liquidation invariants are implemented and tested (26 invariant tests pass),
 but several cross-contract integration TODOs remain — see
-[`docs/security.md`](docs/security.md). **Do not deposit real assets.** A
-formal audit, bug-bounty program, and coordinated disclosure policy are tracked
-in [`SECURITY.md`](SECURITY.md).
+[`docs/security.md`](docs/security.md). **Do not deposit real assets.** A formal
+audit, bug-bounty program, and coordinated disclosure policy are tracked in
+[`SECURITY.md`](SECURITY.md).

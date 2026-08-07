@@ -16,7 +16,7 @@
 //! - `total_staked(asset)` — view total staked amount per asset
 //! - `reward_rate(asset)` — current reward rate per second
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol};
+use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Symbol};
 
 #[contracttype]
 #[derive(Clone)]
@@ -41,6 +41,35 @@ pub enum DataKey {
 }
 
 const SCALE: i128 = 1_000_000_000_000_000_000; // 1e18
+
+// ──────────────────────── Events ────────────────────────
+
+#[contractevent(data_format = "vec")]
+pub struct RewardNotified {
+    asset: Symbol,
+    amount: i128,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct Staked {
+    user: Address,
+    asset: Symbol,
+    amount: i128,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct Unstaked {
+    user: Address,
+    asset: Symbol,
+    amount: i128,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct Claimed {
+    user: Address,
+    asset: Symbol,
+    amount: i128,
+}
 
 #[contract]
 pub struct Rewards;
@@ -85,12 +114,12 @@ impl Rewards {
         env.storage()
             .persistent()
             .set(&DataKey::RewardRate(asset.clone()), &rate);
-        env.storage()
-            .persistent()
-            .set(&DataKey::LastUpdate(asset.clone()), &env.ledger().sequence());
+        env.storage().persistent().set(
+            &DataKey::LastUpdate(asset.clone()),
+            &env.ledger().sequence(),
+        );
 
-        env.events()
-            .publish((Symbol::new(&env, "reward_notified"), asset, amount), ());
+        RewardNotified { asset, amount }.publish(&env);
     }
 
     /// Stake LP tokens to earn rewards.
@@ -109,9 +138,10 @@ impl Rewards {
         let rpt = Self::reward_per_token(&env, &asset);
         let accrued = if cur_stake > 0 {
             cur_stake
-                .checked_mul(rpt.checked_sub(
-                    env.storage().persistent().get(&rpt_key).unwrap_or(0i128),
-                ).expect("underflow"))
+                .checked_mul(
+                    rpt.checked_sub(env.storage().persistent().get(&rpt_key).unwrap_or(0i128))
+                        .expect("underflow"),
+                )
                 .expect("overflow")
                 .checked_div(SCALE)
                 .expect("overflow")
@@ -120,9 +150,10 @@ impl Rewards {
         };
         let acc_key = DataKey::Accrued(user.clone(), asset.clone());
         let existing_accrued = env.storage().persistent().get(&acc_key).unwrap_or(0i128);
-        env.storage()
-            .persistent()
-            .set(&acc_key, &existing_accrued.checked_add(accrued).expect("overflow"));
+        env.storage().persistent().set(
+            &acc_key,
+            &existing_accrued.checked_add(accrued).expect("overflow"),
+        );
 
         // Update stake
         let new_stake = cur_stake.checked_add(amount).expect("overflow");
@@ -135,12 +166,17 @@ impl Rewards {
             .persistent()
             .get(&DataKey::TotalStaked(asset.clone()))
             .unwrap_or(0i128);
-        env.storage()
-            .persistent()
-            .set(&DataKey::TotalStaked(asset.clone()), &total.checked_add(amount).expect("overflow"));
+        env.storage().persistent().set(
+            &DataKey::TotalStaked(asset.clone()),
+            &total.checked_add(amount).expect("overflow"),
+        );
 
-        env.events()
-            .publish((Symbol::new(&env, "staked"), user, asset, amount), ());
+        Staked {
+            user,
+            asset,
+            amount,
+        }
+        .publish(&env);
     }
 
     /// Unstake LP tokens. Accrued rewards are credited before unstaking.
@@ -161,17 +197,19 @@ impl Rewards {
         let rpt_key = DataKey::RewardPerTokenPaid(user.clone(), asset.clone());
         let rpt = Self::reward_per_token(&env, &asset);
         let accrued = cur_stake
-            .checked_mul(rpt.checked_sub(
-                env.storage().persistent().get(&rpt_key).unwrap_or(0i128),
-            ).expect("underflow"))
+            .checked_mul(
+                rpt.checked_sub(env.storage().persistent().get(&rpt_key).unwrap_or(0i128))
+                    .expect("underflow"),
+            )
             .expect("overflow")
             .checked_div(SCALE)
             .expect("overflow");
         let acc_key = DataKey::Accrued(user.clone(), asset.clone());
         let existing_accrued = env.storage().persistent().get(&acc_key).unwrap_or(0i128);
-        env.storage()
-            .persistent()
-            .set(&acc_key, &existing_accrued.checked_add(accrued).expect("overflow"));
+        env.storage().persistent().set(
+            &acc_key,
+            &existing_accrued.checked_add(accrued).expect("overflow"),
+        );
 
         // Update stake
         let new_stake = cur_stake.checked_sub(amount).expect("underflow");
@@ -184,12 +222,17 @@ impl Rewards {
             .persistent()
             .get(&DataKey::TotalStaked(asset.clone()))
             .unwrap_or(0i128);
-        env.storage()
-            .persistent()
-            .set(&DataKey::TotalStaked(asset.clone()), &total.checked_sub(amount).expect("underflow"));
+        env.storage().persistent().set(
+            &DataKey::TotalStaked(asset.clone()),
+            &total.checked_sub(amount).expect("underflow"),
+        );
 
-        env.events()
-            .publish((Symbol::new(&env, "unstaked"), user, asset, amount), ());
+        Unstaked {
+            user,
+            asset,
+            amount,
+        }
+        .publish(&env);
     }
 
     /// Claim all accrued rewards for a given asset.
@@ -205,9 +248,10 @@ impl Rewards {
         // Accrue any new rewards since last checkpoint
         let new_accrued = if cur_stake > 0 {
             cur_stake
-                .checked_mul(rpt.checked_sub(
-                    env.storage().persistent().get(&rpt_key).unwrap_or(0i128),
-                ).expect("underflow"))
+                .checked_mul(
+                    rpt.checked_sub(env.storage().persistent().get(&rpt_key).unwrap_or(0i128))
+                        .expect("underflow"),
+                )
                 .expect("overflow")
                 .checked_div(SCALE)
                 .expect("overflow")
@@ -244,8 +288,12 @@ impl Rewards {
         env.storage().persistent().set(&acc_key, &0i128);
         env.storage().persistent().set(&rpt_key, &rpt);
 
-        env.events()
-            .publish((Symbol::new(&env, "claimed"), user, asset, total_accrued), ());
+        Claimed {
+            user,
+            asset,
+            amount: total_accrued,
+        }
+        .publish(&env);
 
         total_accrued
     }

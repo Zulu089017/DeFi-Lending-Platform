@@ -171,11 +171,8 @@ impl LendingController {
         // and the controller's identity is preserved across invoke_contract.
         let wrapped = Self::wrapped_asset(&env);
         let fn_mint = Symbol::new(&env, "mint");
-        let mint_args: Vec<Val> = soroban_sdk::vec![
-            &env,
-            to.into_val(&env),
-            amount.into_val(&env),
-        ];
+        let mint_args: Vec<Val> =
+            soroban_sdk::vec![&env, to.into_val(&env), amount.into_val(&env),];
         let _: () = env.invoke_contract(&wrapped, &fn_mint, mint_args);
 
         Wrap {
@@ -209,11 +206,8 @@ impl LendingController {
         // the controller call, the auth context carries through.
         let wrapped = Self::wrapped_asset(&env);
         let fn_burn = Symbol::new(&env, "burn");
-        let burn_args: Vec<Val> = soroban_sdk::vec![
-            &env,
-            user.into_val(&env),
-            amount.into_val(&env),
-        ];
+        let burn_args: Vec<Val> =
+            soroban_sdk::vec![&env, user.into_val(&env), amount.into_val(&env),];
         let _: () = env.invoke_contract(&wrapped, &fn_burn, burn_args);
 
         // Generate a unique nonce
@@ -328,31 +322,22 @@ impl LendingController {
         // let a user stack borrows that each pass individually while the
         // aggregate position breaches the LTV.
         let fn_position = Symbol::new(&env, "position");
-        let position_args: Vec<Val> = soroban_sdk::vec![
-            &env,
-            user.into_val(&env),
-            collateral_asset.into_val(&env),
-        ];
-        let existing_collateral: i128 =
-            env.invoke_contract(&vault, &fn_position, position_args);
+        let position_args: Vec<Val> =
+            soroban_sdk::vec![&env, user.into_val(&env), collateral_asset.into_val(&env),];
+        let existing_collateral: i128 = env.invoke_contract(&vault, &fn_position, position_args);
         let total_collateral = existing_collateral
             .checked_add(collateral_amount)
             .expect("overflow");
-        let collat_value = Self::oracle_value_of(
-            &env, &oracle_addr, &collateral_asset, &total_collateral,
-        );
+        let collat_value =
+            Self::oracle_value_of(&env, &oracle_addr, &collateral_asset, &total_collateral);
 
         // Cumulative debt: existing borrows + the new amount.
         let fn_debt = Symbol::new(&env, "debt_of");
-        let debt_args: Vec<Val> = soroban_sdk::vec![
-            &env,
-            user.into_val(&env),
-            debt_asset.into_val(&env),
-        ];
+        let debt_args: Vec<Val> =
+            soroban_sdk::vec![&env, user.into_val(&env), debt_asset.into_val(&env),];
         let existing_debt: i128 = env.invoke_contract(&pool, &fn_debt, debt_args);
         let total_debt = existing_debt.checked_add(borrow_amount).expect("overflow");
-        let debt_value =
-            Self::oracle_value_of(&env, &oracle_addr, &debt_asset, &total_debt);
+        let debt_value = Self::oracle_value_of(&env, &oracle_addr, &debt_asset, &total_debt);
 
         // Per-asset max LTV (bps) read from the pool's `AssetConfig` for the
         // collateral asset, capped by the protocol-wide ceiling as
@@ -363,9 +348,7 @@ impl LendingController {
         let effective_ltv_bps = asset_ltv_bps.min(MAX_LTV_BPS);
 
         // require: debt_value * 10_000 <= collat_value * effective_ltv_bps
-        if debt_value
-            .checked_mul(10_000i128)
-            .expect("overflow")
+        if debt_value.checked_mul(10_000i128).expect("overflow")
             > collat_value
                 .checked_mul(effective_ltv_bps as i128)
                 .expect("overflow")
@@ -450,12 +433,8 @@ impl LendingController {
             .get(&DataKey::PendingBridge)
             .expect("no pending bridge proposal");
         env.storage().instance().set(&DataKey::Bridge, &bridge);
-        env.storage()
-            .instance()
-            .remove(&DataKey::PendingBridge);
-        env.storage()
-            .instance()
-            .remove(&DataKey::PendingBridgeAt);
+        env.storage().instance().remove(&DataKey::PendingBridge);
+        env.storage().instance().remove(&DataKey::PendingBridgeAt);
     }
 
     /// Direct bridge set (backward compat for tests). Production should use
@@ -522,7 +501,7 @@ impl LendingController {
             .instance()
             .get(&DataKey::AdminSet)
             .expect("admin set not found");
-        if new_threshold < 1 || new_threshold as u32 > set.admins.len() {
+        if new_threshold < 1 || new_threshold > set.admins.len() {
             panic!("invalid threshold");
         }
         set.threshold = new_threshold;
@@ -772,11 +751,7 @@ impl LendingController {
     /// Call `oracle.value_of(asset, amount)` via cross-contract invoke.
     fn oracle_value_of(env: &Env, oracle_addr: &Address, asset: &Symbol, amount: &i128) -> i128 {
         let fn_name = Symbol::new(env, "value_of");
-        let args: Vec<Val> = soroban_sdk::vec![
-            env,
-            asset.into_val(env),
-            amount.into_val(env),
-        ];
+        let args: Vec<Val> = soroban_sdk::vec![env, asset.into_val(env), amount.into_val(env),];
         env.invoke_contract(oracle_addr, &fn_name, args)
     }
 }
@@ -790,18 +765,21 @@ mod tests {
     /// Deploy the full constellation of contracts needed by the controller:
     /// wrapped_asset, lending_pool, and collateral_vault. Returns their
     /// addresses so the test can initialise the controller with real addresses.
-    struct TestEnv {
+    struct TestEnv<'a> {
         env: Env,
+        #[allow(dead_code)]
         admin: Address,
+        #[allow(dead_code)]
         bridge: BytesN<32>,
         wrapped: Address,
         pool: Address,
         vault: Address,
+        #[allow(dead_code)]
         oracle: Address,
-        ctrl: LendingControllerClient,
+        ctrl: LendingControllerClient<'a>,
     }
 
-    fn setup() -> TestEnv {
+    fn setup() -> TestEnv<'static> {
         let env = Env::default();
         env.mock_all_auths();
         let admin = Address::generate(&env);
@@ -828,8 +806,7 @@ mod tests {
         oracle_client.set_price(&pub2, &Symbol::new(&env, "USDC"), &10_000_000_000_000i128);
 
         // Initialise each sub-contract.
-        let wrapped_client =
-            wrapped_asset::WrappedAssetClient::new(&env, &wrapped_id);
+        let wrapped_client = wrapped_asset::WrappedAssetClient::new(&env, &wrapped_id);
         wrapped_client.initialize(
             &admin,
             &env.register(LendingController {}, ()), // temporarily register ctrl
@@ -848,9 +825,19 @@ mod tests {
 
         // Now deploy the controller and wire everything together.
         let ctrl_id = env.register(LendingController {}, ());
-        let ctrl = LendingControllerClient::new(&env, &ctrl_id);
+        // Clone the Env so the client owns an independent copy, allowing
+        // LendingControllerClient to be stored in the struct with 'static
+        // lifetime alongside the original Env.
+        let ctrl = LendingControllerClient::new(&env.clone(), &ctrl_id);
         let bridge = BytesN::from_array(&env, &[1u8; 32]);
-        ctrl.initialize(&admin, &bridge, &wrapped_id, &pool_id, &vault_id, &oracle_id);
+        ctrl.initialize(
+            &admin,
+            &bridge,
+            &wrapped_id,
+            &pool_id,
+            &vault_id,
+            &oracle_id,
+        );
 
         // Set the controller as the minter on the wrapped_asset.
         wrapped_client.set_minter(&ctrl_id);
@@ -859,7 +846,16 @@ mod tests {
         // deposit/withdraw/seize calls from the controller are accepted.
         vault_client.add_operator(&ctrl_id);
 
-        TestEnv { env, admin, bridge, wrapped: wrapped_id, pool: pool_id, vault: vault_id, oracle: oracle_id, ctrl }
+        TestEnv {
+            env,
+            admin,
+            bridge,
+            wrapped: wrapped_id,
+            pool: pool_id,
+            vault: vault_id,
+            oracle: oracle_id,
+            ctrl,
+        }
     }
 
     /// Sign `sha256(canonical_payload)` with the given keypair and return the
@@ -926,10 +922,15 @@ mod tests {
     /// **C-1:** `wrap` accepts a valid ed25519 attestation and mints tokens.
     #[test]
     fn test_C1_bridge_attestation_verified() {
-        let TestEnv { env, wrapped, ctrl, .. } = setup();
+        let TestEnv {
+            env, wrapped, ctrl, ..
+        } = setup();
         let signer = ed25519_dalek::SigningKey::from_bytes(&[2u8; 32]);
         // Update bridge pubkey to match the signer.
-        ctrl.set_bridge(&BytesN::from_array(&env, &signer.verifying_key().to_bytes()));
+        ctrl.set_bridge(&BytesN::from_array(
+            &env,
+            &signer.verifying_key().to_bytes(),
+        ));
 
         let chain_id = 1u32;
         let src = BytesN::from_array(&env, &[4u8; 32]);
@@ -947,7 +948,10 @@ mod tests {
 
         // Verify that tokens were actually minted by the cross-contract call.
         let balance = wrapped_asset::WrappedAssetClient::new(&env, &wrapped).balance(&to);
-        assert_eq!(balance, amount, "wrapped_asset.mint should have been called");
+        assert_eq!(
+            balance, amount,
+            "wrapped_asset.mint should have been called"
+        );
     }
 
     /// **C-1 (negative):** a signature from a *different* keypair reverts.
@@ -956,7 +960,10 @@ mod tests {
     fn test_C1_wrong_attester_rejected() {
         let TestEnv { env, ctrl, .. } = setup();
         let signer = ed25519_dalek::SigningKey::from_bytes(&[2u8; 32]);
-        ctrl.set_bridge(&BytesN::from_array(&env, &signer.verifying_key().to_bytes()));
+        ctrl.set_bridge(&BytesN::from_array(
+            &env,
+            &signer.verifying_key().to_bytes(),
+        ));
 
         let chain_id = 1u32;
         let src = BytesN::from_array(&env, &[4u8; 32]);
@@ -977,9 +984,14 @@ mod tests {
     #[test]
     #[should_panic(expected = "salt already used")]
     fn invariant_C2_salt_replay_reverts() {
-        let TestEnv { env, wrapped, ctrl, .. } = setup();
+        let TestEnv {
+            env, wrapped, ctrl, ..
+        } = setup();
         let signer = ed25519_dalek::SigningKey::from_bytes(&[6u8; 32]);
-        ctrl.set_bridge(&BytesN::from_array(&env, &signer.verifying_key().to_bytes()));
+        ctrl.set_bridge(&BytesN::from_array(
+            &env,
+            &signer.verifying_key().to_bytes(),
+        ));
 
         let chain_id = 1u32;
         let src = BytesN::from_array(&env, &[0u8; 32]);
@@ -1006,11 +1018,16 @@ mod tests {
     /// Unwrap burns wrapped tokens and returns a nonce.
     #[test]
     fn test_unwrap_burns_tokens() {
-        let TestEnv { env, wrapped, ctrl, .. } = setup();
+        let TestEnv {
+            env, wrapped, ctrl, ..
+        } = setup();
         let signer = ed25519_dalek::SigningKey::from_bytes(&[7u8; 32]);
-        ctrl.set_bridge(&BytesN::from_array(&env, &signer.verifying_key().to_bytes()));
+        ctrl.set_bridge(&BytesN::from_array(
+            &env,
+            &signer.verifying_key().to_bytes(),
+        ));
 
-        let user = Address::generate(&env);
+        let _user = Address::generate(&env);
         let amount = 500i128;
         let chain_id = 1u32;
         let src = BytesN::from_array(&env, &[8u8; 32]);
@@ -1039,7 +1056,13 @@ mod tests {
     /// collateral_vault.deposit, recording the user's position.
     #[test]
     fn test_C7_supply_collateral_cross_calls() {
-        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let TestEnv {
+            env,
+            pool,
+            vault,
+            ctrl,
+            ..
+        } = setup();
         let user = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
         let amount = 10_000i128;
@@ -1064,12 +1087,18 @@ mod tests {
 
         // Verify the lending pool recorded the supply.
         let shares = pool_client.deposit_shares_of(&user, &asset);
-        assert_eq!(shares, amount, "lending_pool.supply should have minted shares");
+        assert_eq!(
+            shares, amount,
+            "lending_pool.supply should have minted shares"
+        );
 
         // Verify the vault recorded the collateral.
         let vault_client = collateral_vault::CollateralVaultClient::new(&env, &vault);
         let pos = vault_client.position(&user, &asset);
-        assert_eq!(pos, amount, "collateral_vault.deposit should have recorded collateral");
+        assert_eq!(
+            pos, amount,
+            "collateral_vault.deposit should have recorded collateral"
+        );
     }
 
     // ──────────────────── BORROW (C-8) ────────────────────
@@ -1078,7 +1107,13 @@ mod tests {
     /// vault.deposit for collateral, and pool.borrow for debt recording.
     #[test]
     fn test_C8_borrow_cross_calls() {
-        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let TestEnv {
+            env,
+            pool,
+            vault,
+            ctrl,
+            ..
+        } = setup();
         let user = Address::generate(&env);
         let collat_asset = Symbol::new(&env, "XLM");
         let debt_asset = Symbol::new(&env, "USDC");
@@ -1103,17 +1138,26 @@ mod tests {
         ctrl.supply_collateral(&user, &collat_asset, &100_000_000i128);
 
         // Register controller as pool operator so borrow_raw works.
-        pool_client.add_operator(&ctrl.contract_id);
+        pool_client.add_operator(&ctrl.address);
 
         // Borrow 5M USDC: cumulative collateral = 100M (supplied) + 50M
         // (posted here) = 150M XLM → $15M; debt = $5M → 33% LTV, within the
         // 75% cap from the pool's AssetConfig.
-        ctrl.borrow(&user, &collat_asset, &50_000_000i128, &debt_asset, &5_000_000i128);
+        ctrl.borrow(
+            &user,
+            &collat_asset,
+            &50_000_000i128,
+            &debt_asset,
+            &5_000_000i128,
+        );
 
         // Verify the vault recorded the initial supply + borrow collateral.
         let vault_client = collateral_vault::CollateralVaultClient::new(&env, &vault);
         let pos = vault_client.position(&user, &collat_asset);
-        assert_eq!(pos, 150_000_000i128, "vault should have 100M supply + 50M borrow collateral");
+        assert_eq!(
+            pos, 150_000_000i128,
+            "vault should have 100M supply + 50M borrow collateral"
+        );
 
         // Verify the borrowing was recorded.
         let debt = pool_client.debt_of(&user, &debt_asset);
@@ -1124,7 +1168,13 @@ mod tests {
     #[test]
     #[should_panic(expected = "health factor too low")]
     fn test_C8_borrow_without_collateral_reverts() {
-        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let TestEnv {
+            env,
+            pool,
+            vault,
+            ctrl,
+            ..
+        } = setup();
         let user = Address::generate(&env);
         let collat_asset = Symbol::new(&env, "XLM");
         let debt_asset = Symbol::new(&env, "USDC");
@@ -1146,7 +1196,7 @@ mod tests {
         }
 
         // Register controller as pool operator.
-        pool_client.add_operator(&ctrl.contract_id);
+        pool_client.add_operator(&ctrl.address);
 
         // Post 1M XLM collateral ($0.10 each → $100k).
         ctrl.supply_collateral(&user, &collat_asset, &1_000_000i128);
@@ -1160,7 +1210,13 @@ mod tests {
     /// constant. Here XLM is configured at a strict 40% — a 30% borrow passes.
     #[test]
     fn test_C8_per_asset_ltv_from_pool_config() {
-        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let TestEnv {
+            env,
+            pool,
+            vault,
+            ctrl,
+            ..
+        } = setup();
         let user = Address::generate(&env);
         let collat_asset = Symbol::new(&env, "XLM");
         let debt_asset = Symbol::new(&env, "USDC");
@@ -1179,13 +1235,19 @@ mod tests {
             reserve_factor_bps: 1_000,
             ltv_bps: 4_000,
         });
-        pool_client.add_operator(&ctrl.contract_id);
+        pool_client.add_operator(&ctrl.address);
 
         // Post 100M XLM ($10M) collateral, then borrow while posting 100M
         // more XLM ($10M) → $20M cumulative collateral.
         ctrl.supply_collateral(&user, &collat_asset, &100_000_000i128);
         // Borrow 6M USDC ($6M) = 30% LTV → within the 40% per-asset cap.
-        ctrl.borrow(&user, &collat_asset, &100_000_000i128, &debt_asset, &6_000_000i128);
+        ctrl.borrow(
+            &user,
+            &collat_asset,
+            &100_000_000i128,
+            &debt_asset,
+            &6_000_000i128,
+        );
 
         let debt = pool_client.debt_of(&user, &debt_asset);
         assert!(debt >= 6_000_000i128, "borrow at 30% LTV must succeed");
@@ -1197,7 +1259,13 @@ mod tests {
     #[test]
     #[should_panic(expected = "health factor too low")]
     fn test_C8_per_asset_ltv_exceeded_reverts() {
-        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let TestEnv {
+            env,
+            pool,
+            vault,
+            ctrl,
+            ..
+        } = setup();
         let user = Address::generate(&env);
         let collat_asset = Symbol::new(&env, "XLM");
         let debt_asset = Symbol::new(&env, "USDC");
@@ -1215,12 +1283,18 @@ mod tests {
             reserve_factor_bps: 1_000,
             ltv_bps: 4_000,
         });
-        pool_client.add_operator(&ctrl.contract_id);
+        pool_client.add_operator(&ctrl.address);
 
         ctrl.supply_collateral(&user, &collat_asset, &100_000_000i128);
         // 100M XLM posted → $20M cumulative collateral; borrowing 9M USDC
         // ($9M) = 45% LTV > 40% per-asset cap → must revert.
-        ctrl.borrow(&user, &collat_asset, &100_000_000i128, &debt_asset, &9_000_000i128);
+        ctrl.borrow(
+            &user,
+            &collat_asset,
+            &100_000_000i128,
+            &debt_asset,
+            &9_000_000i128,
+        );
     }
 
     /// **C-8 (protocol ceiling):** an asset configured with `ltv_bps` ABOVE
@@ -1229,7 +1303,13 @@ mod tests {
     #[test]
     #[should_panic(expected = "health factor too low")]
     fn test_C8_ltv_capped_at_protocol_ceiling() {
-        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let TestEnv {
+            env,
+            pool,
+            vault,
+            ctrl,
+            ..
+        } = setup();
         let user = Address::generate(&env);
         let collat_asset = Symbol::new(&env, "XLM");
         let debt_asset = Symbol::new(&env, "USDC");
@@ -1247,12 +1327,18 @@ mod tests {
             reserve_factor_bps: 1_000,
             ltv_bps: 9_000, // 90% — above the 75% protocol-wide ceiling
         });
-        pool_client.add_operator(&ctrl.contract_id);
+        pool_client.add_operator(&ctrl.address);
 
         ctrl.supply_collateral(&user, &collat_asset, &100_000_000i128);
         // $20M cumulative collateral; borrow 16M USDC ($16M) = 80% LTV.
         // 80% < 90% (asset config) but > 75% (ceiling) → must revert.
-        ctrl.borrow(&user, &collat_asset, &100_000_000i128, &debt_asset, &16_000_000i128);
+        ctrl.borrow(
+            &user,
+            &collat_asset,
+            &100_000_000i128,
+            &debt_asset,
+            &16_000_000i128,
+        );
     }
 
     /// **C-8 (existing collateral counts):** collateral deposited in a
@@ -1264,7 +1350,13 @@ mod tests {
     /// would have reverted.
     #[test]
     fn test_C8_existing_collateral_counts_toward_borrow_capacity() {
-        let TestEnv { env, pool, vault, ctrl, .. } = setup();
+        let TestEnv {
+            env,
+            pool,
+            vault,
+            ctrl,
+            ..
+        } = setup();
         let user = Address::generate(&env);
         let collat_asset = Symbol::new(&env, "XLM");
         let debt_asset = Symbol::new(&env, "USDC");
@@ -1283,7 +1375,7 @@ mod tests {
             reserve_factor_bps: 1_000,
             ltv_bps: 7_500,
         });
-        pool_client.add_operator(&ctrl.contract_id);
+        pool_client.add_operator(&ctrl.address);
 
         // Previous transaction: deposit 200M XLM collateral ($20M at the
         // XLM:USDC relative price).
@@ -1294,7 +1386,10 @@ mod tests {
         ctrl.borrow(&user, &collat_asset, &1i128, &debt_asset, &5_000_000i128);
 
         let debt = pool_client.debt_of(&user, &debt_asset);
-        assert!(debt >= 5_000_000i128, "existing collateral must cover the borrow");
+        assert!(
+            debt >= 5_000_000i128,
+            "existing collateral must cover the borrow"
+        );
 
         // The vault position now includes the 1 unit posted in the borrow.
         let vault_client = collateral_vault::CollateralVaultClient::new(&env, &vault);
@@ -1312,12 +1407,10 @@ mod tests {
         for i in 0..32 {
             let hi = (bytes[2 * i] as char)
                 .to_digit(16)
-                .expect("invalid hex char in pinned digest")
-                as u8;
+                .expect("invalid hex char in pinned digest") as u8;
             let lo = (bytes[2 * i + 1] as char)
                 .to_digit(16)
-                .expect("invalid hex char in pinned digest")
-                as u8;
+                .expect("invalid hex char in pinned digest") as u8;
             out[i] = (hi << 4) | lo;
         }
         out
@@ -1350,9 +1443,8 @@ mod tests {
             nonce,
         );
         let hash = env.crypto().sha256(&payload);
-        let expected = hex_decode(
-            "fd426f52b5772d98e1ae591139e3935b5c56671f2b1b7d2e1adb7460dffcffcc",
-        );
+        let expected =
+            hex_decode("fd426f52b5772d98e1ae591139e3935b5c56671f2b1b7d2e1adb7460dffcffcc");
         assert_eq!(hash.to_array(), expected);
     }
 
@@ -1389,22 +1481,52 @@ mod tests {
             env.crypto().sha256(&payload).to_array()
         };
 
-        let h0 = digest(base_chain, &base_src, base_amount, &base_to, &base_salt, base_nonce);
+        let h0 = digest(
+            base_chain,
+            &base_src,
+            base_amount,
+            &base_to,
+            &base_salt,
+            base_nonce,
+        );
         // chain_id
-        assert_ne!(digest(2, &base_src, base_amount, &base_to, &base_salt, base_nonce), h0);
+        assert_ne!(
+            digest(2, &base_src, base_amount, &base_to, &base_salt, base_nonce),
+            h0
+        );
         // source_addr
         assert_ne!(
-            digest(base_chain, &BytesN::from_array(&env, &[0x33u8; 32]), base_amount, &base_to, &base_salt, base_nonce),
+            digest(
+                base_chain,
+                &BytesN::from_array(&env, &[0x33u8; 32]),
+                base_amount,
+                &base_to,
+                &base_salt,
+                base_nonce
+            ),
             h0
         );
         // amount
-        assert_ne!(digest(base_chain, &base_src, 1_000_001, &base_to, &base_salt, base_nonce), h0);
+        assert_ne!(
+            digest(base_chain, &base_src, 1_000_001, &base_to, &base_salt, base_nonce),
+            h0
+        );
         // salt
         assert_ne!(
-            digest(base_chain, &base_src, base_amount, &base_to, &BytesN::from_array(&env, &[0x44u8; 32]), base_nonce),
+            digest(
+                base_chain,
+                &base_src,
+                base_amount,
+                &base_to,
+                &BytesN::from_array(&env, &[0x44u8; 32]),
+                base_nonce
+            ),
             h0
         );
         // nonce
-        assert_ne!(digest(base_chain, &base_src, base_amount, &base_to, &base_salt, 43), h0);
+        assert_ne!(
+            digest(base_chain, &base_src, base_amount, &base_to, &base_salt, 43),
+            h0
+        );
     }
 }

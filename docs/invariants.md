@@ -49,40 +49,40 @@
 
 ## 4. Lending Pool (`lending_pool`)
 
-| #    | Invariant                                                                         | Type                                         |
-| ---- | --------------------------------------------------------------------------------- | -------------------------------------------- |
-| L-1  | `Σ B <= Σ D` for every market (protocol is fully collateralised)                  | Solvency                                     |
-| L-2  | `borrow_index(asset)` is monotone non-decreasing                                  | Monotonicity                                 |
-| L-3  | `debt_of(u, a) = principal(u, a) * borrow_index(a) / snap.index(u, a)`            | Algebraic                                    |
-| L-4  | First supplier receives shares `1:1`; later suppliers receive proportional shares | Share math                                   |
-| L-5  | `withdraw` rejects if the user has insufficient shares                            | Input validation                             |
-| L-6  | `repay` does not over-pay a user's outstanding debt                               | Bounded repayment                            |
-| L-7  | `total_deposit_shares(asset) >= 0` always                                         | Storage safety                               |
-| L-8  | `accrue_interest` does not change `total_borrow`                                  | Interest is index-based, not principal-based |
-| L-9  | `borrow_apy_bps` is continuous across the kink (within rounding)                  | Rate model                                   || L-10 | `borrow` must verify `HF(u) >= 1` after the borrow | Risk control | ✅ |
+| #   | Invariant                                                                         | Type                                         |
+| --- | --------------------------------------------------------------------------------- | -------------------------------------------- |
+| L-1 | `Σ B <= Σ D` for every market (protocol is fully collateralised)                  | Solvency                                     |
+| L-2 | `borrow_index(asset)` is monotone non-decreasing                                  | Monotonicity                                 |
+| L-3 | `debt_of(u, a) = principal(u, a) * borrow_index(a) / snap.index(u, a)`            | Algebraic                                    |
+| L-4 | First supplier receives shares `1:1`; later suppliers receive proportional shares | Share math                                   |
+| L-5 | `withdraw` rejects if the user has insufficient shares                            | Input validation                             |
+| L-6 | `repay` does not over-pay a user's outstanding debt                               | Bounded repayment                            |
+| L-7 | `total_deposit_shares(asset) >= 0` always                                         | Storage safety                               |
+| L-8 | `accrue_interest` does not change `total_borrow`                                  | Interest is index-based, not principal-based |
+| L-9 | `borrow_apy_bps` is continuous across the kink (within rounding)                  | Rate model                                   |     | L-10 | `borrow` must verify `HF(u) >= 1` after the borrow | Risk control | ✅  |
 
 > ⚠️ The scaffold did **not** enforce L-10 in the initial version. **Closed
 > (2026-08).** L-10 through L-16 are now fully implemented and tested; see
 > `contracts/lending/soroban/src/lib.rs` for the test suite.
 >
 > **✅ Status of the invariant tests in this repo.** The `invariant_*` tests
-> across all contracts now **execute and pass**. On the pinned toolchain
-> (Rust 1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`), `cargo test --workspace
-> --locked` runs 26 invariant tests (17 lending pool + 9 liquidation) — all
-> passing, zero failures. C-1 and C-2 are closed. Remaining TODOs are
-> cross-contract integration tests (Q-5, Q-6, C-7, C-8). Migration history:
-> [`contracts/BUILD_ENV_NOTES.md`](../contracts/BUILD_ENV_NOTES.md).
+> across all contracts now **execute and pass**. On the pinned toolchain (Rust
+> 1.91.0, soroban-sdk 27.0.4, `wasm32v1-none`),
+> `cargo test --workspace --locked` runs 26 invariant tests (17 lending pool + 9
+> liquidation) — all passing, zero failures. C-1 and C-2 are closed. Remaining
+> TODOs are cross-contract integration tests (Q-5, Q-6, C-7, C-8). Migration
+> history: [`contracts/BUILD_ENV_NOTES.md`](../contracts/BUILD_ENV_NOTES.md).
 
 ## 5. Liquidation Engine (`liquidation`)
 
-| #   | Invariant                                                                                                                            | Type                      |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
-| Q-1 | `liquidate(borrower, ...)` reverts if `HF(borrower) >= 1` | Only-liquidate-underwater | ✅ |
-| Q-2 | `liquidate` reverts if `repay_amount > close_factor_bps / 10_000 * debt_of(borrower, debt_asset)` | Close-factor | ✅ |
-| Q-3 | `liquidator_share = repay + bonus - fee`, where `fee = fee_bps * bonus / 10_000`                                                     | Algebraic                 |
-| Q-4 | The protocol never receives more than `fee_bps * bonus / 10_000` of seized collateral                                                | Fee bounded               |
+| #   | Invariant                                                                                                                                | Type                      |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| Q-1 | `liquidate(borrower, ...)` reverts if `HF(borrower) >= 1`                                                                                | Only-liquidate-underwater | ✅  |
+| Q-2 | `liquidate` reverts if `repay_amount > close_factor_bps / 10_000 * debt_of(borrower, debt_asset)`                                        | Close-factor              | ✅  |
+| Q-3 | `liquidator_share = repay + bonus - fee`, where `fee = fee_bps * bonus / 10_000`                                                         | Algebraic                 |
+| Q-4 | The protocol never receives more than `fee_bps * bonus / 10_000` of seized collateral                                                    | Fee bounded               |
 | Q-5 | **(Closed 2026-08)** The on-chain engine cross-calls `lending_pool.repay_on_behalf` and `collateral_vault.seize` in a single transaction | Atomicity                 |
-| Q-6 | **(Closed 2026-08)** `lending_pool.repay_on_behalf` succeeds before `collateral_vault.seize` runs                                          | Ordering                  |
+| Q-6 | **(Closed 2026-08)** `lending_pool.repay_on_behalf` succeeds before `collateral_vault.seize` runs                                        | Ordering                  |
 
 ## 6. Lending Controller (`lending_controller`)
 
@@ -105,29 +105,35 @@
 > canonical payload digest in `services/payment/tests/signer.test.ts`
 > (`CANONICAL_DIGEST`). The Rust side has **no** equivalent pinned-digest test
 > yet. The Rust build is unblocked (soroban-sdk 27.0.4, Rust 1.91.0 — see
-> `contracts/BUILD_ENV_NOTES.md`), so this is now a plain TODO: add a
-> Rust test that hashes `build_canonical_payload` with the same canonical inputs
-> and asserts the same 64-hex digest, so any drift between the two languages
-> surfaces immediately in CI. | C-7 | **(Closed 2026-08)** `wrap` cross-calls `wrapped_asset.mint(to, amount)` and `unwrap` calls `wrapped_asset.burn(user, amount)` | Cross-contract integration |
-| C-8 | **(Closed 2026-08)** `supply_collateral` calls `lending_pool.supply` + `collateral_vault.deposit`; `borrow` calls `oracle.value_of` (LTV enforcement) + `vault.deposit` + `pool.borrow_raw` | Cross-contract integration |
+> `contracts/BUILD_ENV_NOTES.md`), so this is now a plain TODO: add a Rust test
+> that hashes `build_canonical_payload` with the same canonical inputs and
+> asserts the same 64-hex digest, so any drift between the two languages
+> surfaces immediately in CI. | C-7 | **(Closed 2026-08)** `wrap` cross-calls
+> `wrapped_asset.mint(to, amount)` and `unwrap` calls
+> `wrapped_asset.burn(user, amount)` | Cross-contract integration | | C-8 |
+> **(Closed 2026-08)** `supply_collateral` calls `lending_pool.supply` +
+> `collateral_vault.deposit`; `borrow` calls `oracle.value_of` (LTV
+> enforcement) + `vault.deposit` + `pool.borrow_raw` | Cross-contract
+> integration |
 
 ## 7. Bridge (`Bridge.sol`)
 
-| #   | Invariant                                                                                                                                                                 | Type              |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| B-1 | `lock` rejects a `salt` that has already been used                                                                                                                        | Replay protection |
-| B-2 | `lock` rejects an amount outside `[min, max]` for the configured token                                                                                                    | Limits            |
-| B-3 | `release` requires `>= threshold` distinct attester signatures                                                                                                            | Quorum            |
-| B-4 | `release` rejects duplicate signatures from the same attester                                                                                                             | Uniqueness        |
-| B-5 | The `attester` set cannot be `threshold == length` (must be strict-less)                                                                                                  | Quorum sanity     |
-| B-6 | `setPaused(true)` halts all `lock`/`burn`/`release` calls                                                                                                                 | Pause surface     |
+| #   | Invariant                                                                                                                                                                   | Type              |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| B-1 | `lock` rejects a `salt` that has already been used                                                                                                                          | Replay protection |
+| B-2 | `lock` rejects an amount outside `[min, max]` for the configured token                                                                                                      | Limits            |
+| B-3 | `release` requires `>= threshold` distinct attester signatures                                                                                                              | Quorum            |
+| B-4 | `release` rejects duplicate signatures from the same attester                                                                                                               | Uniqueness        |
+| B-5 | The `attester` set cannot be `threshold == length` (must be strict-less)                                                                                                    | Quorum sanity     |
+| B-6 | `setPaused(true)` halts all `lock`/`burn`/`release` calls                                                                                                                   | Pause surface     |
 | B-7 | `release` uses **EIP-712** (domain `StellarPay Bridge` / `1`, type `Release(address,address,uint256,bytes32,uint256)`); replays across chains / contracts / versions revert | Domain separation |
 
 > ✅ **Closed (2026-01).** `Bridge` now inherits `EIP712Upgradeable`, the
 > `RELEASE_TYPEHASH` is pinned in storage, and `_hashTypedDataV4` replaces the
 > raw `keccak256(abi.encodePacked("RELEASE", ...))` digest. Off-chain
-> counterpart: `services/payment/src/attest/signer.ts` → `signEvmRelease`. A regression
-> test (`release rejects signatures signed for a different domain (B-7)` in
+> counterpart: `services/payment/src/attest/signer.ts` → `signEvmRelease`. A
+> regression test
+> (`release rejects signatures signed for a different domain (B-7)` in
 > `contracts/test/Bridge.test.ts`) proves cross-contract replay protection.
 > **Note:** `EIP712Upgradeable` is now in the inheritance chain. On any
 > pre-existing proxy deployment, this requires a storage-layout-compatible
@@ -156,9 +162,9 @@
 > **✅ Status of the invariant tests in this repo.** All 26 invariant tests
 > across lending pool (L-1 through L-16) and liquidation (Q-1 through Q-9)
 > **execute and pass** on the pinned toolchain (Rust 1.91.0, soroban-sdk 27.0.4,
-> `wasm32v1-none`). Zero failures. Cross-contract integration tests
-> (Q-5, Q-6, C-7, C-8) are now **closed (2026-08)** — the liquidation engine
-> calls `pool.repay_on_behalf` and `vault.seize` atomically, and the controller
+> `wasm32v1-none`). Zero failures. Cross-contract integration tests (Q-5, Q-6,
+> C-7, C-8) are now **closed (2026-08)** — the liquidation engine calls
+> `pool.repay_on_behalf` and `vault.seize` atomically, and the controller
 > cross-calls `wrapped_asset`, `lending_pool`, `collateral_vault`, and `oracle`.
 > C-1, C-2, B-7, L-10 through L-16, and Q-1 through Q-9 are all closed.
 > Migration history:

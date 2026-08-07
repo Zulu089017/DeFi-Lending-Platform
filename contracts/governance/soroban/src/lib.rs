@@ -5,7 +5,9 @@
 
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec};
+use soroban_sdk::{
+    contract, contractevent, contractimpl, contracttype, Address, Bytes, Env, Symbol,
+};
 
 #[contracttype]
 #[derive(Clone)]
@@ -29,7 +31,7 @@ pub struct Proposal {
     pub description: Symbol,
     /// Encoded calldata for the target contract
     pub target: Address,
-    pub calldata: Vec<u8>,
+    pub calldata: Bytes,
     pub start_ledger: u32,
     pub end_ledger: u32,
     pub for_votes: i128,
@@ -49,11 +51,37 @@ pub enum ProposalState {
     Expired,
 }
 
-const MAX_TITLE_LEN: u32 = 128;
-const MAX_DESC_LEN: u32 = 1024;
+// Symbols have a maximum length of 32 bytes in Soroban, so these
+// constants serve only as documentation of the expected max size.
+// The `Symbol` type enforces the limit at construction time.
 const DEFAULT_VOTING_PERIOD: u32 = 86_400; // ~1 day in ledgers (5s blocks)
 const DEFAULT_TIMELOCK: u32 = 17_280; // ~1 day
 const DEFAULT_QUORUM_BPS: u32 = 500; // 5%
+
+// ──────────────────────── Events ────────────────────────
+
+#[contractevent(data_format = "vec")]
+pub struct ProposalCreated {
+    proposer: Address,
+    id: u64,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct VoteCast {
+    voter: Address,
+    proposal_id: u64,
+    support: bool,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct ProposalExecuted {
+    proposal_id: u64,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct ProposalCancelled {
+    proposal_id: u64,
+}
 
 #[contract]
 pub struct Governance;
@@ -66,10 +94,18 @@ impl Governance {
         }
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::GovernanceToken, &token);
-        env.storage().instance().set(&DataKey::QuorumBps, &DEFAULT_QUORUM_BPS);
-        env.storage().instance().set(&DataKey::VotingPeriod, &DEFAULT_VOTING_PERIOD);
-        env.storage().instance().set(&DataKey::TimelockPeriod, &DEFAULT_TIMELOCK);
+        env.storage()
+            .instance()
+            .set(&DataKey::GovernanceToken, &token);
+        env.storage()
+            .instance()
+            .set(&DataKey::QuorumBps, &DEFAULT_QUORUM_BPS);
+        env.storage()
+            .instance()
+            .set(&DataKey::VotingPeriod, &DEFAULT_VOTING_PERIOD);
+        env.storage()
+            .instance()
+            .set(&DataKey::TimelockPeriod, &DEFAULT_TIMELOCK);
         env.storage().instance().set(&DataKey::ProposalCount, &0u64);
     }
 
@@ -80,19 +116,21 @@ impl Governance {
         title: Symbol,
         description: Symbol,
         target: Address,
-        calldata: Vec<u8>,
+        calldata: Bytes,
     ) -> u64 {
         proposer.require_auth();
-        if title.len() > MAX_TITLE_LEN {
-            panic!("title too long");
-        }
-        if description.len() > MAX_DESC_LEN {
-            panic!("description too long");
-        }
 
-        let count: u64 = env.storage().instance().get(&DataKey::ProposalCount).unwrap_or(0);
+        let count: u64 = env
+            .storage()
+            .instance()
+            .get(&DataKey::ProposalCount)
+            .unwrap_or(0);
         let id = count + 1;
-        let voting_period: u32 = env.storage().instance().get(&DataKey::VotingPeriod).unwrap_or(DEFAULT_VOTING_PERIOD);
+        let voting_period: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::VotingPeriod)
+            .unwrap_or(DEFAULT_VOTING_PERIOD);
         let now = env.ledger().sequence();
 
         let proposal = Proposal {
@@ -110,13 +148,12 @@ impl Governance {
             cancelled: false,
         };
 
-        env.storage().persistent().set(&DataKey::Proposal(id), &proposal);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Proposal(id), &proposal);
         env.storage().instance().set(&DataKey::ProposalCount, &id);
 
-        env.events().publish(
-            (Symbol::new(&env, "proposal_created"), proposer, id),
-            (),
-        );
+        ProposalCreated { proposer, id }.publish(&env);
 
         id
     }
@@ -153,12 +190,16 @@ impl Governance {
         }
 
         env.storage().persistent().set(&vote_key, &support);
-        env.storage().persistent().set(&DataKey::Proposal(proposal_id), &proposal);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Proposal(proposal_id), &proposal);
 
-        env.events().publish(
-            (Symbol::new(&env, "vote_cast"), voter, proposal_id, support),
-            (),
-        );
+        VoteCast {
+            voter,
+            proposal_id,
+            support,
+        }
+        .publish(&env);
     }
 
     /// Execute a passed proposal after the timelock.
@@ -181,7 +222,11 @@ impl Governance {
             panic!("voting still active");
         }
 
-        let quorum_bps: u32 = env.storage().instance().get(&DataKey::QuorumBps).unwrap_or(DEFAULT_QUORUM_BPS);
+        let quorum_bps: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::QuorumBps)
+            .unwrap_or(DEFAULT_QUORUM_BPS);
         let total_votes = proposal.for_votes + proposal.against_votes;
         let quorum = (total_votes as u128 * quorum_bps as u128 / 10_000) as i128;
         if proposal.for_votes <= quorum {
@@ -192,15 +237,14 @@ impl Governance {
         }
 
         proposal.executed = true;
-        env.storage().persistent().set(&DataKey::Proposal(proposal_id), &proposal);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Proposal(proposal_id), &proposal);
 
         // In production: invoke target contract with calldata
         // env.invoke_contract(&proposal.target, &proposal.calldata);
 
-        env.events().publish(
-            (Symbol::new(&env, "proposal_executed"), proposal_id),
-            (),
-        );
+        ProposalExecuted { proposal_id }.publish(&env);
     }
 
     /// Cancel a proposal (proposer or admin only).
@@ -212,7 +256,11 @@ impl Governance {
             .get(&DataKey::Proposal(proposal_id))
             .expect("proposal not found");
 
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("admin not set");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("admin not set");
         if caller != proposal.proposer && caller != admin {
             panic!("only proposer or admin can cancel");
         }
@@ -221,12 +269,11 @@ impl Governance {
         }
 
         proposal.cancelled = true;
-        env.storage().persistent().set(&DataKey::Proposal(proposal_id), &proposal);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Proposal(proposal_id), &proposal);
 
-        env.events().publish(
-            (Symbol::new(&env, "proposal_cancelled"), proposal_id),
-            (),
-        );
+        ProposalCancelled { proposal_id }.publish(&env);
     }
 
     // ── Views ──
@@ -239,11 +286,16 @@ impl Governance {
     }
 
     pub fn proposal_count(env: Env) -> u64 {
-        env.storage().instance().get(&DataKey::ProposalCount).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::ProposalCount)
+            .unwrap_or(0)
     }
 
     pub fn has_voted(env: Env, voter: Address, proposal_id: u64) -> bool {
-        env.storage().persistent().has(&DataKey::Vote(proposal_id, voter))
+        env.storage()
+            .persistent()
+            .has(&DataKey::Vote(proposal_id, voter))
     }
 }
 
@@ -269,7 +321,7 @@ mod tests {
             &Symbol::new(&env, "Add XLM market"),
             &Symbol::new(&env, "Proposal to add XLM lending market"),
             &target,
-            &Vec::new(&env),
+            &Bytes::new(&env),
         );
         assert_eq!(id, 1);
 

@@ -104,5 +104,5 @@ unsub();
 ## Manifest
 
 Contract addresses are read from `src/manifest.json`. The deploy scripts in
-`contracts/scripts/deploy-testnet.sh` and
-`contracts/scripts/deploy.ts` update this file automatically.
+`contracts/scripts/deploy-testnet.sh` and `contracts/scripts/deploy.ts` update
+this file automatically.

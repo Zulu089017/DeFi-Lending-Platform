@@ -1,7 +1,7 @@
 # Protocol Specification — Rate Model
 
-> This document is the formal specification of the StellarPay interest rate model.
-> It is the authoritative reference for implementers and auditors.
+> This document is the formal specification of the StellarPay interest rate
+> model. It is the authoritative reference for implementers and auditors.
 
 ## Notation
 
@@ -72,7 +72,6 @@ where $T_{year}$ = 31,536,000 seconds (365 days).
 
 ## Reference implementation
 
-The on-chain implementation is in
-`contracts/contracts/lending_pool/src/lib.rs` in the functions
-`borrow_apy_bps` and `accrue_interest`. The SDK exposes these as read-only
-estimates via the `/v1/quote` API.
+The on-chain implementation is in `contracts/contracts/lending_pool/src/lib.rs`
+in the functions `borrow_apy_bps` and `accrue_interest`. The SDK exposes these
+as read-only estimates via the `/v1/quote` API.

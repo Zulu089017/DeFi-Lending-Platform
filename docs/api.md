@@ -2,8 +2,8 @@
 
 The StellarPay API is a Fastify-based REST + WebSocket service.
 
-- **Base URL:** `https://api.spg.xyz` (production) /
-  `http://localhost:4000` (local)
+- **Base URL:** `https://api.spg.xyz` (production) / `http://localhost:4000`
+  (local)
 - **WebSocket:** `wss://api.spg.xyz/v1/stream`
 - **Content type:** `application/json`
 - **CORS:** open in dev, restricted in prod

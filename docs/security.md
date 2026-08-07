@@ -41,11 +41,13 @@ listed here so they cannot be forgotten:
       risk). Production should use a virtual shares offset. **Closed (2026-08)**
       — Virtual shares (`VIRTUAL_SHARES = 1_000_000`) now protect against
       share-price manipulation by the first depositor.
-- [x] `liquidation.fee` is taken from the **bonus** (not gross). **Closed (2026-08)** —
-      Fee is now `fee_bps × bonus / 10_000` where `bonus = gross - repay`.
+- [x] `liquidation.fee` is taken from the **bonus** (not gross). **Closed
+      (2026-08)** — Fee is now `fee_bps × bonus / 10_000` where
+      `bonus = gross - repay`.
 - [x] `liquidation` should enforce `close_factor_bps` against the borrower's
       outstanding debt before allowing a `liquidate`. **Closed (2026-08)** —
-      `liquidate` now enforces close factor; see `docs/invariants.md` § 5 (Q-1 through Q-9).
+      `liquidate` now enforces close factor; see `docs/invariants.md` § 5 (Q-1
+      through Q-9).
 - [x] The EVM `Bridge.release` should use **EIP-712** with a domain separator,
       not a raw `keccak256`. **Closed (2026-01)** — `Bridge` now inherits
       `EIP712Upgradeable` and `_hashTypedDataV4` replaces the raw digest; see
@@ -54,25 +56,25 @@ listed here so they cannot be forgotten:
       **staggered key release** (e.g. one key in HSM, one in cold storage, one
       on a hot server).
 - [x] The `oracle` should aggregate from at least two independent publishers and
-      use a **median** rather than accepting the first reported value.
-      **Closed (2026-08)** — Per-publisher storage, `min_publishers` config
-      (default 2), and median aggregation implemented. `get_price` panics
-      when fewer than `min_publishers` have non-stale reports.
+      use a **median** rather than accepting the first reported value. **Closed
+      (2026-08)** — Per-publisher storage, `min_publishers` config (default 2),
+      and median aggregation implemented. `get_price` panics when fewer than
+      `min_publishers` have non-stale reports.
 - [x] The `lending_pool` emergency pause mechanism has been wired into all
       state-changing entry points (supply, withdraw, supply_collateral,
-      withdraw_collateral, borrow, repay). Admin-only `set_paused` and
-      public `is_paused` views are exposed. **Closed (2026-08)**.
+      withdraw_collateral, borrow, repay). Admin-only `set_paused` and public
+      `is_paused` views are exposed. **Closed (2026-08)**.
 - [x] The `lending_controller` admin functions should be guarded by a
       **timelock + multisig**, not a single EOA. **Closed (2026-08)** —
       Multi-admin set with threshold, timelocked bridge updates
-      (`propose_bridge` + `execute_bridge` with 24h delay), and
-      multi-sig-gated admin management (`add_admin`/`remove_admin`/
-      `set_threshold`). Emergency pause remains direct for fast response.
-- [x] `lending_controller.borrow` must enforce a **per-asset LTV** read from
-      the pool's `AssetConfig` rather than a single global constant.
-      **Closed (2026-08)** — `borrow` reads `pool.ltv_bps(collateral_asset)`,
-      caps it at the 75% protocol-wide ceiling (`min(asset_ltv, MAX_LTV_BPS)`
-      as defense-in-depth against misconfiguration), and enforces LTV against
+      (`propose_bridge` + `execute_bridge` with 24h delay), and multi-sig-gated
+      admin management (`add_admin`/`remove_admin`/ `set_threshold`). Emergency
+      pause remains direct for fast response.
+- [x] `lending_controller.borrow` must enforce a **per-asset LTV** read from the
+      pool's `AssetConfig` rather than a single global constant. **Closed
+      (2026-08)** — `borrow` reads `pool.ltv_bps(collateral_asset)`, caps it at
+      the 75% protocol-wide ceiling (`min(asset_ltv, MAX_LTV_BPS)` as
+      defense-in-depth against misconfiguration), and enforces LTV against
       cumulative collateral (`vault.position` + newly posted) and cumulative
       debt (`pool.debt_of` + new amount), priced via the oracle median.
 
@@ -89,8 +91,7 @@ deployed. Recommended firms:
 ## Bug bounty
 
 A bug bounty program is planned for after the audit. Bounties will be paid in
-wTKN. Scope, rules, and reward tiers will be published at
-`spg.xyz/security`.
+wTKN. Scope, rules, and reward tiers will be published at `spg.xyz/security`.
 
 ## Disclosure
 

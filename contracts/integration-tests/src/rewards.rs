@@ -14,7 +14,7 @@ mod tests {
     use super::*;
 
     /// Deploy a fresh rewards contract.
-    fn deploy_rewards(env: &Env) -> (rewards::RewardsClient, Address) {
+    fn deploy_rewards(env: &Env) -> (rewards::RewardsClient<'_>, Address) {
         let admin = Address::generate(env);
         let r = rewards::RewardsClient::new(env, &env.register(rewards::Rewards {}, ()));
         r.initialize(&admin);
@@ -22,7 +22,13 @@ mod tests {
     }
 
     /// Set up a reward pool and advance some ledgers to accrue.
-    fn setup_with_rewards(env: &Env, r: &rewards::RewardsClient, admin: &Address, asset: &Symbol, amount: i128) {
+    fn setup_with_rewards(
+        _env: &Env,
+        r: &rewards::RewardsClient,
+        admin: &Address,
+        asset: &Symbol,
+        amount: i128,
+    ) {
         r.notify_reward(admin, asset, &amount);
     }
 
@@ -48,7 +54,8 @@ mod tests {
         assert_eq!(r.total_staked(&asset), 500i128);
 
         // 3. Advance ledgers to accrue
-        env.ledger().set_sequence_number(env.ledger().sequence() + 1_000);
+        env.ledger()
+            .set_sequence_number(env.ledger().sequence() + 1_000);
 
         // 4. Check earned (should be > 0 after time passes)
         let earned = r.earned(&user, &asset);
@@ -58,7 +65,11 @@ mod tests {
         let before_claim = r.total_staked(&asset);
         let claimed = r.claim(&user, &asset);
         assert!(claimed > 0, "claimed must be > 0");
-        assert_eq!(r.total_staked(&asset), before_claim, "staking not affected by claim");
+        assert_eq!(
+            r.total_staked(&asset),
+            before_claim,
+            "staking not affected by claim"
+        );
         assert_eq!(r.earned(&user, &asset), 0, "earned resets to 0 after claim");
 
         // 6. Unstake
@@ -87,17 +98,24 @@ mod tests {
         assert_eq!(r.total_staked(&asset), 400i128);
 
         // Advance ledgers
-        env.ledger().set_sequence_number(env.ledger().sequence() + 2_000);
+        env.ledger()
+            .set_sequence_number(env.ledger().sequence() + 2_000);
 
         let alice_earned = r.earned(&alice, &asset);
         let bob_earned = r.earned(&bob, &asset);
 
         // Alice has 3x Bob's stake → should earn ~3x as much.
-        assert!(alice_earned > bob_earned, "Alice should earn more due to larger stake");
+        assert!(
+            alice_earned > bob_earned,
+            "Alice should earn more due to larger stake"
+        );
 
         // Proportional check: ratio should be roughly 3:1 (± 5% rounding tolerance)
         let ratio = alice_earned.checked_mul(100).expect("overflow") / bob_earned.max(1);
-        assert!(ratio >= 285 && ratio <= 315, "Alice/Bob ratio ~3:1, got {ratio}%");
+        assert!(
+            (285..=315).contains(&ratio),
+            "Alice/Bob ratio ~3:1, got {ratio}%"
+        );
 
         // Both claim
         let alice_claimed = r.claim(&alice, &asset);
@@ -118,7 +136,8 @@ mod tests {
         setup_with_rewards(&env, &r, &admin, &asset, 1_000_000i128);
 
         r.stake(&user, &asset, &1000i128);
-        env.ledger().set_sequence_number(env.ledger().sequence() + 500);
+        env.ledger()
+            .set_sequence_number(env.ledger().sequence() + 500);
         let earned_full = r.earned(&user, &asset);
 
         // Unstake half
@@ -126,7 +145,8 @@ mod tests {
         assert_eq!(r.total_staked(&asset), 500i128);
 
         // Advance more
-        env.ledger().set_sequence_number(env.ledger().sequence() + 500);
+        env.ledger()
+            .set_sequence_number(env.ledger().sequence() + 500);
         let earned_half = r.earned(&user, &asset);
 
         // earned_half should be > earned_full (accrued before unstake + lower rate after)
@@ -189,14 +209,14 @@ mod tests {
 
         let mut seed = env.ledger().sequence() as u64;
         let num_users: usize = 5;
-        let users: Vec<Address> = (0..num_users)
-            .map(|_| Address::generate(&env))
-            .collect();
+        let users: Vec<Address> = (0..num_users).map(|_| Address::generate(&env)).collect();
         let mut stakes: Vec<i128> = vec![0; num_users];
         let mut total_claimed: i128 = 0;
 
         for step in 0..50 {
-            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            seed = seed
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             let user_idx = (seed as usize) % num_users;
             let user = &users[user_idx];
             let action = seed % 3;
@@ -237,7 +257,8 @@ mod tests {
             }
 
             // Advance a few ledgers each step
-            env.ledger().set_sequence_number(env.ledger().sequence() + 10);
+            env.ledger()
+                .set_sequence_number(env.ledger().sequence() + 10);
 
             // Invariant: total_staked >= 0
             assert!(r.total_staked(&asset) >= 0);
@@ -246,6 +267,9 @@ mod tests {
         // Final: total_staked should match sum of individual stakes.
         let total_staked = r.total_staked(&asset);
         let sum_stakes: i128 = stakes.iter().sum();
-        assert_eq!(total_staked, sum_stakes, "total_staked must equal sum of stakes");
+        assert_eq!(
+            total_staked, sum_stakes,
+            "total_staked must equal sum of stakes"
+        );
     }
 }

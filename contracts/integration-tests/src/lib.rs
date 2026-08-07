@@ -1,5 +1,8 @@
 //! # Integration & Fuzz Tests for StellarPay
 //!
+//! This crate is test-only and intentionally skipped for wasm targets
+//! (it uses std and the soroban-sdk `testutils` feature).
+//!
 //! This crate contains three categories of tests:
 //!
 //! 1. **Cross-contract integration tests** — full lifecycle flows spanning
@@ -19,16 +22,31 @@
 //! The fuzz tests use a simple LCG-based PRNG seeded from the Soroban test
 //! ledger sequence so that failures are reproducible from the seed logged
 //! in the panic message.
-//!
-//! #![allow(non_snake_case)]
 
-#[cfg(test)]
-mod fuzz;
+// On wasm target (cargo check for deployment), this crate is a no-op.
+// On host target (cargo test), std and testutils are available.
+#![cfg_attr(target_arch = "wasm32", no_std)]
+
+#[cfg(not(target_arch = "wasm32"))]
+extern crate std;
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod cross_contract;
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(non_snake_case)]
 #[cfg(test)]
-mod property;
+mod fuzz;
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod governance;
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(non_snake_case)]
+#[cfg(test)]
+mod property;
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(non_snake_case)]
 #[cfg(test)]
 mod rewards;

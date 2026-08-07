@@ -48,9 +48,9 @@ StellarPay supports the following Stellar wallets:
 
 ## Soroban Contract Deployment
 
-The StellarPay contracts are deployed as Soroban **WASM** contracts on the Stellar
-network. Each contract is independently upgradeable by the `lending_controller`
-admin (with timelock + multisig in production).
+The StellarPay contracts are deployed as Soroban **WASM** contracts on the
+Stellar network. Each contract is independently upgradeable by the
+`lending_controller` admin (with timelock + multisig in production).
 
 Deployment is fully scripted (no stellar CLI required):
 
@@ -63,16 +63,16 @@ Deployment is fully scripted (no stellar CLI required):
 3. Contract IDs are deterministic
    (`sha256(HashIdPreimage::ContractId{ network_id, preimage})` with salt =
    `sha256(saltLabel)`), so re-runs are resumable and idempotent.
-4. Secrets (admin + 3 attester keypairs) live in `contracts/.env`
-   (gitignored) and are auto-generated on first run.
+4. Secrets (admin + 3 attester keypairs) live in `contracts/.env` (gitignored)
+   and are auto-generated on first run.
 
-Contract addresses are published in `packages/packages/sdk/src/manifest.json`, the project's
-`stellar.toml`, and the SEP-1 hosted copy at
+Contract addresses are published in `packages/packages/sdk/src/manifest.json`,
+the project's `stellar.toml`, and the SEP-1 hosted copy at
 `apps/web/public/.well-known/stellar.toml` (served by the frontend at
 `/.well-known/stellar.toml` with `Access-Control-Allow-Origin: *` so wallets and
 explorers can fetch it cross-origin). Validate with
-`python3 contracts/scripts/validate-sep1.py stellar.toml`, which checks
-TOML structure, StrKey checksums, and live on-chain existence of every listed
+`python3 contracts/scripts/validate-sep1.py stellar.toml`, which checks TOML
+structure, StrKey checksums, and live on-chain existence of every listed
 contract.
 
 ## Event Streaming

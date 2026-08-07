@@ -1,7 +1,7 @@
 # Deployment Guide
 
-This guide walks through deploying the StellarPay stack from a clean machine to a
-public mainnet-like cluster.
+This guide walks through deploying the StellarPay stack from a clean machine to
+a public mainnet-like cluster.
 
 ## 0. Prerequisites
 
@@ -29,12 +29,13 @@ npx hardhat run scripts/deploy.ts --network polygon
 
 The Stellar deployer (`scripts/deploy-testnet.mjs`) handles friendbot funding,
 wasm upload, contract creation, initialization in dependency order, an on-chain
-read-back verification of every contract, and writes `packages/packages/sdk/src/manifest.json`,
-`stellar.toml`, and the SEP-1 hosted copy at
-`apps/web/public/.well-known/stellar.toml`. Contract IDs are deterministic (salt
-= sha256(saltLabel)) so re-runs resume cleanly. Secrets live in
-`contracts/.env` (gitignored) and are auto-generated + funded on first
-run. Commit `packages/packages/sdk/src/manifest.json`, `stellar.toml`, and the frontend copy.
+read-back verification of every contract, and writes
+`packages/packages/sdk/src/manifest.json`, `stellar.toml`, and the SEP-1 hosted
+copy at `apps/web/public/.well-known/stellar.toml`. Contract IDs are
+deterministic (salt = sha256(saltLabel)) so re-runs resume cleanly. Secrets live
+in `contracts/.env` (gitignored) and are auto-generated + funded on first run.
+Commit `packages/packages/sdk/src/manifest.json`, `stellar.toml`, and the
+frontend copy.
 
 > ⚠️ Redeploying after a **contract code change**: the salts do not depend on
 > wasm bytes, so a re-run hits "contract already exists" and resumes with the

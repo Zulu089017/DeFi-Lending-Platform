@@ -111,11 +111,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [payment, cron, indexer, api, sdk]
+        service: [bridge, relayer, indexer, api, sdk]
         include:
-          - service: payment
+          - service: bridge
             prisma: true
-          - service: cron
+          - service: relayer
             prisma: true
           - service: indexer
             prisma: true

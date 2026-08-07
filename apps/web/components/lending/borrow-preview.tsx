@@ -2,8 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { Calculator, AlertTriangle, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface BorrowPreviewProps {
   collateralAmount: string;
@@ -14,8 +12,8 @@ interface BorrowPreviewProps {
 }
 
 export function BorrowPreview({
-  collateralAmount,
-  collateralAsset,
+  collateralAmount: _collateralAmount,
+  collateralAsset: _collateralAsset,
   collateralUsd,
   borrowAsset,
   ltvBps,

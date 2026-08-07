@@ -194,28 +194,8 @@ impl Oracle {
         let effective_ttl = cfg.heartbeat.max(DEFAULT_TTL);
 
         // Collect non-stale prices from all known publishers.
-        // We probe a fixed-size range (max 16 publishers). The admin set is
-        // small in practice (3-7). A more scalable approach would store a
-        // Vec<Address> of active publishers and iterate that.
-        let mut prices: [i128; 16] = [0; 16];
-        let mut count: u32 = 0;
-
-        for i in 0u32..16u32 {
-            // Construct a probe address from the index. In production this
-            // would walk a stored publisher list; the scaffold uses a simple
-            // fixed-size probe that works for small sets.
-            // We check if DataKey::Publisher(addr) exists and then read the
-            // per-publisher price + updated timestamp.
-            // Since we can't iterate storage keys directly, we store a
-            // `PublisherByIndex` key for enumeration. See `enumerate_*` below.
-            // ----------------------------------------------------------------
-            // COMPROMISE: we store publisher addresses in instance storage as
-            // a Vec<Address> under `DataKey::PublisherList`. add_publisher
-            // appends, remove_publisher removes.
-        }
-
-        // The actual implementation is below via helpers.
-        // For now, delegate to the internal implementation.
+        // Delegates to the internal implementation that walks the stored
+        // publisher list.
         Self::collect_median(&env, &cfg, effective_ttl, now)
     }
 
@@ -253,7 +233,7 @@ impl Oracle {
                 let price: i128 = env
                     .storage()
                     .persistent()
-                    .get(&DataKey::PublisherPrice(asset, pub_addr))
+                    .get(&DataKey::PublisherPrice(asset.clone(), pub_addr))
                     .unwrap_or(0);
                 if price > 0 {
                     return Some(price);
@@ -285,9 +265,7 @@ impl Oracle {
         if idx >= len {
             return None;
         }
-        env.storage()
-            .persistent()
-            .get(&DataKey::PublisherList(idx))
+        env.storage().persistent().get(&DataKey::PublisherList(idx))
     }
 
     fn append_publisher_list(env: &Env, publisher: &Address) {
@@ -357,7 +335,10 @@ impl Oracle {
             let updated: u64 = env
                 .storage()
                 .persistent()
-                .get(&DataKey::PublisherUpdated(cfg.asset.clone(), pub_addr.clone()))
+                .get(&DataKey::PublisherUpdated(
+                    cfg.asset.clone(),
+                    pub_addr.clone(),
+                ))
                 .unwrap_or(0);
             if now.saturating_sub(updated) <= ttl {
                 let price: i128 = env
@@ -380,9 +361,7 @@ impl Oracle {
         for i in 0..count {
             for j in (i + 1)..count {
                 if prices[i as usize] > prices[j as usize] {
-                    let tmp = prices[i as usize];
-                    prices[i as usize] = prices[j as usize];
-                    prices[j as usize] = tmp;
+                    prices.swap(i as usize, j as usize);
                 }
             }
         }
@@ -452,7 +431,7 @@ mod tests {
         oracle.set_price(&p1, &asset, &1_000_000_000_000i128); // 1.00
         oracle.set_price(&p2, &asset, &1_200_000_000_000i128); // 1.20
         oracle.set_price(&p3, &asset, &1_100_000_000_000i128); // 1.10
-        // Median of [1.00, 1.10, 1.20] = 1.10
+                                                               // Median of [1.00, 1.10, 1.20] = 1.10
         assert_eq!(oracle.get_price(&asset), 1_100_000_000_000i128);
     }
 
@@ -477,7 +456,7 @@ mod tests {
         let p2 = pubs.get(1).unwrap();
         oracle.set_price(&p1, &asset, &2_000_000_000_000i128); // $2.00
         oracle.set_price(&p2, &asset, &3_000_000_000_000i128); // $3.00, median = 2.50
-        // value_of for 100 tokens = 100 * 2.5e12 / 1e7 = 25e6 in 14-dec = $25.00
+                                                               // value_of for 100 tokens = 100 * 2.5e12 / 1e7 = 25e6 in 14-dec = $25.00
         let v = oracle.value_of(&asset, &1_000_000_000i128); // 100 tokens in 7-dec
         assert_eq!(v, 2_500_000_000_000_000i128); // $250.00 in 14-dec
     }

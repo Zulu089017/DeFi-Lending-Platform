@@ -2,7 +2,10 @@
 
 ## System Overview
 
-StellarPay is a cross-chain lending protocol built on Stellar's Soroban smart contract platform. The system consists of **on-chain contracts** (Soroban + EVM), **off-chain services** (bridge, relayer, indexer, API), an **SDK**, and a **Next.js dashboard**.
+StellarPay is a cross-chain lending protocol built on Stellar's Soroban smart
+contract platform. The system consists of **on-chain contracts** (Soroban +
+EVM), **off-chain services** (bridge, relayer, indexer, API), an **SDK**, and a
+**Next.js dashboard**.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -77,6 +80,7 @@ StellarPay is a cross-chain lending protocol built on Stellar's Soroban smart co
 - **withdraw_collateral(asset, amount)** → releases collateral
 
 Interest rate model: kinked linear curve
+
 ```
 if utilization ≤ kink (80%):
   rate = base + slope1 × utilization / kink
@@ -98,6 +102,7 @@ close_factor = 50% max per tx
 ### Bridge Middleware (services/payment)
 
 Event-driven poller that:
+
 1. Watches EVM/Solana Locked/Burned events
 2. Collects Ed25519 attestation signatures
 3. Submits mint/burn transactions to Soroban
@@ -106,6 +111,7 @@ Event-driven poller that:
 ### Indexer (services/indexer)
 
 Streams Horizon ledgers + EVM logs → Postgres:
+
 1. Subscribes to Horizon `ledgers` stream
 2. Parses Soroban contract events
 3. Upserts into normalized Postgres tables
@@ -114,6 +120,7 @@ Streams Horizon ledgers + EVM logs → Postgres:
 ### Relayer (services/cron)
 
 Transaction relayer with retry + gas bumping:
+
 1. Picks up signed transactions from queue
 2. Submits to target chain (Stellar/EVM/Solana)
 3. Retries with exponential backoff

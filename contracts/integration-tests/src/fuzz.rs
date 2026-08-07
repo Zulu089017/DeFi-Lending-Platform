@@ -17,6 +17,7 @@ use soroban_sdk::Env;
 /// Simple linear congruential generator (Numerical Recipes parameters).
 pub struct FuzzRng {
     state: u64,
+    #[allow(dead_code)]
     pub seed: u64,
 }
 
@@ -36,7 +37,10 @@ impl FuzzRng {
 
     /// Return a u64 in [0, 2^64).
     pub fn next_u64(&mut self) -> u64 {
-        self.state = self.state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.state = self
+            .state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         self.state
     }
 
@@ -51,6 +55,7 @@ impl FuzzRng {
     }
 
     /// Return a u32 in [0, 10_000] suitable for basis-point parameters.
+    #[allow(dead_code)]
     pub fn gen_bps(&mut self) -> u32 {
         (self.next_u64() % 10_001) as u32
     }
@@ -61,6 +66,7 @@ impl FuzzRng {
     }
 
     /// Pick one of the candidate asset symbols at random.
+    #[allow(dead_code)]
     pub fn gen_asset(&mut self) -> &'static str {
         const ASSETS: &[&str] = &["XLM", "USDC", "wETH", "wBTC", "wSOL", "wMATIC"];
         let idx = (self.next_u64() as usize) % ASSETS.len();
@@ -94,7 +100,7 @@ mod tests {
         let mut rng = FuzzRng::with_seed(7);
         for _ in 0..1000 {
             let v = rng.gen_amount(100, 200);
-            assert!(v >= 100 && v <= 200, "gen_amount out of range: {v}");
+            assert!((100..=200).contains(&v), "gen_amount out of range: {v}");
         }
     }
 }

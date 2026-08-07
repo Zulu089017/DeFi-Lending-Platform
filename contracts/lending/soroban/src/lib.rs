@@ -13,7 +13,7 @@
 mod pause;
 use pause::{is_paused, require_not_paused, set_paused};
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol};
+use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Symbol};
 
 /// Virtual shares offset to defeat the first-depositor share-inflation
 /// attack. Both VIRTUAL_SHARES and VIRTUAL_DEPOSIT are set to 1M (7-decimal
@@ -68,6 +68,27 @@ pub struct AssetConfig {
 pub struct BorrowerSnapshot {
     pub principal: i128, // in 7-decimal units
     pub index: i128,     // 1e18
+}
+
+// ──────────────────────── Events ────────────────────────
+
+#[contractevent(data_format = "vec")]
+pub struct PauseToggled {
+    paused: bool,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct CollateralDeposited {
+    user: Address,
+    asset: Symbol,
+    amount: i128,
+}
+
+#[contractevent(data_format = "vec")]
+pub struct CollateralWithdrawn {
+    user: Address,
+    asset: Symbol,
+    amount: i128,
 }
 
 #[contract]
@@ -139,7 +160,10 @@ impl LendingPool {
         let minted_shares = amount
             .checked_mul(total_shares.checked_add(VIRTUAL_SHARES).expect("overflow"))
             .expect("overflow")
-            / total_d.checked_add(VIRTUAL_DEPOSIT).expect("overflow").max(1);
+            / total_d
+                .checked_add(VIRTUAL_DEPOSIT)
+                .expect("overflow")
+                .max(1);
 
         let key = DataKey::DepositShares(user.clone(), asset.clone());
         let cur = env.storage().persistent().get(&key).unwrap_or(0i128);
@@ -178,7 +202,10 @@ impl LendingPool {
         let amount = shares
             .checked_mul(total_d.checked_add(VIRTUAL_DEPOSIT).expect("overflow"))
             .expect("overflow")
-            / total_shares.checked_add(VIRTUAL_SHARES).expect("overflow").max(1);
+            / total_shares
+                .checked_add(VIRTUAL_SHARES)
+                .expect("overflow")
+                .max(1);
 
         env.storage().persistent().set(&key, &(cur - shares));
         env.storage()
@@ -197,7 +224,7 @@ impl LendingPool {
         if amount <= 0 {
             panic!("amount must be positive");
         }
-        let cfg = Self::asset_config(&env, &asset);
+        let _cfg = Self::asset_config(&env, &asset);
         // Cross-call the collateral vault to lock the user's tokens.
         // In production this would invoke the vault contract via
         // `env.invoke_contract`; for the scaffold we track it locally.
@@ -207,8 +234,12 @@ impl LendingPool {
             .persistent()
             .set(&key, &cur.checked_add(amount).expect("overflow"));
         // Emit event for off-chain indexers
-        env.events()
-            .publish((Symbol::new(&env, "collateral_deposited"), user, asset, amount), ());
+        CollateralDeposited {
+            user,
+            asset,
+            amount,
+        }
+        .publish(&env);
     }
 
     /// Withdraw collateral (only if health factor remains safe).
@@ -226,8 +257,12 @@ impl LendingPool {
         // In production: check health factor after withdrawal
         let new_amount = cur - amount;
         env.storage().persistent().set(&key, &new_amount);
-        env.events()
-            .publish((Symbol::new(&env, "collateral_withdrawn"), user, asset, amount), ());
+        CollateralWithdrawn {
+            user,
+            asset,
+            amount,
+        }
+        .publish(&env);
         amount
     }
 
@@ -373,13 +408,7 @@ impl LendingPool {
     /// Shared borrow logic. When `check_hf` is true, the single-asset
     /// health-factor check is enforced. Operators use `borrow_raw` with
     /// `check_hf = false` after performing their own multi-asset LTV check.
-    fn borrow_internal(
-        env: &Env,
-        user: &Address,
-        asset: &Symbol,
-        amount: i128,
-        check_hf: bool,
-    ) {
+    fn borrow_internal(env: &Env, user: &Address, asset: &Symbol, amount: i128, check_hf: bool) {
         require_not_paused(env);
         if amount <= 0 {
             panic!("amount must be positive");
@@ -1071,7 +1100,7 @@ mod tests {
         pool.supply_collateral(&user, &asset, &100i128);
         pool.supply(&user, &asset, &1_000i128);
         pool.borrow(&user, &asset, &100i128); // maxed out
-        // Cannot borrow more
+                                              // Cannot borrow more
         pool.borrow(&user, &asset, &1i128); // even 1 unit must revert
     }
 
@@ -1137,7 +1166,11 @@ mod tests {
         assert!(pool.health_factor(&user, &asset) > 0);
         // Fully repay
         pool.repay(&user, &asset, &1_000_000i128);
-        assert_eq!(pool.health_factor(&user, &asset), 0, "HF must return to 0 after full repay");
+        assert_eq!(
+            pool.health_factor(&user, &asset),
+            0,
+            "HF must return to 0 after full repay"
+        );
     }
 
     // ──────────────────────── PAUSE TESTS ────────────────────────

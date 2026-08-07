@@ -125,10 +125,7 @@ impl Liquidation {
             .expect("overflow")
             / 10_000;
         let bonus = gross - repay_amount;
-        let fee = bonus
-            .checked_mul(cfg.fee_bps as i128)
-            .expect("overflow")
-            / 10_000;
+        let fee = bonus.checked_mul(cfg.fee_bps as i128).expect("overflow") / 10_000;
         let seize_amount = repay_amount + bonus - fee;
 
         // Total leaving the borrower: seize_amount + fee = repay + bonus = gross.
@@ -200,22 +197,14 @@ impl Liquidation {
     /// Read `pool.debt_of(borrower, debt_asset)`.
     fn pool_debt_of(env: &Env, pool: &Address, borrower: &Address, asset: &Symbol) -> i128 {
         let fn_name = Symbol::new(env, "debt_of");
-        let args: Vec<Val> = soroban_sdk::vec![
-            env,
-            borrower.into_val(env),
-            asset.into_val(env),
-        ];
+        let args: Vec<Val> = soroban_sdk::vec![env, borrower.into_val(env), asset.into_val(env),];
         env.invoke_contract(pool, &fn_name, args)
     }
 
     /// Read `vault.position(borrower, collateral_asset)`.
     fn vault_position(env: &Env, vault: &Address, borrower: &Address, asset: &Symbol) -> i128 {
         let fn_name = Symbol::new(env, "position");
-        let args: Vec<Val> = soroban_sdk::vec![
-            env,
-            borrower.into_val(env),
-            asset.into_val(env),
-        ];
+        let args: Vec<Val> = soroban_sdk::vec![env, borrower.into_val(env), asset.into_val(env),];
         env.invoke_contract(vault, &fn_name, args)
     }
 
@@ -372,12 +361,14 @@ mod tests {
     fn make_borrower(te: &LiqTestEnv, collateral: i128, borrow: i128) -> (Address, Address) {
         let user = Address::generate(&te.env);
         // Supply liquidity and collateral so borrow succeeds.
-        te.pool_client.supply_collateral(&user, &te.asset, &collateral);
+        te.pool_client
+            .supply_collateral(&user, &te.asset, &collateral);
         te.pool_client.supply(&user, &te.asset, &collateral);
         te.pool_client.borrow(&user, &te.asset, &borrow);
         // Also give the user vault collateral via a direct vault deposit
         // (in production the controller does this; here we simulate it).
-        te.vault_client.deposit(&te.liq_id, &user, &te.asset, &collateral);
+        te.vault_client
+            .deposit(&te.liq_id, &user, &te.asset, &collateral);
         (user, te.liq_id.clone())
     }
 
@@ -392,10 +383,12 @@ mod tests {
         let liquidator = Address::generate(&te.env);
 
         // Set up borrower: 10,000 collateral in vault, 10,000 debt in pool.
-        te.pool_client.supply_collateral(&borrower, &te.asset, &10_000i128);
+        te.pool_client
+            .supply_collateral(&borrower, &te.asset, &10_000i128);
         te.pool_client.supply(&borrower, &te.asset, &10_000i128);
         te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
-        te.vault_client.deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
+        te.vault_client
+            .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
 
         // Now make the position underwater:
         // Extra borrow pushes debt to 12,000 but collateral stays 10,000.
@@ -410,13 +403,9 @@ mod tests {
         let liquidator_coll_before = te.vault_client.position(&liquidator, &te.asset);
 
         // Liquidate 5,000 (50% close factor of 12,000 = 6,000 max).
-        let seized = te.liq_contract.liquidate(
-            &liquidator,
-            &borrower,
-            &te.asset,
-            &te.asset,
-            &5_000i128,
-        );
+        let seized =
+            te.liq_contract
+                .liquidate(&liquidator, &borrower, &te.asset, &te.asset, &5_000i128);
         // bonus = 250, fee = 50, seize = 5,200
         assert_eq!(seized, 5_200i128);
 
@@ -427,7 +416,11 @@ mod tests {
 
         // ── Verify vault state: collateral seized ──
         let coll_after = te.vault_client.position(&borrower, &te.asset);
-        assert_eq!(coll_after, coll_before - seized, "collateral must decrease by seized amount");
+        assert_eq!(
+            coll_after,
+            coll_before - seized,
+            "collateral must decrease by seized amount"
+        );
 
         let liquidator_coll_after = te.vault_client.position(&liquidator, &te.asset);
         assert_eq!(
@@ -445,18 +438,15 @@ mod tests {
         let liquidator = Address::generate(&te.env);
 
         // Healthy position: collateral > debt.
-        te.pool_client.supply_collateral(&borrower, &te.asset, &5_000i128);
+        te.pool_client
+            .supply_collateral(&borrower, &te.asset, &5_000i128);
         te.pool_client.supply(&borrower, &te.asset, &5_000i128);
         te.pool_client.borrow(&borrower, &te.asset, &1_000i128);
-        te.vault_client.deposit(&te.liq_id, &borrower, &te.asset, &5_000i128);
+        te.vault_client
+            .deposit(&te.liq_id, &borrower, &te.asset, &5_000i128);
 
-        te.liq_contract.liquidate(
-            &liquidator,
-            &borrower,
-            &te.asset,
-            &te.asset,
-            &500i128,
-        );
+        te.liq_contract
+            .liquidate(&liquidator, &borrower, &te.asset, &te.asset, &500i128);
     }
 
     #[test]
@@ -467,19 +457,16 @@ mod tests {
         let liquidator = Address::generate(&te.env);
 
         // Underwater: debt=10,000, coll=5,000.
-        te.pool_client.supply_collateral(&borrower, &te.asset, &5_000i128);
+        te.pool_client
+            .supply_collateral(&borrower, &te.asset, &5_000i128);
         te.pool_client.supply(&borrower, &te.asset, &5_000i128);
         te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
-        te.vault_client.deposit(&te.liq_id, &borrower, &te.asset, &5_000i128);
+        te.vault_client
+            .deposit(&te.liq_id, &borrower, &te.asset, &5_000i128);
 
         // Try to liquidate 6,000 — exceeds 50% close factor (5,000 max).
-        te.liq_contract.liquidate(
-            &liquidator,
-            &borrower,
-            &te.asset,
-            &te.asset,
-            &6_000i128,
-        );
+        te.liq_contract
+            .liquidate(&liquidator, &borrower, &te.asset, &te.asset, &6_000i128);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -493,10 +480,12 @@ mod tests {
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
 
-        te.pool_client.supply_collateral(&borrower, &te.asset, &10_000i128);
+        te.pool_client
+            .supply_collateral(&borrower, &te.asset, &10_000i128);
         te.pool_client.supply(&borrower, &te.asset, &10_000i128);
         te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
-        te.vault_client.deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
+        te.vault_client
+            .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
 
         // 10% bonus, 20% fee on bonus.
         te.liq_contract.set_config(&LiquidationConfig {
@@ -508,16 +497,15 @@ mod tests {
             close_factor_bps: 5_000,
         });
 
-        let seized = te.liq_contract.liquidate(
-            &liquidator,
-            &borrower,
-            &te.asset,
-            &te.asset,
-            &5_000i128,
-        );
+        let seized =
+            te.liq_contract
+                .liquidate(&liquidator, &borrower, &te.asset, &te.asset, &5_000i128);
         // gross = 5,500, bonus = 500, fee = 100, seize = 5,400
         assert_eq!(seized, 5_400i128);
-        assert!(seized >= 5_000i128, "Q-3: liquidator share must be >= repay");
+        assert!(
+            seized >= 5_000i128,
+            "Q-3: liquidator share must be >= repay"
+        );
     }
 
     /// Q-5: Partial liquidation reduces debt proportionally.
@@ -527,25 +515,26 @@ mod tests {
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
 
-        te.pool_client.supply_collateral(&borrower, &te.asset, &10_000i128);
+        te.pool_client
+            .supply_collateral(&borrower, &te.asset, &10_000i128);
         te.pool_client.supply(&borrower, &te.asset, &10_000i128);
         te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
-        te.vault_client.deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
+        te.vault_client
+            .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
 
         let debt_before = te.pool_client.debt_of(&borrower, &te.asset);
-        let seized = te.liq_contract.liquidate(
-            &liquidator,
-            &borrower,
-            &te.asset,
-            &te.asset,
-            &5_000i128,
-        );
+        let seized =
+            te.liq_contract
+                .liquidate(&liquidator, &borrower, &te.asset, &te.asset, &5_000i128);
         // bonus=250, fee=50, seize=5,200
         assert_eq!(seized, 5_200i128);
         assert!(seized > 5_000i128, "Q-5: liquidator must receive bonus");
 
         let debt_after = te.pool_client.debt_of(&borrower, &te.asset);
-        assert!(debt_after < debt_before, "Q-5: debt must decrease after partial liquidation");
+        assert!(
+            debt_after < debt_before,
+            "Q-5: debt must decrease after partial liquidation"
+        );
     }
 
     /// Q-6: Full liquidation at close factor limit (50%).
@@ -555,10 +544,12 @@ mod tests {
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
 
-        te.pool_client.supply_collateral(&borrower, &te.asset, &10_000i128);
+        te.pool_client
+            .supply_collateral(&borrower, &te.asset, &10_000i128);
         te.pool_client.supply(&borrower, &te.asset, &10_000i128);
         te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
-        te.vault_client.deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
+        te.vault_client
+            .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
 
         // 10% bonus, 10% fee on bonus, 50% close factor
         te.liq_contract.set_config(&LiquidationConfig {
@@ -570,13 +561,9 @@ mod tests {
             close_factor_bps: 5_000,
         });
 
-        let seized = te.liq_contract.liquidate(
-            &liquidator,
-            &borrower,
-            &te.asset,
-            &te.asset,
-            &5_000i128,
-        );
+        let seized =
+            te.liq_contract
+                .liquidate(&liquidator, &borrower, &te.asset, &te.asset, &5_000i128);
         // bonus = 500, fee = 50, seize = 5,450
         assert_eq!(seized, 5_450i128);
     }
@@ -588,16 +575,14 @@ mod tests {
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
 
-        te.pool_client.supply_collateral(&borrower, &te.asset, &10_000i128);
+        te.pool_client
+            .supply_collateral(&borrower, &te.asset, &10_000i128);
         te.pool_client.supply(&borrower, &te.asset, &10_000i128);
         te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
-        te.vault_client.deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
+        te.vault_client
+            .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
 
-        let configs = [
-            (500u32, 2_000u32),
-            (1_000u32, 1_000u32),
-            (2_000u32, 500u32),
-        ];
+        let configs = [(500u32, 2_000u32), (1_000u32, 1_000u32), (2_000u32, 500u32)];
         for (bonus_bps, fee_bps) in configs {
             te.liq_contract.set_config(&LiquidationConfig {
                 pool: te.pool_id.clone(),
@@ -607,13 +592,9 @@ mod tests {
                 fee_bps,
                 close_factor_bps: 5_000,
             });
-            let seized = te.liq_contract.liquidate(
-                &liquidator,
-                &borrower,
-                &te.asset,
-                &te.asset,
-                &2_000i128,
-            );
+            let seized =
+                te.liq_contract
+                    .liquidate(&liquidator, &borrower, &te.asset, &te.asset, &2_000i128);
             assert!(
                 seized >= 2_000i128,
                 "Q-7: liquidator must get >= repay (bonus={bonus_bps} fee={fee_bps}): seized={seized}"
@@ -628,7 +609,8 @@ mod tests {
         let te = setup_liq();
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
-        te.liq_contract.liquidate(&liquidator, &borrower, &te.asset, &te.asset, &0i128);
+        te.liq_contract
+            .liquidate(&liquidator, &borrower, &te.asset, &te.asset, &0i128);
     }
 
     /// Q-9: Negative-amount liquidation must revert.
@@ -638,6 +620,7 @@ mod tests {
         let te = setup_liq();
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
-        te.liq_contract.liquidate(&liquidator, &borrower, &te.asset, &te.asset, &-1i128);
+        te.liq_contract
+            .liquidate(&liquidator, &borrower, &te.asset, &te.asset, &-1i128);
     }
 }

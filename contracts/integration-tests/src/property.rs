@@ -4,20 +4,19 @@
 //! protocol invariants from `docs/invariants.md` hold at every step.
 //! Failures are reproducible: the PRNG seed is logged on panic.
 
-use soroban_sdk::{
-    testutils::{Address as _, Ledger},
-    Address, BytesN, Env, Symbol,
-};
+use soroban_sdk::{testutils::Address as _, Address, Env, Symbol};
 
 use super::fuzz::FuzzRng;
 
 /// Deploy a minimal environment with pool + vault + wrapped for property tests.
 /// Returns (env, pool_client, vault_client, wrapped_client, pool_id, asset).
-fn deploy_minimal(env: &Env) -> (
-    lending_pool::LendingPoolClient,
-    collateral_vault::CollateralVaultClient,
-    wrapped_asset::WrappedAssetClient,
-    Address,  // pool_id — needed as operator for vault calls
+fn deploy_minimal(
+    env: &Env,
+) -> (
+    lending_pool::LendingPoolClient<'_>,
+    collateral_vault::CollateralVaultClient<'_>,
+    wrapped_asset::WrappedAssetClient<'_>,
+    Address, // pool_id — needed as operator for vault calls
     Symbol,
 ) {
     let admin = Address::generate(env);
@@ -71,6 +70,7 @@ enum Op {
 }
 
 impl Op {
+    #[allow(dead_code)]
     fn all() -> [Op; 6] {
         [
             Op::Supply,
@@ -150,11 +150,10 @@ mod tests {
                     if collat_balance > debt_balance + 1 {
                         let amt = rng.gen_amount(1, (collat_balance - debt_balance).min(50_000));
                         if amt > 0 {
-                            let result = std::panic::catch_unwind(
-                                std::panic::AssertUnwindSafe(|| {
+                            let result =
+                                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                                     p.borrow(&user, &asset, &amt);
-                                }),
-                            );
+                                }));
                             if result.is_ok() {
                                 debt_balance += amt;
                             }
@@ -221,9 +220,7 @@ mod tests {
         let asset = Symbol::new(&env, "XLM");
 
         // Track multiple users.
-        let users: Vec<Address> = (0..5)
-            .map(|_| Address::generate(&env))
-            .collect();
+        let users: Vec<Address> = (0..5).map(|_| Address::generate(&env)).collect();
         let mut balances: Vec<i128> = vec![0; 5];
 
         for step in 0..100 {
@@ -253,10 +250,7 @@ mod tests {
             // All positions non-negative.
             for (i, b) in balances.iter().enumerate() {
                 let pos = v.position(&users[i], &asset);
-                assert_eq!(
-                    pos, *b,
-                    "position mismatch for user {i} at step {step}"
-                );
+                assert_eq!(pos, *b, "position mismatch for user {i} at step {step}");
             }
         }
     }
@@ -294,7 +288,10 @@ mod tests {
             prev_hf = Some(hf);
         }
         // Should have successfully borrowed at least once.
-        assert!(prev_hf.is_some(), "should have completed at least one borrow");
+        assert!(
+            prev_hf.is_some(),
+            "should have completed at least one borrow"
+        );
     }
 
     /// Property test: repay always reduces debt and never exceeds outstanding.

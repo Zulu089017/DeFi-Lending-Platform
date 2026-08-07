@@ -4,11 +4,7 @@
 //! the full protocol lifecycle. These tests verify that invariants hold
 //! across contract boundaries.
 
-use soroban_sdk::{
-    testutils::{Address as _, Ledger},
-    xdr::ToXdr,
-    Address, BytesN, Env, String, Symbol,
-};
+use soroban_sdk::{testutils::Address as _, xdr::ToXdr, Address, BytesN, Env, String, Symbol};
 
 use super::fuzz::FuzzRng;
 
@@ -18,6 +14,7 @@ use super::fuzz::FuzzRng;
 /// pool, controller, and liquidation engine. Wire everything together.
 struct ProtocolEnv {
     env: Env,
+    #[allow(dead_code)]
     admin: Address,
     wrapped_id: Address,
     oracle_id: Address,
@@ -26,6 +23,7 @@ struct ProtocolEnv {
     ctrl_id: Address,
     liq_id: Address,
     signer: ed25519_dalek::SigningKey,
+    #[allow(dead_code)]
     bridge_pub: BytesN<32>,
 }
 
@@ -72,7 +70,7 @@ fn deploy_protocol() -> ProtocolEnv {
         o.set_asset_config(&Symbol::new(&env, asset_sym), &300u64, &2u32);
     }
     // Publish initial prices: XLM = $0.10, USDC = $1.00 (14-dec).
-    let xlm_price = 1_000_000_000_000i128;   // 0.10
+    let xlm_price = 1_000_000_000_000i128; // 0.10
     let usdc_price = 10_000_000_000_000i128; // 1.00
     o.set_price(&p1, &Symbol::new(&env, "XLM"), &xlm_price);
     o.set_price(&p2, &Symbol::new(&env, "XLM"), &xlm_price);
@@ -83,7 +81,7 @@ fn deploy_protocol() -> ProtocolEnv {
     let v = collateral_vault::CollateralVaultClient::new(&env, &vault_id);
     v.initialize(&admin);
     v.add_operator(&ctrl_id); // controller can deposit/withdraw/seize
-    v.add_operator(&liq_id);  // liquidation can seize
+    v.add_operator(&liq_id); // liquidation can seize
     v.set_liq_threshold(&Symbol::new(&env, "XLM"), &8_500u32);
     v.set_liq_threshold(&Symbol::new(&env, "USDC"), &8_500u32);
 
@@ -163,9 +161,15 @@ fn attest(
     // Build the same canonical payload the controller expects.
     let mut payload = soroban_sdk::Bytes::new(env);
     payload.append(&soroban_sdk::Bytes::from_slice(env, b"OWRP"));
-    payload.append(&soroban_sdk::Bytes::from_slice(env, &chain_id.to_le_bytes()));
+    payload.append(&soroban_sdk::Bytes::from_slice(
+        env,
+        &chain_id.to_le_bytes(),
+    ));
     payload.append(&soroban_sdk::Bytes::from_slice(env, &src.to_array()));
-    payload.append(&soroban_sdk::Bytes::from_slice(env, &(amount as i64).to_le_bytes()));
+    payload.append(&soroban_sdk::Bytes::from_slice(
+        env,
+        &(amount as i64).to_le_bytes(),
+    ));
     let to_xdr = to.to_xdr(env);
     payload.append(&to_xdr);
     payload.append(&soroban_sdk::Bytes::from_slice(env, &salt.to_array()));
@@ -181,7 +185,9 @@ fn do_wrap(pe: &ProtocolEnv, to: &Address, amount: i128, salt_seed: u8) {
     let src = BytesN::from_array(&pe.env, &[salt_seed; 32]);
     let salt = BytesN::from_array(&pe.env, &[salt_seed.wrapping_add(1); 32]);
     let nonce = salt_seed as u64;
-    let sig = attest(&pe.env, &pe.signer, chain_id, &src, amount, to, &salt, nonce);
+    let sig = attest(
+        &pe.env, &pe.signer, chain_id, &src, amount, to, &salt, nonce,
+    );
     let c = lending_controller::LendingControllerClient::new(&pe.env, &pe.ctrl_id);
     c.wrap(&sig, &chain_id, &src, &amount, to, &salt, &nonce);
 }
@@ -232,7 +238,12 @@ mod tests {
         assert!(debt_after < debt, "USDC debt should decrease after repay");
 
         // 5. Unwrap: burn remaining wrapped tokens.
-        let nonce = c.unwrap(&user, &5_000_000_000i128, &1u32, &BytesN::from_array(&pe.env, &[0u8; 32]));
+        let nonce = c.unwrap(
+            &user,
+            &5_000_000_000i128,
+            &1u32,
+            &BytesN::from_array(&pe.env, &[0u8; 32]),
+        );
         assert_eq!(nonce.len(), 32);
         assert_eq!(w.balance(&user), 45_000_000_000);
     }
@@ -268,34 +279,43 @@ mod tests {
         // Vault should only have the 5B from supply_collateral.
         let v = collateral_vault::CollateralVaultClient::new(&pe.env, &pe.vault_id);
         let coll_before = v.position(&borrower, &xlm);
-        assert_eq!(coll_before, 5_000_000_000, "vault should have 5B collateral");
+        assert_eq!(
+            coll_before, 5_000_000_000,
+            "vault should have 5B collateral"
+        );
 
         // Position is underwater: 8B debt > 5B collateral.
-        assert!(debt_before > coll_before, "position must be underwater for liquidation");
+        assert!(
+            debt_before > coll_before,
+            "position must be underwater for liquidation"
+        );
 
         // 5. Liquidate: repay 4B (50% close factor of 8B).
         let liq = liquidation::LiquidationClient::new(&pe.env, &pe.liq_id);
         let liquidator_coll_before = v.position(&liquidator, &xlm);
-        let seized = liq.liquidate(
-            &liquidator,
-            &borrower,
-            &xlm,
-            &xlm,
-            &4_000_000_000i128,
-        );
+        let seized = liq.liquidate(&liquidator, &borrower, &xlm, &xlm, &4_000_000_000i128);
         // bonus = 5% of 4B = 200M, fee = 20% of bonus = 40M, seize = 4.16B
         assert!(seized > 4_000_000_000, "liquidator should get bonus");
         assert_eq!(seized, 4_160_000_000i128);
 
         // ── Verify pool state: debt reduced ──
         let debt_after = p.debt_of(&borrower, &xlm);
-        assert!(debt_after < debt_before, "debt must decrease after liquidation");
+        assert!(
+            debt_after < debt_before,
+            "debt must decrease after liquidation"
+        );
         // 8B - 4B = ~4B (plus any interest accrued)
-        assert!(debt_after <= debt_before - 3_900_000_000, "debt should be reduced by ~4B");
+        assert!(
+            debt_after <= debt_before - 3_900_000_000,
+            "debt should be reduced by ~4B"
+        );
 
         // ── Verify vault state: collateral seized ──
         let coll_after = v.position(&borrower, &xlm);
-        assert!(coll_after < coll_before, "borrower collateral must decrease");
+        assert!(
+            coll_after < coll_before,
+            "borrower collateral must decrease"
+        );
 
         let liquidator_coll_after = v.position(&liquidator, &xlm);
         assert_eq!(
@@ -331,7 +351,10 @@ mod tests {
         let bob_shares = p.deposit_shares_of(&bob, &xlm);
         assert!(alice_shares > 0);
         assert!(bob_shares > 0);
-        assert_ne!(alice_shares, bob_shares, "shares must differ for different deposits");
+        assert_ne!(
+            alice_shares, bob_shares,
+            "shares must differ for different deposits"
+        );
 
         // Verify total = sum of individuals.
         let total_deposit = p.total_deposit(&xlm);
@@ -382,7 +405,10 @@ mod tests {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             c.borrow(&user, &xlm, &1i128, &usdc, &3_000_000_000i128);
         }));
-        assert!(result.is_err(), "45% LTV must revert under per-asset 40% cap");
+        assert!(
+            result.is_err(),
+            "45% LTV must revert under per-asset 40% cap"
+        );
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -411,7 +437,10 @@ mod tests {
                 c.supply_collateral(&user, &xlm, &amount);
                 let shares = p.deposit_shares_of(&user, &xlm);
                 let new_total = p.total_deposit(&xlm);
-                assert!(new_total >= total_supplied, "total deposit must not decrease");
+                assert!(
+                    new_total >= total_supplied,
+                    "total deposit must not decrease"
+                );
                 total_supplied = new_total;
                 total_shares = shares;
             } else if total_shares > 0 {
@@ -428,7 +457,10 @@ mod tests {
             // Invariant: total deposit shares >= total deposit (with virtual offset).
             let td = p.total_deposit(&xlm);
             let ts = p.deposit_shares_of(&user, &xlm);
-            assert!(ts <= td * 2 || ts >= 0, "share count reasonable for deposits");
+            assert!(
+                ts <= td * 2 || ts >= 0,
+                "share count reasonable for deposits"
+            );
         }
     }
 
@@ -462,7 +494,10 @@ mod tests {
                         }));
                         if result.is_ok() {
                             let debt_after = p.debt_of(&user, &xlm);
-                            assert!(debt_after >= debt_before, "debt must not decrease on borrow");
+                            assert!(
+                                debt_after >= debt_before,
+                                "debt must not decrease on borrow"
+                            );
                             if debt_after > peak_debt {
                                 peak_debt = debt_after;
                             }
@@ -555,7 +590,10 @@ mod tests {
 
             // ── Vault state ──
             let coll_after = v.position(&borrower, &xlm);
-            assert!(coll_after < coll_before, "borrower collateral must decrease");
+            assert!(
+                coll_after < coll_before,
+                "borrower collateral must decrease"
+            );
 
             let liquidator_coll_after = v.position(&liquidator, &xlm);
             assert_eq!(

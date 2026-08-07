@@ -1,8 +1,8 @@
 # Audit Readiness Checklist
 
-> This checklist must be completed before the first formal audit. Status: ✅ Mostly
-> Complete — contracts, tests, and docs are audit-ready. Remaining items are
-> operational (E2E testnet, key management, monitoring, bug bounty).
+> This checklist must be completed before the first formal audit. Status: ✅
+> Mostly Complete — contracts, tests, and docs are audit-ready. Remaining items
+> are operational (E2E testnet, key management, monitoring, bug bounty).
 
 ## Pre-audit requirements
 
@@ -18,21 +18,25 @@
 - [x] Protocol invariants (`docs/invariants.md`)
 - [x] Security model & threat model (`docs/security.md`)
 - [x] Deployment guide (`docs/deployment.md`)
-- [x] Formal specification of the rate model (linear/kinked) — see `docs/invariants.md` § 4
-- [x] Formal specification of the liquidation bonus calculation — liquidate() computes repaay + bonus − fee
-- [x] Formal specification of the oracle aggregation (median of ≥2 publishers) — see `docs/security.md`
-- [x] Cross-chain state machine diagram for wrap/unwrap lifecycle (see `docs/architecture.md`)
+- [x] Formal specification of the rate model (linear/kinked) — see
+      `docs/invariants.md` § 4
+- [x] Formal specification of the liquidation bonus calculation — liquidate()
+      computes repaay + bonus − fee
+- [x] Formal specification of the oracle aggregation (median of ≥2 publishers) —
+      see `docs/security.md`
+- [x] Cross-chain state machine diagram for wrap/unwrap lifecycle (see
+      `docs/architecture.md`)
 
 ### Testing
 
 - [x] Unit tests for each Soroban contract function
 - [x] Invariant tests (17 tests execute and pass on Rust 1.91.0 + soroban-sdk
-      27.0.4 — see `contracts/BUILD_ENV_NOTES.md`; `docs/invariants.md`
-      § 9)
+      27.0.4 — see `contracts/BUILD_ENV_NOTES.md`; `docs/invariants.md` § 9)
 - [x] Bridge unit tests (Solidity, attest signing)
 - [x] Fuzz tests for Soroban financial math (LCG-based PRNG, 50-100 iterations)
 - [x] Property-based tests (random op sequences + invariant checks)
-- [x] Integration tests for full wrap → lend → borrow → liquidate flow (cross-contract, 10+ tests)
+- [x] Integration tests for full wrap → lend → borrow → liquidate flow
+      (cross-contract, 10+ tests)
 - [ ] E2E tests across testnet (Ethereum Sepolia → Stellar Testnet)
 - [ ] Load test: 1000 concurrent users
 - [x] API integration tests (vitest + testcontainers, 23 tests)
@@ -113,12 +117,12 @@
 
 ## Audit scope
 
-| Component            | Lines of code | Language       | Auditor |
-| -------------------- | ------------- | -------------- | ------- |
-| `contracts/` | ~2,500        | Rust (Soroban) | TBD     |
-| `contracts/`     | ~400          | Solidity       | TBD     |
-| `services/payment/`            | ~800          | TypeScript     | TBD     |
-| `services/cron/`           | ~200          | TypeScript     | TBD     |
+| Component           | Lines of code | Language       | Auditor |
+| ------------------- | ------------- | -------------- | ------- |
+| `contracts/`        | ~2,500        | Rust (Soroban) | TBD     |
+| `contracts/`        | ~400          | Solidity       | TBD     |
+| `services/payment/` | ~800          | TypeScript     | TBD     |
+| `services/cron/`    | ~200          | TypeScript     | TBD     |
 
 ## Post-audit
 

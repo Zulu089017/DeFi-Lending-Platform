@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@noble/ed25519": "^2.1.0",
-    "@prisma/client": "^5.16.1",
+    "@prisma/client": "5.15.1",
     "@solana/web3.js": "^1.95.2",
     "@stellar/stellar-sdk": "^16.2.0",
     "dotenv": "^16.4.5",
@@ -30,7 +30,7 @@
   "devDependencies": {
     "@types/node": "^20.14.10",
     "@types/pg": "^8.11.6",
-    "prisma": "^5.16.1",
+    "prisma": "5.15.1",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3",
     "vitest": "^2.0.4"

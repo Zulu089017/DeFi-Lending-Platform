@@ -37,7 +37,7 @@ export interface WalletState {
   connectFreighter: () => Promise<void>;
   connectEvm: () => Promise<void>;
   disconnect: () => void;
-  signTransaction: (xdr: string) => Promise<string>;
+  signTransaction: (_xdr: string) => Promise<string>;
   getNetwork: () => Promise<Network>;
 }
 
@@ -53,11 +53,11 @@ const STORAGE_KEY = "spg:wallet";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function isFreighterInstalled(): boolean {
+function _isFreighterInstalled(): boolean {
   return !!(window as any).freighterApi;
 }
 
-function isEvmInstalled(): boolean {
+function _isEvmInstalled(): boolean {
   return !!(window as any).ethereum;
 }
 
