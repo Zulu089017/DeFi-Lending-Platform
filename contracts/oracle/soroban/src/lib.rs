@@ -15,6 +15,9 @@
 
 use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Symbol};
 
+#[cfg(test)]
+use soroban_sdk::Vec;
+
 /// Time after which a price is considered stale (default: 5 minutes).
 const DEFAULT_TTL: u64 = 300;
 
@@ -389,7 +392,7 @@ mod tests {
     use soroban_sdk::testutils::Address as _;
     use soroban_sdk::testutils::Ledger;
 
-    fn setup_with_publishers(env: &Env, count: u32) -> (OracleClient, Symbol, Vec<Address>) {
+    fn setup_with_publishers(env: &Env, count: u32) -> (OracleClient<'_>, Symbol, Vec<Address>) {
         let admin = Address::generate(env);
         let oracle = OracleClient::new(env, &env.register(Oracle {}, ()));
         oracle.initialize(&admin);

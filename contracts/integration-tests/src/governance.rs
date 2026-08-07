@@ -56,7 +56,7 @@ mod tests {
         let voter = Address::generate(&env);
 
         // 1. Create proposal
-        let id = propose(&env, &gov, &proposer, "Add XLM", "Proposal to list XLM");
+        let id = propose(&env, &gov, &proposer, "Add_XLM", "Proposal_to_list_XLM");
         assert_eq!(id, 1);
         assert_eq!(gov.proposal_count(), 1);
 
@@ -98,7 +98,7 @@ mod tests {
         let against_voter1 = Address::generate(&env);
         let against_voter2 = Address::generate(&env);
 
-        let id = propose(&env, &gov, &proposer, "Test", "Test proposal");
+        let id = propose(&env, &gov, &proposer, "Test", "Test_proposal");
 
         gov.vote(&for_voter, &id, &true);
         gov.vote(&against_voter1, &id, &false);

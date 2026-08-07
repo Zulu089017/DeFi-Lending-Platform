@@ -271,19 +271,20 @@ mod tests {
 
     /// Deploy pool + vault + wrapped_asset for the liquidation tests so
     /// `liquidate` can read real state and call `pool.repay` + `vault.seize`.
-    struct LiqTestEnv {
+    struct LiqTestEnv<'a> {
         env: Env,
-        liq_contract: LiquidationClient,
+        liq_contract: LiquidationClient<'a>,
         liq_id: Address,
-        pool_client: lending_pool::LendingPoolClient,
+        pool_client: lending_pool::LendingPoolClient<'a>,
         pool_id: Address,
-        vault_client: collateral_vault::CollateralVaultClient,
+        vault_client: collateral_vault::CollateralVaultClient<'a>,
         vault_id: Address,
-        wrapped_client: wrapped_asset::WrappedAssetClient,
+        #[allow(dead_code)]
+        wrapped_client: wrapped_asset::WrappedAssetClient<'a>,
         asset: Symbol,
     }
 
-    fn setup_liq() -> LiqTestEnv {
+    fn setup_liq() -> LiqTestEnv<'static> {
         let env = Env::default();
         env.mock_all_auths();
         let admin = Address::generate(&env);
@@ -295,15 +296,15 @@ mod tests {
         let wrapped_id = env.register(wrapped_asset::WrappedAsset {}, ());
         let liq_id = env.register(Liquidation {}, ());
 
-        let vault_client = collateral_vault::CollateralVaultClient::new(&env, &vault_id);
+        let vault_client = collateral_vault::CollateralVaultClient::new(&env.clone(), &vault_id);
         vault_client.initialize(&admin);
         vault_client.add_operator(&liq_id); // liq is operator for seize
 
-        let pool_client = lending_pool::LendingPoolClient::new(&env, &pool_id);
+        let pool_client = lending_pool::LendingPoolClient::new(&env.clone(), &pool_id);
         pool_client.initialize(&admin);
         pool_client.add_operator(&liq_id); // liq can call repay_on_behalf
 
-        let wrapped_client = wrapped_asset::WrappedAssetClient::new(&env, &wrapped_id);
+        let wrapped_client = wrapped_asset::WrappedAssetClient::new(&env.clone(), &wrapped_id);
         let asset = Symbol::new(&env, "XLM");
         wrapped_client.initialize(
             &admin,
@@ -329,7 +330,7 @@ mod tests {
             ltv_bps: 7_500,
         });
 
-        let liq_contract = LiquidationClient::new(&env, &liq_id);
+        let liq_contract = LiquidationClient::new(&env.clone(), &liq_id);
         liq_contract.initialize(
             &admin,
             &LiquidationConfig {
@@ -358,6 +359,7 @@ mod tests {
 
     /// Set up an underwater borrower: supply 1000, borrow 900 (HF=1.11).
     /// Then the tests manipulate further as needed.
+    #[allow(dead_code)]
     fn make_borrower(te: &LiqTestEnv, collateral: i128, borrow: i128) -> (Address, Address) {
         let user = Address::generate(&te.env);
         // Supply liquidity and collateral so borrow succeeds.

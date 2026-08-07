@@ -318,8 +318,8 @@ mod tests {
 
         let id = gov.propose(
             &proposer,
-            &Symbol::new(&env, "Add XLM market"),
-            &Symbol::new(&env, "Proposal to add XLM lending market"),
+            &Symbol::new(&env, "Add_XLM_market"),
+            &Symbol::new(&env, "Proposal_to_add_XLM"),
             &target,
             &Bytes::new(&env),
         );
