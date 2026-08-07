@@ -893,6 +893,7 @@ mod tests {
         env.mock_all_auths();
         let admin = Address::generate(&env);
         let user = Address::generate(&env);
+        let lp = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
         let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
@@ -908,9 +909,9 @@ mod tests {
             reserve_factor_bps: 1_000,
             ltv_bps: 7_500,
         });
-        // Supply to create a lending pool, but don't post collateral
-        pool.supply(&user, &asset, &1_000_000);
-        // Borrow without collateral must panic
+        // Supply from a separate liquidity provider so the pool has funds.
+        pool.supply(&lp, &asset, &1_000_000);
+        // Borrow without posting any collateral must panic.
         pool.borrow(&user, &asset, &500_000);
     }
 
@@ -953,6 +954,7 @@ mod tests {
         env.mock_all_auths();
         let admin = Address::generate(&env);
         let user = Address::generate(&env);
+        let lp = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
         let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
@@ -968,8 +970,10 @@ mod tests {
             reserve_factor_bps: 1_000,
             ltv_bps: 7_500,
         });
+        // Supply from a separate LP so the pool has liquidity.
+        pool.supply(&lp, &asset, &5_000);
+        // Post 500 collateral (via supply_collateral, not supply).
         pool.supply_collateral(&user, &asset, &500i128);
-        pool.supply(&user, &asset, &5_000i128);
         // Borrow 501 > 500 collateral → must panic
         pool.borrow(&user, &asset, &501i128);
     }
@@ -1081,6 +1085,7 @@ mod tests {
         env.mock_all_auths();
         let admin = Address::generate(&env);
         let user = Address::generate(&env);
+        let lp = Address::generate(&env);
         let asset = Symbol::new(&env, "XLM");
         let pool = LendingPoolClient::new(&env, &env.register(LendingPool {}, ()));
         pool.initialize(&admin);
@@ -1096,9 +1101,10 @@ mod tests {
             reserve_factor_bps: 1_000,
             ltv_bps: 7_500,
         });
-        // Post just enough collateral for a small borrow
+        // Supply from a separate LP so the pool has liquidity.
+        pool.supply(&lp, &asset, &1_000);
+        // Post just enough collateral for a small borrow.
         pool.supply_collateral(&user, &asset, &100i128);
-        pool.supply(&user, &asset, &1_000i128);
         pool.borrow(&user, &asset, &100i128); // maxed out
                                               // Cannot borrow more
         pool.borrow(&user, &asset, &1i128); // even 1 unit must revert

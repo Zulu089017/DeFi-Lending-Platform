@@ -549,8 +549,16 @@ mod tests {
             let liquidator = Address::generate(&pe.env);
 
             // Post collateral (into vault) and supply liquidity (into pool).
+            // Debt must be > collat (underwater) but small enough that the
+            // liquidation gross (repay * (1 + bonus_bps/10_000)) fits within
+            // the available collateral. With bonus_bps=500 and
+            // close_factor_bps=5_000:
+            //   repay = debt * 5_000 / 10_000 = 0.5 * debt
+            //   gross = repay * 10_500 / 10_000 ≈ 0.525 * debt
+            //   require: 0.525 * debt ≤ collat  →  debt ≤ collat / 0.525
+            //   1.5x gives debt=1.5*collat, gross=0.7875*collat → safe.
             let collat = rng.gen_amount(1_000, 50_000);
-            let debt = collat * 2; // intentionally underwater
+            let debt = collat * 3 / 2; // intentionally underwater, still seizable
 
             p.supply_collateral(&borrower, &xlm, &collat);
             p.supply(&borrower, &xlm, &debt); // provide enough liquidity

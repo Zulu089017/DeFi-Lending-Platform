@@ -46,20 +46,26 @@ mod tests {
     #[test]
     fn test_pause_unpause() {
         let env = Env::default();
-        assert!(!is_paused(&env));
+        let contract_id = env.register(crate::LendingPool {}, ());
+        env.as_contract(&contract_id, || {
+            assert!(!is_paused(&env));
 
-        set_paused(&env, true);
-        assert!(is_paused(&env));
+            set_paused(&env, true);
+            assert!(is_paused(&env));
 
-        set_paused(&env, false);
-        assert!(!is_paused(&env));
+            set_paused(&env, false);
+            assert!(!is_paused(&env));
+        });
     }
 
     #[test]
     #[should_panic(expected = "contract is paused")]
     fn test_require_not_paused_panics() {
         let env = Env::default();
-        set_paused(&env, true);
-        require_not_paused(&env);
+        let contract_id = env.register(crate::LendingPool {}, ());
+        env.as_contract(&contract_id, || {
+            set_paused(&env, true);
+            require_not_paused(&env);
+        });
     }
 }

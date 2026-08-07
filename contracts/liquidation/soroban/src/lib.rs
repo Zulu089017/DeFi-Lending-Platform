@@ -135,17 +135,10 @@ impl Liquidation {
         }
 
         // ── 6. Repay debt on behalf of borrower (liquidator pays) ──
-        // The liquidator is the operator on the pool; repay_on_behalf allows
-        // an operator to reduce the borrower's debt while the payer provides
-        // the funds (in production, via token transfer).
-        Self::pool_repay_on_behalf(
-            &env,
-            &cfg.pool,
-            &liquidator,
-            &borrower,
-            &debt_asset,
-            &repay_amount,
-        );
+        // The liquidation contract itself is the registered pool operator.
+        // It calls repay_on_behalf with its own address as the payer/operator
+        // so that auth + operator checks pass.
+        Self::pool_repay_on_behalf(&env, &cfg.pool, &borrower, &debt_asset, &repay_amount);
 
         // ── 7. Seize collateral: borrower → liquidator ──
         let liq_addr = env.current_contract_address();
@@ -209,18 +202,21 @@ impl Liquidation {
     }
 
     /// Call `pool.repay_on_behalf(payer, borrower, asset, amount)`.
+    /// Uses the liquidation contract's own address as the payer/operator
+    /// so that the pool's `require_operator` check passes (the liquidation
+    /// contract is registered as a pool operator during initialization).
     fn pool_repay_on_behalf(
         env: &Env,
         pool: &Address,
-        payer: &Address,
         borrower: &Address,
         asset: &Symbol,
         amount: &i128,
     ) {
+        let liq_addr = env.current_contract_address();
         let fn_name = Symbol::new(env, "repay_on_behalf");
         let args: Vec<Val> = soroban_sdk::vec![
             env,
-            payer.into_val(env),
+            liq_addr.into_val(env),
             borrower.into_val(env),
             asset.into_val(env),
             amount.into_val(env),
@@ -384,17 +380,14 @@ mod tests {
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
 
-        // Set up borrower: 10,000 collateral in vault, 10,000 debt in pool.
+        // Set up borrower: 10,000 collateral in vault, 12,000 debt in pool
+        // (debt > vault collateral ensures the position is underwater).
         te.pool_client
-            .supply_collateral(&borrower, &te.asset, &10_000i128);
-        te.pool_client.supply(&borrower, &te.asset, &10_000i128);
-        te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
+            .supply_collateral(&borrower, &te.asset, &12_000i128);
+        te.pool_client.supply(&borrower, &te.asset, &12_000i128);
+        te.pool_client.borrow(&borrower, &te.asset, &12_000i128);
         te.vault_client
             .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
-
-        // Now make the position underwater:
-        // Extra borrow pushes debt to 12,000 but collateral stays 10,000.
-        te.pool_client.borrow(&borrower, &te.asset, &2_000i128);
 
         let debt_before = te.pool_client.debt_of(&borrower, &te.asset);
         assert!(debt_before >= 12_000i128, "borrower should be underwater");
@@ -418,10 +411,12 @@ mod tests {
 
         // ── Verify vault state: collateral seized ──
         let coll_after = te.vault_client.position(&borrower, &te.asset);
+        // The liquidation also seizes a protocol fee (50) to treasury.
+        // Total collateral removed: sieze_amount + fee = 5_200 + 50 = 5_250.
         assert_eq!(
             coll_after,
-            coll_before - seized,
-            "collateral must decrease by seized amount"
+            coll_before - seized - 50,
+            "collateral must decrease by seized amount + fee"
         );
 
         let liquidator_coll_after = te.vault_client.position(&liquidator, &te.asset);
@@ -482,10 +477,11 @@ mod tests {
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
 
+        // Underwater: 10,000 vault, 12,000 debt.
         te.pool_client
-            .supply_collateral(&borrower, &te.asset, &10_000i128);
-        te.pool_client.supply(&borrower, &te.asset, &10_000i128);
-        te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
+            .supply_collateral(&borrower, &te.asset, &12_000i128);
+        te.pool_client.supply(&borrower, &te.asset, &12_000i128);
+        te.pool_client.borrow(&borrower, &te.asset, &12_000i128);
         te.vault_client
             .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
 
@@ -517,10 +513,11 @@ mod tests {
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
 
+        // Underwater: 10,000 vault, 12,000 debt.
         te.pool_client
-            .supply_collateral(&borrower, &te.asset, &10_000i128);
-        te.pool_client.supply(&borrower, &te.asset, &10_000i128);
-        te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
+            .supply_collateral(&borrower, &te.asset, &12_000i128);
+        te.pool_client.supply(&borrower, &te.asset, &12_000i128);
+        te.pool_client.borrow(&borrower, &te.asset, &12_000i128);
         te.vault_client
             .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
 
@@ -546,10 +543,11 @@ mod tests {
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
 
+        // Underwater: 10,000 vault, 12,000 debt.
         te.pool_client
-            .supply_collateral(&borrower, &te.asset, &10_000i128);
-        te.pool_client.supply(&borrower, &te.asset, &10_000i128);
-        te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
+            .supply_collateral(&borrower, &te.asset, &12_000i128);
+        te.pool_client.supply(&borrower, &te.asset, &12_000i128);
+        te.pool_client.borrow(&borrower, &te.asset, &12_000i128);
         te.vault_client
             .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
 
@@ -577,10 +575,11 @@ mod tests {
         let borrower = Address::generate(&te.env);
         let liquidator = Address::generate(&te.env);
 
+        // Underwater: 10,000 vault, 12,000 debt.
         te.pool_client
-            .supply_collateral(&borrower, &te.asset, &10_000i128);
-        te.pool_client.supply(&borrower, &te.asset, &10_000i128);
-        te.pool_client.borrow(&borrower, &te.asset, &10_000i128);
+            .supply_collateral(&borrower, &te.asset, &12_000i128);
+        te.pool_client.supply(&borrower, &te.asset, &12_000i128);
+        te.pool_client.borrow(&borrower, &te.asset, &12_000i128);
         te.vault_client
             .deposit(&te.liq_id, &borrower, &te.asset, &10_000i128);
 

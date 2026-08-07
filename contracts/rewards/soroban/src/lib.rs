@@ -418,6 +418,7 @@ impl Rewards {
 mod tests {
     use super::*;
     use soroban_sdk::testutils::Address as _;
+    use soroban_sdk::testutils::Ledger;
 
     #[test]
     fn test_stake_and_claim() {
@@ -435,7 +436,10 @@ mod tests {
         assert_eq!(rewards.total_staked(&asset), 100);
         assert!(rewards.reward_rate(&asset) > 0);
 
-        // Advance ledgers to accrue
+        // Advance ledgers to accrue rewards.
+        env.ledger()
+            .set_sequence_number(env.ledger().sequence() + 10);
+
         let earned = rewards.earned(&user, &asset);
         assert!(earned >= 0, "earned must be non-negative");
 

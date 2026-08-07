@@ -652,14 +652,12 @@ impl LendingController {
         let amt_i64 = amount as i64; // saturating cast; production should bounds-check
         payload.append(&Bytes::from_slice(env, &amt_i64.to_le_bytes()));
         let to_xdr = to.to_xdr(env);
-        // Sanity check: an ed25519 Address serializes to exactly 44 bytes
-        // (ScVal envelope: 4-byte type tag + 4-byte ScAddress tag +
-        // 4-byte AccountId tag + 32-byte raw pubkey). If this ever
-        // changes, the off-chain signer will produce a different digest
-        // and every `wrap` will revert.
-        if to_xdr.len() != 44 {
-            panic!("unexpected Address XDR length");
-        }
+        // NOTE: The precise XDR length depends on the soroban-sdk version
+        // and the Address variant (account vs contract).  The important
+        // invariant is that both the off-chain signer and this contract
+        // produce the same bytes.  A drift between SDK versions on
+        // either side will cause ed25519_verify to reject the attestation
+        // (see the C-6 cross-language payload digest canary test).
         payload.append(&to_xdr);
         payload.append(&Bytes::from_slice(env, &salt.to_array()));
         payload.append(&Bytes::from_slice(env, &nonce.to_le_bytes()));
